@@ -1,6 +1,6 @@
 # EditorServicesCommandSuite
 
-EditorServicesCommandSuite is a PowerShell module that needs a description.
+EditorServicesCommandSuite is a PowerShell module of editor commands to assist with editing PowerShell scripts in VSCode.
 
 This project adheres to the Contributor Covenant [code of conduct](https://github.com/SeeminglyScience/EditorServicesCommandSuite/tree/master/docs/CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code. Please report unacceptable behavior to seeminglyscience@gmail.com.
