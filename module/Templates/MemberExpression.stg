@@ -1,0 +1,187 @@
+/*  This template group is used to generate member expressions.
+
+    It may seem bulky for what it does, but the reflection side has
+    a lot more little differences than you'd think.
+
+    See these for syntax:
+    https://github.com/SeeminglyScience/PSStringTemplate
+    https://github.com/antlr/stringtemplate4/blob/master/doc/index.md
+
+    Group definition legend:
+
+    <%  %> = Multi-line template that ignores indents and new lines
+    <<  >> = Multi-line template that does not ignore indents and new lines
+     "  "  = Single line template
+*/
+
+/* REGION: Templates */
+
+/* Expand ast properties into variables for the rest of the template */
+Main(ast, source, includeParamComments, template) ::= <%
+    <Expression(ast.InferredMember,
+                ast.InferredMember.Name,
+                ast.InferredMember.MemberType,
+                ast.BindingFlags,
+                TargetOrNull())>
+%>
+
+/* Main template that calls everything else */
+Expression(member, name, memberType, bindingFlags, target) ::= <<
+$<name:TransformMemberName()> = <source><BridgePicker()><MemberTemplatePicker()>
+>>
+
+/* If public just return member name and parameters if applicable */
+Public() ::= <%
+    <if(member.IsConstructor)>
+        new
+    <else>
+        <name>
+    <endif>
+    <if(member.ReturnType || member.IsConstructor)>
+        (<Params()>)
+    <endif>
+%>
+/* Nonpublic properties and fields.  */
+GetValue() ::= <<
+
+    Get<memberType>('<name>', [System.Reflection.BindingFlags]'<bindingFlags>').
+    GetValue(<target>)
+>>
+SetValue() ::= <<
+
+    Get<memberType>('<name>', [System.Reflection.BindingFlags]'<bindingFlags>').
+    SetValue(<target>, $newValue)
+>>
+/* Standard GetMethod reflection statement.  Usually for parameterless methods */
+GetMethod() ::= <<
+
+    Get<memberType>(<MethodName()>[System.Reflection.BindingFlags]'<bindingFlags>').
+    Invoke(<target>, @(<Params()>))
+>>
+
+/* Robust GetMethod reflection statement that includes parameter types. Usually for methods
+   a lot of overloads or overloads that PowerShell has difficulty converting implicitly for. */
+VerboseGetMethod() ::= <<
+
+    GetMethod(
+        <ParamComment(name="name")>'<name>',
+        <ParamComment(name="bindingAttr")>[System.Reflection.BindingFlags]'<bindingFlags>',
+        <ParamComment(name="binder")>$null,
+        <ParamComment(name="types")><ParameterTypes()>,
+        <ParamComment(name="modifiers")><if(member.Parameters)><length(member.Parameters)><else>@(0)<endif>
+    ).Invoke(<MethodName()>@(<Params()>))
+>>
+
+InvokeMember() ::= <<
+InvokeMember(
+    <ParamComment(name="name")>'<name>',
+    <ParamComment(name="invokeAttr")>[System.Reflection.BindingFlags]'<InvokeAttribute()>, <bindingFlags>',
+    <ParamComment(name="binder")>$null,
+    <ParamComment(name="target")><target>,
+    <ParamComment(name="args")>@(<Params()>)
+)
+>>
+
+/* REGION: Conditionals */
+
+TargetOrNull() ::= <%
+    <if(member.IsStatic)>
+        $null
+    <else>
+        <source>
+    <endif>
+%>
+
+/* Use specified template, or pick template based on member type and visibility. */
+MemberTemplatePicker() ::= <%
+    <if(member.IsPublic || member.GetMethod.IsPublic)>
+        <Public()>
+    <elseif(template)>
+        <template:InvokeTemplate()>
+    <! If member is a method or constructor. !>
+    <elseif(member.ReturnType || member.IsConstructor)>
+        <if(member.Parameters)>
+            <InvokeMember()>
+        <else>
+            <GetMethod()>
+        <endif>
+    <else>
+        <GetValue()>
+    <endif>
+%>
+/* Chooses from ".", "::", or ".GetType()." depending on visibility and scope */
+BridgePicker() ::= <%
+    <if(!member.IsPublic && !member.GetMethod.IsPublic)>
+        <! If source is a [type] then we don't need .GetType() !>
+        <if(source.Assembly)>
+            .
+        <else>
+            .GetType().
+        <endif>
+    <elseif(member.IsStatic)>
+        ::
+    <else>
+        .
+    <endif>
+%>
+
+/* REGION: Helper templates */
+
+/* Member name as parameter.  Only if not a constructor as GetConstructor doesn't use that parameter. */
+MethodName() ::= "<if(!member.IsConstructor)>'<name>', <endif>"
+
+/* Inline comment with parameter name similar to how C# calls named parameters, but
+   only for readability in PowerShell. */
+ParamComment(name) ::= "<if(includeParamComments)>\<# <name>: #> <endif>"
+
+/* Method parameters.  Separated by new line if name comments are enabled */
+Params() ::= <%
+    <if(member.Parameters)>
+        <\n><Tab("2")>
+        <member.Parameters:Param(); separator={,<\n><Tab("2")>}>
+        <\n><Tab()>
+    <else>
+        <member.Parameters:Param(); separator=", ">
+    <endif>
+%>
+
+Param(p) ::= "<ParamComment(p.Name)>$<p.Name>"
+
+ParameterTypes() ::= <%
+    <if(member.Parameters)>
+        @(<member.Parameters:{p | <p.ParameterType:ToTypeExpression()>}; separator=", ">)
+    <else>
+        @()
+    <endif>
+%>
+
+InvokeAttribute() ::= <%
+    <if(member.ReturnType)>
+        InvokeMethod
+    <elseif(member.IsConstructor)>
+        CreateInstance
+    <elseif(member.PropertyType)>
+        GetProperty
+    <elseif(member.FieldType)>
+        GetField
+    <endif>
+%>
+/* REGION: Format functions */
+/* From custom renderers.  See TypeRenderer and MemberExpressionRenderer classes. */
+
+/* Creates a expression that will resolve any type dispite visibility */
+ToTypeExpression(typeToConvert) ::= "<typeToConvert; format=\"ToTypeExpression\">"
+
+/* Makes the first character lowercase */
+ToCamelCase(valueToConvert) ::= "<valueToConvert; format=\"ToCamelCase\">"
+
+/* Replace .ctor with new and calls ToCamelCase */
+TransformMemberName(valueToConvert) ::= "<valueToConvert; format=\"TransformMemberName\">"
+
+Tab(count="1") ::= "<count; format=\"Tab\">"
+
+/* REGION: Other functions */
+
+/* This doesn't need to be a separate template, but the template evaluation syntax ()() messes
+   with my hacked together syntax highlighting so I'm putting it at the end for now. */
+InvokeTemplate(templateName) ::= "<(templateName)()>"

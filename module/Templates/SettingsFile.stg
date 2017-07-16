@@ -1,0 +1,9 @@
+Base(Settings, Strings) ::= <<
+@{
+    <Settings:Setting(); separator="\n\n">
+}
+>>
+Setting(pair) ::= <%
+    # <Strings.({SettingComment<pair.Key>})><\n>
+    <pair.Key> = '<pair.Value>'
+%>
