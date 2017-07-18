@@ -12,6 +12,31 @@ function ConvertTo-SplatExpression {
         [System.Management.Automation.Language.Ast]
         $Ast
     )
+    begin {
+        function ConvertFromExpressionAst($expression) {
+            $isStringExpression = $expression -is [StringConstantExpressionAst] -or
+                                  $expression -is [ExpandableStringExpressionAst]
+
+            if ($isStringExpression) {
+                # If kind isn't BareWord then it's already enclosed in quotes.
+                if ('BareWord' -ne $expression.StringConstantType) {
+                    return $expression.Extent.Text
+                }
+                $enclosure = "'"
+                if ($expression.NestedExpressions) {
+                    $enclosure = '"'
+                }
+
+                return '{0}{1}{0}' -f $enclosure, $expression.Value
+            }
+            # When we handle switch parameters we don't create an AST.
+            if ($pair.Value -isnot [Ast]) {
+                return $expression
+            }
+
+            return $expression.Extent.Text
+        }
+    }
     end {
         $Ast = GetAncestorOrThrow $Ast -AstTypeName CommandAst -ErrorContext $PSCmdlet
 
@@ -65,28 +90,12 @@ function ConvertTo-SplatExpression {
                 $sb.Append('    ').
                     Append($pair.Key.ParameterName).
                     Append(' = ')
-
-                $isStringExpression = $pair.Value -is [StringConstantExpressionAst] -or
-                                      $pair.Value -is [ExpandableStringExpressionAst]
-
-                if ($isStringExpression) {
-                    # If kind isn't BareWord then it's already enclosed in quotes.
-                    if ('BareWord' -ne $pair.Value.StringConstantType) {
-                        $sb.AppendLine($pair.Value.Extent.Text)
-                    } else {
-                        $enclosure = "'"
-                        if ($pair.Value.NestedExpressions) {
-                            $enclosure = '"'
-                        }
-
-                        $sb.AppendFormat('{0}{1}{0}', @($enclosure, $pair.Value.Value)).
-                            AppendLine()
-                    }
-                # When we handle switch parameters we don't create an AST.
-                } elseif ($pair.Value -isnot [Ast]) {
-                    $sb.AppendLine($pair.Value)
+                if ($pair.Value -is [ArrayLiteralAst]) {
+                    $sb.AppendLine($pair.Value.Elements.ForEach{
+                        ConvertFromExpressionAst $PSItem
+                    } -join ', ')
                 } else {
-                    $sb.AppendLine($pair.Value.Extent.Text)
+                    $sb.AppendLine((ConvertFromExpressionAst $pair.Value))
                 }
             }
             $sb.Append('}')
