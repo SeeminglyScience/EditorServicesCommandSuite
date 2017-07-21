@@ -19,12 +19,18 @@ function ConvertTo-LocalizationString {
 
         if (-not $Name) {
             if ($Host -is [System.Management.Automation.Host.IHostSupportsInteractiveSession]) {
-                $Name = Read-Host $Strings.StringNamePrompt
+                $Name = ReadInputPrompt $Strings.StringNamePrompt
             } else {
                 $Name = (Split-Path $psEditor.GetEditorContext().CurrentFile.Path -Leaf) +
                          '-' +
                          [guid]::NewGuid().Guid
             }
+        }
+        if (-not $Name) {
+            ThrowError -Exception ([ArgumentException]::new($Strings.StringNamePromptFail)) `
+                       -Id        StringNamePromptFail `
+                       -Category  InvalidArgument `
+                       -Target    $Name
         }
 
         $originalContents = $Ast.Value
@@ -36,7 +42,7 @@ function ConvertTo-LocalizationString {
             ThrowError -Exception ([ArgumentException]::new($Strings.InvalidSettingValue -f 'StringLocalizationManifest')) `
                        -Id         `
                        -Category   `
-                       -Target
+                       -Target     $null
         }
 
         $hereString = Find-Ast { 'SingleQuotedHereString' -eq $_.StringConstantType } -First

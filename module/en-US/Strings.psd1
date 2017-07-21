@@ -35,4 +35,5 @@ InferringFromWorkspace=Checking for command in the workspace module manifest.
 VerboseInvalidManifest=Unable to retrieve module manifest for current workspace.
 CannotInferModule=Unable to infer module information for the selected command.
 CommandNotInModule=The selected command does not belong to a module.
+StringNamePromptFail=You must supply a string name for it to be added to the localization table.  Please try the command again.
 '@
