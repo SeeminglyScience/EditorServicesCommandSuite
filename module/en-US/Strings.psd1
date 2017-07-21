@@ -30,4 +30,5 @@ TemplateGroupCompileError=Internal module error: Unable to compile default templ
 FailureGettingMarkdown=Unable to generate markdown content. Ensure you have the module PlatyPS installed and the comment based help is formatted correctly.
 SettingsFileExists=The settings file for workspace '{0}' already exists.
 InvalidSettingValue=The value of the setting '{0}' is invalid.  If you have not already created a settings file for this workspace, you can create one with the 'New-ESCSSettingsFile' function.
+StringNamePromptFail=You must supply a string name for it to be added to the localization table.  Please try the command again.
 '@
