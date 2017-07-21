@@ -33,7 +33,7 @@ function Add-ModuleQualification {
 
             $PSCmdlet.WriteVerbose($Strings.InferringFromSession)
 
-            $command = $getCommand.Invoke()[0]
+            $command = $getCommand.InvokeReturnAsIs()
 
             if ($command) { return $command }
 
