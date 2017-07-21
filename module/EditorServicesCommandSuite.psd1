@@ -46,6 +46,7 @@ RequiredModules = 'PSStringTemplate'
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = 'Add-CommandToManifest',
+                    'Add-ModuleQualification',
                     'ConvertTo-LocalizationString',
                     'ConvertTo-MarkdownHelp',
                     'ConvertTo-SplatExpression',
@@ -71,6 +72,7 @@ AliasesToExport = @()
 FileList = 'EditorServicesCommandSuite.psd1',
            'EditorServicesCommandSuite.psm1',
            'Public\Add-CommandToManifest.ps1',
+           'Public\Add-ModuleQualification.ps1',
            'Public\ConvertTo-LocalizationString.ps1',
            'Public\ConvertTo-MarkdownHelp.ps1',
            'Public\ConvertTo-SplatExpression.ps1',

@@ -18,6 +18,10 @@ Collection of editor commands for use in PowerShell Editor Services.
 
 The Add-CommandToManifest function finds the closest function definition in the current file and uses it to update manifest fields.
 
+### [Add-ModuleQualification](Add-ModuleQualification.md)
+
+The Add-ModuleQualification function retrieves the module a command belongs to and prepends the module name to the expression.
+
 ### [ConvertTo-LocalizationString](ConvertTo-LocalizationString.md)
 
 The ConvertTo-LocalizationString function will take the closest string expression and replace it with a variable that references a localization resource file.
