@@ -12,7 +12,7 @@
 RootModule = 'EditorServicesCommandSuite.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.0'
+ModuleVersion = '0.2.0'
 
 # ID used to uniquely identify this module
 GUID = '97607afd-d9bd-4a2e-a9f9-70fe1a0a9e4c'
@@ -103,7 +103,13 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        # ReleaseNotes = ''
+        ReleaseNotes = @'
+- Added function Add-ModuleQualification for adding qualifying command expressions by module name
+- Changed ConvertTo-LocalizationString to use an editor input prompt for string name instead
+  of Read-Host
+- Fixed an issue where Add-CommandToManifest would include an empty array expression
+- Fixed an issue where array literals would not be quoted properly in splat expressions
+'@
 
     } # End of PSData hashtable
 
