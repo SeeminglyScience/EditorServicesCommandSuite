@@ -13,13 +13,27 @@ function Add-ModuleQualification {
     )
     begin {
         function InferCommandInfo([string]$commandName) {
+            # HACK: If someone knows a reliable way to perform command lookup outside the module,
+            #       without reflection, please let me know or send a PR.
+            $flags = [Reflection.BindingFlags]'Instance, NonPublic'
+            $context = $ExecutionContext.
+                GetType().
+                GetField('_context', $flags).
+                GetValue($ExecutionContext)
+            $globalState = $context.
+                GetType().
+                GetProperty('TopLevelSessionState', $flags).
+                GetValue($context)
+
+            $getCommand = { $ExecutionContext.InvokeCommand.GetCommand($commandName, 'All') }
+
+            $null = [scriptblock].
+                GetProperty('SessionStateInternal', $flags).
+                SetValue($getCommand, $globalState)
 
             $PSCmdlet.WriteVerbose($Strings.InferringFromSession)
-            $getCommand = { $PSCmdlet.SessionState.InvokeCommand.GetCommand($commandName, 'All') }
 
-            # Get new closure puts the script block into a new dynamic module, effectively limiting
-            # command lookup to the global scope so private functions of this module aren't picked.
-            $command = $getCommand.GetNewClosure().Invoke()
+            $command = $getCommand.Invoke()[0]
 
             if ($command) { return $command }
 
@@ -27,9 +41,20 @@ function Add-ModuleQualification {
             try {
                 $manifest = GetInferredManifest
                 if (($moduleInfo = Get-Module $manifest.Name -ErrorAction Ignore)) {
-                    return $moduleInfo.Invoke($getCommand)
+                    return $moduleInfo.Invoke(
+                        { $ExecutionContext.SessionState.InvokeCommand.GetCommand($args[0], 'All') },
+                        $commandName)
                 }
-                return $manifest.ExportedCommands.$commandName
+                $isExport = $manifest.FunctionsToExport -contains $commandName -or
+                            $manifest.CmdletsToExport   -contains $commandName
+                # If it's exported in the manifest but not loaded we can't actually get CommandInfo,
+                # but we can return the properties we expect anyway.
+                if ($isExport) {
+                    return @{
+                        ModuleName = $manifest.Name
+                        Name       = $commandName
+                    }
+                }
             } catch {
                 $PSCmdlet.WriteVerbose($Strings.VerboseInvalidManifest)
             }
