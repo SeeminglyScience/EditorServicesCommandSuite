@@ -35,7 +35,8 @@ function Add-CommandToManifest {
     function GetManifestField ([string]$Name) {
         $field = Find-Ast -First { $PSItem.Value -eq $Name } | Find-Ast -First
         # This transforms a literal string array expression into it's output without invoking.
-        $valueString = $field.ToString() -split   '[,\n\s]' `
+        $valueString = $field.ToString() -replace '@\(\)' `
+                                         -split   '[,\n\s]' `
                                          -replace '['',\s]' `
                                          -match   '.' `
                                          -as      [List[string]]
