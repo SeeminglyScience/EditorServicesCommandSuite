@@ -42,34 +42,25 @@ function ConvertTo-SplatExpression {
 
         $commandName, $elements = $Ast.CommandElements.Where({ $true }, 'Split', 1)
 
-        $splat          = @{}
-        $retainedArgs   = [List[Ast]]::new()
-        $elementsExtent = $elements.Extent | Join-ScriptExtent
-        $elements       = [Queue[Ast]]::new($elements -as [Ast[]])
+        $splat           = @{}
+        $retainedArgs    = [List[Ast]]::new()
+        $elementsExtent  = $elements.Extent | Join-ScriptExtent
+        $boundParameters = [StaticParameterBinder]::BindCommand($Ast).BoundParameters
 
         # Start building the hash table of named parameters and values
-        while ($elements.Count -and ($current = $elements.Dequeue())) {
-            if ($current -isnot [CommandParameterAst]) {
-                # We don't try to figure out positional arguments, so we keep them in final CommandAst
-                $retainedArgs.Add($current)
+        foreach ($parameter in $boundParameters.GetEnumerator()) {
+            # If the command isn't loaded positional parameters come through as their numeric position.
+            if ($parameter.Key -match '\d+' -and -not $parameter.Value.Parameter) {
+                $retainedArgs.Add($parameter.Value.Value)
                 continue
             }
-            # The while is to loop through consecutive switch parameters.
-            while ($current -is [CommandParameterAst]) {
-                $lastParam = $current
-                if (-not $elements.Count) {
-                    $splat.$lastParam = '$true'
-                    break
-                }
-
-                $current = $elements.Dequeue()
-
-                if ($current -is [CommandParameterAst]) {
-                    $splat.$lastParam = '$true'
-                } else {
-                    $splat.$lastParam = $current
-                }
+            # The "Value" property for switches is the parameter AST (e.g. -Force) so we need to
+            # manually build the expression.
+            if ($parameter.Value.ConstantValue -is [bool]) {
+                $splat.($parameter.Key) = '${0}' -f $parameter.Value.ConstantValue.ToString().ToLower()
+                continue
             }
+            $splat.($parameter.Key) = $parameter.Value.Value
         }
 
         # Remove the hypen, change to camelCase and add 'Splat'
@@ -88,7 +79,7 @@ function ConvertTo-SplatExpression {
         $null = & {
             foreach($pair in $splat.GetEnumerator()) {
                 $sb.Append('    ').
-                    Append($pair.Key.ParameterName).
+                    Append($pair.Key).
                     Append(' = ')
                 if ($pair.Value -is [ArrayLiteralAst]) {
                     $sb.AppendLine($pair.Value.Elements.ForEach{
