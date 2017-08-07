@@ -25,7 +25,7 @@ function Add-ModuleQualification {
                 GetProperty('TopLevelSessionState', $flags).
                 GetValue($context)
 
-            $getCommand = { $ExecutionContext.InvokeCommand.GetCommand($commandName, 'All') }
+            $getCommand = { $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All') }
 
             $null = [scriptblock].
                 GetProperty('SessionStateInternal', $flags).
@@ -33,7 +33,7 @@ function Add-ModuleQualification {
 
             $PSCmdlet.WriteVerbose($Strings.InferringFromSession)
 
-            $command = $getCommand.InvokeReturnAsIs()
+            $command = $getCommand.InvokeReturnAsIs($commandName)
 
             if ($command) { return $command }
 
@@ -41,9 +41,9 @@ function Add-ModuleQualification {
             try {
                 $manifest = GetInferredManifest
                 if (($moduleInfo = Get-Module $manifest.Name -ErrorAction Ignore)) {
-                    return $moduleInfo.Invoke(
-                        { $ExecutionContext.SessionState.InvokeCommand.GetCommand($args[0], 'All') },
-                        $commandName)
+                    # Retrieve command info from the first returned module incase multiple versions
+                    # are loaded into the session.
+                    return $moduleInfo[0].Invoke($getCommand, $commandName)
                 }
                 $isExport = $manifest.FunctionsToExport -contains $commandName -or
                             $manifest.CmdletsToExport   -contains $commandName
