@@ -12,7 +12,7 @@
 RootModule = 'EditorServicesCommandSuite.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.0'
+ModuleVersion = '0.2.1'
 
 # ID used to uniquely identify this module
 GUID = '97607afd-d9bd-4a2e-a9f9-70fe1a0a9e4c'
@@ -104,11 +104,13 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @'
-- Added function Add-ModuleQualification for adding qualifying command expressions by module name
-- Changed ConvertTo-LocalizationString to use an editor input prompt for string name instead
-  of Read-Host
-- Fixed an issue where Add-CommandToManifest would include an empty array expression
-- Fixed an issue where array literals would not be quoted properly in splat expressions
+- ConvertTo-SplatExpression will now handle positional arguments as well if the command exists in the session
+
+- Add-ModuleQualification will now work in all workspace configurations
+
+- ConvertTo-MarkdownHelp will now generate the correct online help URI and will create the markdown
+  docs folder if it does not already exist.  It will now also correctly handle situations where
+  multiple versions of the same module are imported.
 '@
 
     } # End of PSData hashtable
