@@ -24,7 +24,10 @@ function ConvertTo-MarkdownHelp {
                 $docsPath,
                 $psEditor.Workspace.Path)
 
-            $onlineUri = $projectUri, $normalizedDocs, ($Ast.Name + '.md') -join '/' -replace '\\', '/'
+            $onlineUri = $projectUri,
+                         'blob/master',
+                         $normalizedDocs,
+                         ($Ast.Name + '.md') -join '/' -replace '\\', '/'
         }
 
         # Wrap this whole thing in a try/finally so we can dispose of temp files and PowerShell
@@ -84,6 +87,10 @@ function ConvertTo-MarkdownHelp {
         }
 
         Start-Sleep -Milliseconds 50
+
+        if (-not (Test-Path $docsPath)) {
+            $null = New-Item $docsPath -ItemType Directory
+        }
 
         $targetMarkdownPath = '{0}\{1}.md' -f $docsPath, $Ast.Name
         if (-not (Test-Path $targetMarkdownPath)) {
