@@ -12,7 +12,7 @@
 RootModule = 'EditorServicesCommandSuite.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.1'
+ModuleVersion = '0.3.0'
 
 # ID used to uniquely identify this module
 GUID = '97607afd-d9bd-4a2e-a9f9-70fe1a0a9e4c'
@@ -106,13 +106,8 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @'
-- ConvertTo-SplatExpression will now handle positional arguments as well if the command exists in the session
-
-- Add-ModuleQualification will now work in all workspace configurations
-
-- ConvertTo-MarkdownHelp will now generate the correct online help URI and will create the markdown
-  docs folder if it does not already exist.  It will now also correctly handle situations where
-  multiple versions of the same module are imported.
+- New editor command Add-PinvokeMethod. Allows you to search the pinvoke.net web service for
+  matching functions and inserts a Add-Type statement to the current file.
 '@
 
     } # End of PSData hashtable

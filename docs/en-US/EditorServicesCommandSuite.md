@@ -22,6 +22,10 @@ The Add-CommandToManifest function finds the closest function definition in the 
 
 The Add-ModuleQualification function retrieves the module a command belongs to and prepends the module name to the expression.
 
+### [Add-PinvokeMethod](Add-PinvokeMethod.md)
+
+The Add-PinvokeMethod function searches pinvoke.net for the requested function name and provides a list of matches to select from.  Once selected, this function will get the signature and create a expression that uses the Add-Type cmdlet to create a type with the PInvoke method.
+
 ### [ConvertTo-LocalizationString](ConvertTo-LocalizationString.md)
 
 The ConvertTo-LocalizationString function will take the closest string expression and replace it with a variable that references a localization resource file.
