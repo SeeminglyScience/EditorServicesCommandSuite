@@ -200,7 +200,7 @@ function Add-PinvokeMethod {
         $signature = $signatureInfo.Signature `
             -split '\|' `
             -join [Environment]::NewLine `
-            -replace '(?<!public )(?<!\[)(?:private )?(static|struct)', 'public $1' `
+            -replace '(?<!public )(?<!\[)(?:private |internal )?(static|struct)', 'public $1' `
             -replace '\s+$' `
             -replace "'", "''"
 
