@@ -36,4 +36,8 @@ VerboseInvalidManifest=Unable to retrieve module manifest for current workspace.
 CannotInferModule=Unable to infer module information for the selected command.
 CommandNotInModule=The selected command does not belong to a module.
 StringNamePromptFail=You must supply a string name for it to be added to the localization table.  Please try the command again.
+CannotFindPInvokeFunction=Unable to find a PInvoke function that starts with '{0}'
+PInvokeFunctionChoice=Multiple matches found, please select below
+PInvokeFunctionNamePrompt=PInvoke Function Name
+MissingPInvokeSignature=The function was found but pinvoke.net did not return signature information.
 '@
