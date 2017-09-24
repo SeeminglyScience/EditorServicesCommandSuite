@@ -12,7 +12,7 @@
 RootModule = 'EditorServicesCommandSuite.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.3.0'
+ModuleVersion = '0.4.0'
 
 # ID used to uniquely identify this module
 GUID = '97607afd-d9bd-4a2e-a9f9-70fe1a0a9e4c'
@@ -48,6 +48,7 @@ RequiredModules = 'PSStringTemplate'
 FunctionsToExport = 'Add-CommandToManifest',
                     'Add-ModuleQualification',
                     'Add-PinvokeMethod',
+                    'ConvertTo-FunctionDefinition',
                     'ConvertTo-LocalizationString',
                     'ConvertTo-MarkdownHelp',
                     'ConvertTo-SplatExpression',
@@ -75,6 +76,7 @@ FileList = 'EditorServicesCommandSuite.psd1',
            'Public\Add-CommandToManifest.ps1',
            'Public\Add-ModuleQualification.ps1',
            'Public\Add-PinvokeMethod.ps1',
+           'Public\ConvertTo-FunctionDefinition.ps1',
            'Public\ConvertTo-LocalizationString.ps1',
            'Public\ConvertTo-MarkdownHelp.ps1',
            'Public\ConvertTo-SplatExpression.ps1',
@@ -106,8 +108,7 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @'
-- New editor command Add-PinvokeMethod. Allows you to search the pinvoke.net web service for
-  matching functions and inserts a Add-Type statement to the current file.
+- New editor command ConvertTo-FunctionDefinition for generating functions from selected text.
 '@
 
     } # End of PSData hashtable
