@@ -20,6 +20,10 @@ function AddIndent {
     }
     end {
         $sourceText = $stringList -join [Environment]::NewLine
+        if ($Amount -lt 1) {
+            return $sourceText
+        }
+
         $indentText = ,$Indent * $Amount -join ''
         # Preserve new line characters. Only works if not sent a stream.
         $newLine    = [regex]::Match($sourceText, '\r?\n').Value

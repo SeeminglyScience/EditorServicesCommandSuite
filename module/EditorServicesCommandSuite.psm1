@@ -22,6 +22,7 @@ if (-not ('Antlr4.StringTemplate.StringRenderer' -as [type])) {
 . $PSScriptRoot\Classes\Expressions.ps1
 . $PSScriptRoot\Classes\Renderers.ps1
 . $PSScriptRoot\Classes\Async.ps1
+. $PSScriptRoot\Classes\Utility.ps1
 
 Get-ChildItem $PSScriptRoot\Public, $PSScriptRoot\Private -Filter '*.ps1' | ForEach-Object {
     . $PSItem.FullName
