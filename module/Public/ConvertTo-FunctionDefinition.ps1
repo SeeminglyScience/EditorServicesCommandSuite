@@ -1,3 +1,4 @@
+using namespace System.Collections.Generic
 using namespace System.Management.Automation
 using namespace System.Management.Automation.Language
 using namespace Microsoft.PowerShell.EditorServices.Extensions
@@ -152,7 +153,7 @@ function ConvertTo-FunctionDefinition {
         function GetInferredParameters {
             param([VariableExpressionAst[]] $Variables)
             end {
-                $parameters = [System.Collections.Generic.Dictionary[string, Tuple[string, string, type]]]::new(
+                $parameters = [Dictionary[string, Tuple[string, string, type, bool]]]::new(
                     [StringComparer]::InvariantCultureIgnoreCase)
 
                 if (-not $Variables.Count) {
@@ -170,10 +171,11 @@ function ConvertTo-FunctionDefinition {
 
                         $inferredType = GetInferredType -Ast $variable -ErrorAction Ignore
                         if ($inferredType -ne [object]) {
-                            $parameters[$asPascalCase] = [Tuple[string, string, type]]::new(
+                            $parameters[$asPascalCase] = [Tuple[string, string, type, bool]]::new(
                                 $asPascalCase,
                                 $variable.VariablePath.UserPath,
-                                $inferredType)
+                                $inferredType,
+                                $existingParameter.Item4)
                         }
 
                         continue
@@ -184,12 +186,22 @@ function ConvertTo-FunctionDefinition {
                         $inferredType = [object]
                     }
 
+                    $parseErrors = $null
+                    $parsedVariableName = [Parser]::ParseInput(
+                        '${0}' -f $variable.VariablePath.UserPath,
+                        [ref]$null,
+                        [ref]$parseErrors)
+
+                    $shouldEscape = $parseErrors.Count -or
+                        $parsedVariableName.EndBlock.Statements.PipelineElements.Count -gt 1
+
                     $parameters.Add(
                         $asPascalCase,
-                        [Tuple[string, string, type]]::new(
+                        [Tuple[string, string, type, bool]]::new(
                             $asPascalCase,
                             $variable.VariablePath.UserPath,
-                            $inferredType))
+                            $inferredType,
+                            $shouldEscape))
                 }
 
                 return $parameters
@@ -205,7 +217,7 @@ function ConvertTo-FunctionDefinition {
         function GetLocalVariables {
             param([Ast] $Ast)
             end {
-                $localVariables = [System.Collections.Generic.List[string]]::new()
+                $localVariables = [List[string]]::new()
                 $assignmentAsts = Find-Ast -Ast $targetAst -Family {
                     # Find variable assignments, exlude member/index expression assignments.
                     $PSItem -is [AssignmentStatementAst] -and (
@@ -250,12 +262,19 @@ function ConvertTo-FunctionDefinition {
                     $paramText = $parameters.Values.ForEach{
                         $parameterType = [Microsoft.PowerShell.ToStringCodeMethods]::Type($PSItem.Item3)
 
-                        # Ensure the parameter type is not too generic and is resolvable.
-                        if ($parameterType -ne 'System.Object' -and $parameterType -as [type]) {
-                            return '[{0}] ${1}' -f $parameterType, $PSItem.Item1
+                        $variableName = $PSItem.Item1
+                        if ($PSItem.Item4) {
+                            $variableName = '{' +
+                                [CodeGeneration]::EscapeVariableName($PSItem.Item1) +
+                                '}'
                         }
 
-                        return '${0}' -f $PSItem.Item1
+                        # Ensure the parameter type is not too generic and is resolvable.
+                        if ($parameterType -ne 'System.Object' -and $parameterType -as [type]) {
+                            return '[{0}] ${1}' -f $parameterType, $variableName
+                        }
+
+                        return '${0}' -f $variableName
                     }
 
                     if ($paramText.Count) {
@@ -284,13 +303,20 @@ function ConvertTo-FunctionDefinition {
                     foreach ($expression in $variableExpressions) {
                         $variableName = $expression.VariablePath.UserPath
                         $asPascalCase = ToPascalCase $variableName
+                        $variableOffset = $expression.Extent.StartOffset - $targetStartOffset
+
+                        # Account for escaped variabled names (e.g ${my strange var name})
+                        if ($expression.ToString().IndexOf('{') -ne -1) {
+                            $variableOffset++
+                        }
+
                         $targetWithCorrections.
                             Remove(
-                                $expression.Extent.StartOffset - $targetStartOffset,
-                                $variableName.Length).
+                                $variableOffset,
+                                [CodeGeneration]::EscapeVariableName($variableName).Length).
                             Insert(
-                                $expression.Extent.StartOffset - $targetStartOffset,
-                                $asPascalCase)
+                                $variableOffset,
+                                [CodeGeneration]::EscapeVariableName($asPascalCase))
                     }
 
                     $targetWithIndent = $targetWithCorrections |
@@ -366,25 +392,41 @@ function ConvertTo-FunctionDefinition {
                 $findAstSplat = @{
                     Ast          = $targetAst
                     Ancestor     = $true
-                    FilterScript = { $PSItem -is [FunctionDefinitionAst] }
+                    FilterScript = {
+                        $PSItem -is [FunctionDefinitionAst] -and
+                        $PSItem.Parent -isnot [FunctionMemberAst]
+                    }
                 }
 
                 # Find the parent function definition from before we removed the target extent
-                $targetBlock = Find-Ast @FindAstSplat | ForEach-Object Body
+                $targetBlock = Find-Ast @findAstSplat | ForEach-Object Body
                 if (-not $targetBlock) {
                     $targetBlock = $psEditor.GetEditorContext().CurrentFile.Ast
                 }
 
                 if ($targetBegin = $targetBlock.BeginBlock) {
-                    $beginIndent = $targetBegin.Extent.StartColumnNumber + 3
-                    $entryColumn = ($fullScript -split '\r?\n')[
-                        $targetBegin.Extent.StartLineNumber - 1].
-                        IndexOf('{') + 2
+                    $entryLine         = $targetBegin.Extent.StartLineNumber
+                    $beginIndent       = $targetBegin.Extent.StartColumnNumber + 3
+                    $fullScriptAsLines = $fullScript -split '\r?\n'
+                    $beginLineText     = $fullScriptAsLines[$entryLine - 1]
+                    $braceOffset       = $beginLineText.IndexOf(
+                        '{',
+                        $beginLineText.IndexOf(
+                            'begin',
+                            [StringComparison]::InvariantCultureIgnoreCase))
+
+                    # If we couldn't find the begin text and brace, they are probably on different lines
+                    if ($braceOffset -eq -1) {
+                        $entryLine++
+                        $braceOffset = $fullScriptAsLines[$entryLine - 1].IndexOf('{')
+                    }
+
+                    $entryColumn = $braceOffset + 2
 
                     $indentedFunctionText = $functionText | AddIndent -Amount $beginIndent
                     $psEditor.GetEditorContext().CurrentFile.InsertText(
                         [Environment]::NewLine + $indentedFunctionText,
-                        $targetBegin.Extent.StartLineNumber,
+                        $entryLine,
                         $entryColumn)
                     return
                 }
@@ -485,7 +527,12 @@ function ConvertTo-FunctionDefinition {
 
         $invocation = [System.Text.StringBuilder]::new($FunctionName)
         foreach ($parameter in $parameters.Values) {
-            $null = $invocation.AppendFormat(' -{0} ${1}', $parameter.Item1, $parameter.Item2)
+            $variableName = $parameter.Item2
+            if ($parameter.Item4) {
+                $variableName = '{' + [CodeGeneration]::EscapeVariableName($parameter.Item2) + '}'
+            }
+
+            $null = $invocation.AppendFormat(' -{0} ${1}', $parameter.Item1, $variableName)
         }
 
         $invocation = $invocation | AddIndent -Amount $targetExtentIndent

@@ -24,7 +24,7 @@ function AddIndent {
             return $sourceText
         }
 
-        $indentText = ,$Indent * $Amount -join ''
+        $indentText = $Indent * $Amount
         # Preserve new line characters. Only works if not sent a stream.
         $newLine    = [regex]::Match($sourceText, '\r?\n').Value
         $asLines    = $sourceText -split '\r?\n'
@@ -38,8 +38,11 @@ function AddIndent {
                 }
             }
 
-            # Don't indent blank lines
-            if ([string]::IsNullOrWhiteSpace($line)) {
+            # Don't indent blank lines or here-string ending tags
+            $shouldNotIndent = [string]::IsNullOrWhiteSpace($line) -or
+                               $line.StartsWith("'@") -or
+                               $line.StartsWith('"@')
+            if ($shouldNotIndent) {
                 $line
                 continue
             }
