@@ -341,6 +341,16 @@ function ConvertTo-FunctionDefinition {
                 $currentFolder = [System.IO.Path]::GetDirectoryName(
                     $psEditor.GetEditorContext().CurrentFile.Path)
 
+                # If the file is untitled, use the workspace path instead.
+                if ([string]::IsNullOrWhiteSpace($currentFolder)) {
+                    $currentFolder = $psEditor.Workspace.Path
+
+                    # If untitled workspace, use current provider path.
+                    if ([string]::IsNullOrWhiteSpace($currentFolder)) {
+                        $currentFolder = $PSCmdlet.CurrentProviderLocation('FileSystem').Path
+                    }
+                }
+
                 $path = $PSCmdlet.SessionState.Path
                 $targetFile = $path.
                     GetUnresolvedProviderPathFromPSPath(
