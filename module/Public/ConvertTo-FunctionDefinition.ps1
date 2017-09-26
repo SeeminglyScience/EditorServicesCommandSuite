@@ -457,23 +457,29 @@ function ConvertTo-FunctionDefinition {
                     ForEach-Object { $PSItem.Matches[0].Length }
 
                 $entryLine = $targetBlock.Extent.StartLineNumber
+                $entryIsRoot = $true
+                if ($targetBlock.UsingStatements.Count) {
+                    $entryLine = $targetBlock.UsingStatements[-1].Extent.EndLineNumber
+                    $entryIsRoot = $false
+                }
+
                 if ($targetBlock.ParamBlock) {
                    $entryLine = $targetBlock.ParamBlock.Extent.EndLineNumber
+                   $entryIsRoot = $false
                 }
 
                 $beginIndent = $parentBlockIndent + 4
                 $parentIsRoot = -not $targetBlock.Parent
                 if ($parentIsRoot) {
                     $beginIndent = 0
-                    if (-not $targetBlock.ParamBlock) {
-                        $entryColumn = 1
-                        $beginText = $beginText + [Environment]::NewLine
-                    }
                 }
 
-                if (-not $parentIsRoot -or $targetBlock.ParamBlock) {
-                    $beginText = [Environment]::NewLine + $beginText
+                if ($parentIsRoot -and $entryIsRoot) {
+                    $entryColumn = 1
+                    $beginText = $beginText + [Environment]::NewLine
+                } else {
                     $entryColumn = $fullScriptAsLines[$entryLine - 1].Length + 1
+                    $beginText = [Environment]::NewLine + $beginText
                 }
 
                 $beginText = AddIndent $beginText -Amount $beginIndent
