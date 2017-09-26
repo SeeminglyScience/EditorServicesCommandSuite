@@ -26,6 +26,13 @@ The Add-ModuleQualification function retrieves the module a command belongs to a
 
 The Add-PinvokeMethod function searches pinvoke.net for the requested function name and provides a list of matches to select from.  Once selected, this function will get the signature and create a expression that uses the Add-Type cmdlet to create a type with the PInvoke method.
 
+### [ConvertTo-FunctionDefinition](ConvertTo-FunctionDefinition.md)
+
+The ConvertTo-FunctionDefintion function takes a section of the current file and creates a function
+definition from it. The generated function includes a parameter block with parameters for variables
+that are not defined in the selection. In the place of the selected text will be the invocation of
+the generated command including parameters.
+
 ### [ConvertTo-LocalizationString](ConvertTo-LocalizationString.md)
 
 The ConvertTo-LocalizationString function will take the closest string expression and replace it with a variable that references a localization resource file.

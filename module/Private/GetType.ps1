@@ -33,14 +33,14 @@ function GetType {
             $type = [AppDomain]::CurrentDomain.
                 GetAssemblies().
                 ForEach{ $PSItem.GetType($TypeName, $false, $true) }.
-                Where{ $PSItem }[0]
+                Where({ $PSItem }, 'First')[0]
         }
 
         if (-not $type) {
             $type = [AppDomain]::CurrentDomain.
                 GetAssemblies().
                 GetTypes().
-                Where{ $PSItem.ToString() -match "$TypeName$" }[0]
+                Where({ $PSItem.ToString() -match "$TypeName$" }, 'First')[0]
         }
         # TODO: Pull using statements from the ast to catch some edge cases.
         if (-not $type) {
@@ -48,6 +48,7 @@ function GetType {
                        -Id        TypeNotFound `
                        -Category  InvalidOperation `
                        -Target    $TypeName
+            return
         }
         $type
     }

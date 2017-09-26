@@ -38,100 +38,113 @@ function GetInferredType {
         [System.Management.Automation.Language.Ast]
         $Ast
     )
-    end {
-        if ($Ast.InferredType -and $Ast.InferredType -ne ([object])) { return $Ast.InferredType }
-
-        if ($Ast -is [System.Management.Automation.Language.TypeExpressionAst]) {
-            return GetType -TypeName $Ast.TypeName
-        }
-        $PSCmdlet.WriteVerbose($Strings.InferringFromCompletion)
-        $results = [System.Management.Automation.CommandCompletion]::CompleteInput(
-            <# ast:            #> $Context.CurrentFile.Ast,
-            <# tokens:         #> $Context.CurrentFile.Tokens,
-            <# cursorPosition: #> $Ast.Extent.EndScriptPosition,
-            <# options:        #> $null
-        )
-        $type = $results.CompletionMatches[0].ToolTip |
-            Select-String '\[([\w\.]*)\]\$' |
-            ForEach-Object { $PSItem.Matches.Groups[1].Value } |
-            GetType
-
-        if ($type -and $type.ToString() -match 'System.Collections' -or $type.IsArray) {
-            $type = $null
-        }
-        if (-not $type -and $Ast -is [ExtendedMemberExpressionAst]) {
-            $type = $Ast.InferredType
-        }
-        if (-not $type -and $Ast -is [System.Management.Automation.Language.MemberExpressionAst]) {
-
-            $member = GetInferredMember $Ast
-            $type = $member.ReturnType, $member.PropertyType, $member.FieldType | Where-Object { $_ }
-
-        }
-        # If it's a variable then check for it in scopes relevant to the current workspace.
-        if (-not $type -and $Ast -is [System.Management.Automation.Language.VariableExpressionAst]) {
-            $PSCmdlet.WriteVerbose($Strings.GettingImportedModules)
-
-            $silent = @{
-                ErrorAction   = 'Ignore'
-                WarningAction = 'Ignore'
-            }
-            $workspaceModuleGuids = GetWorkspaceFile |
-                Where-Object FullName -match '.psd1$' |
-                Test-ModuleManifest @silent |
-                Where-Object Guid -NotMatch '^[0-]*$' |
-                ForEach-Object Guid
-
-            $workspaceModules = Get-Module | Where-Object Guid -In $workspaceModuleGuids
-
-            $internals = $workspaceModules | ForEach-Object {
-                $PSItem.SessionState.GetType().
-                    GetProperty('Internal', [BindingFlags]'Instance, NonPublic').
-                    GetValue($PSItem.SessionState)
-            }
-            # If there are no modules in the workspace then grab the global scope. This isn't needed
-            # otherwise because enumerating a module's scopes will hit global as well.
-            if (-not $internals) {
-                $PSCmdlet.WriteVerbose($Strings.CheckingDefaultScope)
-                $internals = $ExecutionContext.SessionState.GetType().
-                    GetProperty('Internal', [BindingFlags]'Instance, NonPublic').
-                    GetValue($ExecutionContext.SessionState)
+    begin {
+        function GetInferredTypeImpl {
+            # Return cached inferred type if it's our custom MemberExpressionAst
+            if ($Ast.InferredType -and $Ast.InferredType -ne [object]) {
+                return $Ast.InferredType
             }
 
-            foreach ($internal in $internals) {
-                $PSCmdlet.WriteVerbose($Strings.EnumeratingScopesForMember)
-                $searcher = [ref].Assembly.GetType('System.Management.Automation.VariableScopeItemSearcher').
+            if ($Ast -is [System.Management.Automation.Language.TypeExpressionAst]) {
+                return GetType -TypeName $Ast.TypeName
+            }
+
+            if ($Ast.StaticType -and $Ast.StaticType -ne [object]) {
+                return $Ast.StaticType
+            }
+
+            $PSCmdlet.WriteDebug("TYPEINF: Starting engine inference")
+            try {
+                $flags = [BindingFlags]'Instance, NonPublic'
+                $mappedInput = [System.Management.Automation.CommandCompletion]::
+                    MapStringInputToParsedInput(
+                        $Ast.Extent.StartScriptPosition.GetFullScript(),
+                        $Ast.Extent.EndOffset)
+
+                # If anyone knows a public way to go about getting the type inference from the engine
+                # give me a shout.
+                $analysis = [ref].
+                    Assembly.
+                    GetType('System.Management.Automation.CompletionAnalysis').
                     InvokeMember(
-                        <# name:       #> '',
-                        <# invokeAttr: #> [BindingFlags]'CreateInstance, Instance, Public',
+                        <# name:       #> $null,
+                        <# invokeAttr: #> $flags -bor [BindingFlags]::CreateInstance,
                         <# binder:     #> $null,
                         <# target:     #> $null,
-                        <# args:       #> @(
-                            <# sessionState: #> $internal,
-                            <# lookupPath:   #> $Ast.VariablePath,
-                            <# origin:       #> [System.Management.Automation.CommandOrigin]::Runspace
-                        )
-                    )
-                # Enumerate manually because enumerating normally sometimes causes an endless loop
-                # with global variables.
-                do { $match = $searcher.Current.Value }
-                until ($match -or -not $searcher.MoveNext())
+                        <# args: #> @(
+                            <# ast:            #> $mappedInput.Item1,
+                            <# tokens:         #> $mappedInput.Item2,
+                            <# cursorPosition: #> $mappedInput.Item3,
+                            <# options:        #> @{}))
 
-                if ($match.Count -gt 1) { $match = $match[0] }
+                $engineContext = $ExecutionContext.GetType().
+                    GetField('_context', $flags).
+                    GetValue($ExecutionContext)
 
-                if ($match) {
-                    $type = $match.GetType()
-                    $PSCmdlet.WriteVerbose($Strings.VariableFound -f $type)
-                    break
+                $completionContext = $analysis.GetType().
+                    GetMethod('CreateCompletionContext', $flags).
+                    Invoke($analysis, @($engineContext))
+
+                $type = $Ast.GetType().
+                    GetMethod('GetInferredType', $flags).
+                    Invoke($Ast, @($completionContext)).
+                    Where({ $null -ne $PSItem.Type -and $PSItem.Type -ne [object]}, 'First')[0].
+                    Type
+
+                if ($type) {
+                    return $type
+                }
+
+            } catch {
+                $PSCmdlet.WriteDebug('TYPEINF: Engine failed with error ID "{0}"' -f $Error[0].FullyQualifiedErrorId)
+            }
+
+            if ($Ast -is [System.Management.Automation.Language.MemberExpressionAst]) {
+                $PSCmdlet.WriteDebug('TYPEINF: Starting member inference')
+                if ($member = GetInferredMember -Ast $Ast) {
+                    return (
+                        $member.ReturnType,
+                        $member.PropertyType,
+                        $member.FieldType
+                    ).Where({ $PSItem -is [type] }, 'First')[0]
+                }
+            }
+
+            if ($Ast -is [System.Management.Automation.Language.VariableExpressionAst]) {
+                $PSCmdlet.WriteDebug('TYPEINF: Starting module state inference')
+                $inferredManifest = GetInferredManifest -ErrorAction Ignore
+                $moduleVariable = Get-Module |
+                    Where-Object Guid -eq $inferredManifest.GUID |
+                    ForEach-Object { $PSItem.SessionState.PSVariable.GetValue($Ast.VariablePath.UserPath) } |
+                    Where-Object { $null -ne $PSItem }
+
+                if ($moduleVariable) {
+                    return $moduleVariable.Where({ $null -ne $PSItem }, 'First')[0].GetType()
+                }
+
+                $PSCmdlet.WriteDebug('TYPEINF: Starting global state inference')
+
+                $foundInGlobal = $ExecutionContext.
+                    SessionState.
+                    Module.
+                    GetVariableFromCallersModule(
+                        $Ast.VariablePath.UserPath)
+                if ($foundInGlobal -and $null -ne $foundInGlobal.Value) {
+                    return $foundInGlobal.Value.GetType()
                 }
             }
         }
+    }
+    end {
+        $type = GetInferredTypeImpl
         if (-not $type) {
             ThrowError -Exception ([InvalidOperationException]::new($Strings.CannotInferType -f $Ast)) `
                        -Id        CannotInferType `
                        -Category  InvalidOperation `
                        -Target    $Ast
+            return
         }
+
         $type
     }
 }

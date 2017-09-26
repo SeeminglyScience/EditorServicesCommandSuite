@@ -80,8 +80,9 @@ All commands unless otherwise noted target the closest relevant expression.
 |Function Name|Editor Command Name|Description|
 |---|---|---|
 |Add-CommandToManifest|Add Closest Function To Manifest|Add a function to the manifest fields ExportedFunctions and FileList|
-|Add-ModuleQualifcation|Add Module Name to Closest Command|Infers the origin module of the command closest to the cursor and prepends the module name|
+|Add-ModuleQualification|Add Module Name to Closest Command|Infers the origin module of the command closest to the cursor and prepends the module name|
 |Add-PinvokeMethod|Insert Pinvoke Method Definition|Searches the pinvoke.net web service for a matching function and creates a Add-Type expression with the signature|
+|ConvertTo-FunctionDefinition|Create New Function From Selection|Generate a function definition expression from current selection|
 |ConvertTo-LocalizationString|Add Closest String to Localization File|Replaces a string expression with a variable that references a localization file, and adds the string to that file|
 |ConvertTo-MarkdownHelp|Generate Markdown from Closest Function|Generate markdown using PlatyPS, add the markdown file to your docs folder, and replace the comment help with an external help file comment.|
 |ConvertTo-SplatExpression|Convert Command to Splat Expression|Create a splat hashtable variable from named parameters in a command and replace the named parameters with a a splat expression.|
@@ -97,4 +98,3 @@ All commands unless otherwise noted target the closest relevant expression.
 
 We would love to incorporate community contributions into this project.  If you would like to
 contribute code, documentation, tests, or bug reports, please read our [Contribution Guide](https://github.com/SeeminglyScience/EditorServicesCommandSuite/tree/master/docs/CONTRIBUTING.md) to learn more.
-
