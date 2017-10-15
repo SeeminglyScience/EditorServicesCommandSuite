@@ -148,7 +148,11 @@ function Expand-MemberExpression {
         function GetTargetMember {
             param([Ast] $Ast)
             end {
+                try {
                 $members = GetInferredMember -Ast $Ast
+                } catch {
+                    ThrowError -ErrorRecord $PSItem -Show
+                }
 
                 if ($members.Count -le 1) {
                     return $members

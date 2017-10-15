@@ -101,7 +101,13 @@ function GetInferredType {
 
             if ($Ast -is [System.Management.Automation.Language.MemberExpressionAst]) {
                 $PSCmdlet.WriteDebug('TYPEINF: Starting member inference')
-                if ($member = GetInferredMember -Ast $Ast) {
+                try {
+                    $member = GetInferredMember -Ast $Ast
+                } catch [MissingMemberException] {
+                    $PSCmdlet.WriteDebug("Couldn't find member for AST $Ast")
+                }
+
+                if ($member) {
                     return (
                         $member.ReturnType,
                         $member.PropertyType,
