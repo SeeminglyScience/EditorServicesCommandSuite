@@ -15,7 +15,13 @@ function ConvertTo-MarkdownHelp {
         $Ast = GetAncestorOrThrow $Ast -AstTypeName FunctionDefinitionAst -ErrorContext $PSCmdlet
 
         $settings = GetSettings
+        try {
         $manifest = GetInferredManifest
+        } catch {
+            ThrowError -ErrorRecord $PSItem -Show
+            return
+        }
+
         $docsPath = Join-Path (ResolveRelativePath $settings.MarkdownDocsPath) $PSCulture
         # If project uri is defined in the manifest then take a guess at what the online uri
         # should be.

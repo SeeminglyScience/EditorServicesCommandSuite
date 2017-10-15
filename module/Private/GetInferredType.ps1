@@ -112,7 +112,13 @@ function GetInferredType {
 
             if ($Ast -is [System.Management.Automation.Language.VariableExpressionAst]) {
                 $PSCmdlet.WriteDebug('TYPEINF: Starting module state inference')
-                $inferredManifest = GetInferredManifest -ErrorAction Ignore
+                try {
+                    $inferredManifest = GetInferredManifest
+                } catch {
+                    $PSCmdlet.WriteVerbose($Strings.VerboseInvalidManifest)
+                }
+
+                if ($inferredManifest) {
                 $moduleVariable = Get-Module |
                     Where-Object Guid -eq $inferredManifest.GUID |
                     ForEach-Object { $PSItem.SessionState.PSVariable.GetValue($Ast.VariablePath.UserPath) } |
@@ -121,14 +127,22 @@ function GetInferredType {
                 if ($moduleVariable) {
                     return $moduleVariable.Where({ $null -ne $PSItem }, 'First')[0].GetType()
                 }
+                }
+
 
                 $PSCmdlet.WriteDebug('TYPEINF: Starting global state inference')
 
-                $foundInGlobal = $ExecutionContext.
-                    SessionState.
-                    Module.
-                    GetVariableFromCallersModule(
-                        $Ast.VariablePath.UserPath)
+                # I'd rather this use Module.GetVariableFromCallersModule but it appears to throw
+                # when a frame in the call stack doesn't have a session state, like the scriptblock
+                # of a editor command in some cases.
+                $getVariableSplat = @{
+                    Scope       = 'Global'
+                    Name        = $Ast.VariablePath.UserPath
+                    ErrorAction = 'Ignore'
+                }
+
+                $foundInGlobal = Get-Variable @getVariableSplat
+
                 if ($foundInGlobal -and $null -ne $foundInGlobal.Value) {
                     return $foundInGlobal.Value.GetType()
                 }

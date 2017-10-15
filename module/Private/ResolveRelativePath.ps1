@@ -2,10 +2,29 @@ function ResolveRelativePath {
     [OutputType([System.Management.Automation.PathInfo])]
     [CmdletBinding()]
     param([string]$Path)
-    end {
-        if ($resolved = (Resolve-Path (Join-Path $psEditor.Workspace.Path $Path) -ErrorAction Ignore)) {
-            return $resolved
+    begin {
+        function GetTargetPath {
+            param()
+            end {
+                $basePath = $psEditor.Workspace.Path
+                if ([string]::IsNullOrWhiteSpace($basePath)) {
+                    $basePath = $PWD.Path
+                }
+
+                if ([string]::IsNullOrWhiteSpace($Path)) {
+                    return $basePath
+                }
+
+                return Join-Path $basePath -ChildPath $Path
+            }
         }
-        return Resolve-Path $Path
+    }
+    end {
+        $targetPath = GetTargetPath -Path $Path
+        if (-not $PSCmdlet.SessionState.Path.IsProviderQualified($targetPath)) {
+            $targetPath = 'Microsoft.PowerShell.Core\FileSystem::' + $targetPath
+        }
+
+        return $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($targetPath)
     }
 }
