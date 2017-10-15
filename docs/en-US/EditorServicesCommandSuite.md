@@ -52,7 +52,7 @@ The Expand-Expression function replaces text at a specified range with it's outp
 
 ### [Expand-MemberExpression](Expand-MemberExpression.md)
 
-The Expand-MemberExpression function creates an expression for the closest MemberExpressionAst to the cursor in the current editor context. This is mainly to assist with creating expressions to access private members of .NET classes through reflection.
+The Expand-MemberExpression function expands member expressions to a more explicit statement.
 
 ### [Expand-TypeImplementation](Expand-TypeImplementation.md)
 

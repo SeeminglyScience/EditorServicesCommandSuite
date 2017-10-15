@@ -19,14 +19,9 @@ if (-not ('Antlr4.StringTemplate.StringRenderer' -as [type])) {
     Add-Type -Path $psstPath\Antlr4.StringTemplate.dll
 }
 
-. $PSScriptRoot\Classes\Expressions.ps1
-. $PSScriptRoot\Classes\Renderers.ps1
-. $PSScriptRoot\Classes\Async.ps1
-. $PSScriptRoot\Classes\Utility.ps1
-
-Get-ChildItem $PSScriptRoot\Public, $PSScriptRoot\Private -Filter '*.ps1' | ForEach-Object {
-    . $PSItem.FullName
-}
+"$PSScriptRoot\Classes", "$PSScriptRoot\Public", "$PSScriptRoot\Private" |
+    Get-ChildItem -Filter '*.ps1' |
+    ForEach-Object { . $PSItem.FullName }
 
 # Export only the functions using PowerShell standard verb-noun naming.
 # Be sure to list each exported functions in the FunctionsToExport field of the module manifest file.

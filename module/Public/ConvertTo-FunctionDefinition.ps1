@@ -134,20 +134,6 @@ function ConvertTo-FunctionDefinition {
                        -Show
         }
 
-        # Safely captialize the first character if a string. If the string is two or less characters
-        # then capitialize the whole string.
-        function ToPascalCase {
-            param([string] $String)
-            end {
-                if ($String.Length -le 2) {
-                    return $String.ToUpperInvariant()
-                }
-
-                return $String.Substring(0, 1).ToUpperInvariant() +
-                       ($String[1..$String.Length] -join '')
-            }
-        }
-
         # Compile a dictionary of unique variables that should be parameters, along with their
         # inferred type if possible.
         function GetInferredParameters {
@@ -161,7 +147,7 @@ function ConvertTo-FunctionDefinition {
                 }
 
                 foreach ($variable in $Variables) {
-                    $asPascalCase = ToPascalCase $variable.VariablePath.UserPath
+                    $asPascalCase = [TextOps]::ToPascalCase($variable.VariablePath.UserPath)
 
                     $existingParameter = $null
                     if ($parameters.TryGetValue($asPascalCase, [ref]$existingParameter)) {
@@ -302,7 +288,7 @@ function ConvertTo-FunctionDefinition {
                     $targetStartOffset = $targetExtent.StartOffset
                     foreach ($expression in $variableExpressions) {
                         $variableName = $expression.VariablePath.UserPath
-                        $asPascalCase = ToPascalCase $variableName
+                        $asPascalCase = [TextOps]::ToPascalCase($variableName)
                         $variableOffset = $expression.Extent.StartOffset - $targetStartOffset
 
                         # Account for escaped variabled names (e.g ${my strange var name})

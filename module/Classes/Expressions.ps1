@@ -1,6 +1,5 @@
-using namespace System.Reflection
-using namespace System.Collections.ObjectModel
-using namespace System.Management.Automation.Language
+using namespace System.Text
+using namespace Microsoft.PowerShell
 
 class TypeExpressionHelper {
     [type] $Type;
@@ -33,11 +32,16 @@ class TypeExpressionHelper {
         }
     }
     hidden [string] CreateProxy () {
-        $builder = [System.Text.StringBuilder]::new('[')
+        $builder = [StringBuilder]::new('[')
         $assembly = $this.Type.Assembly
 
         # First check if there are any type accelerators in the same assembly.
-        $choices = $this.GetAccelerators().GetEnumerator().Where{ $PSItem.Value.Assembly -eq $assembly }.Key
+        $choices = [ref].
+            Assembly.
+            GetType('System.Management.Automation.TypeAccelerators')::
+            Get.
+            GetEnumerator().
+            Where{ $PSItem.Value.Assembly -eq $assembly }.Key
 
         if (-not $choices) {
             # Then as a last resort pull every type from the assembly. This takes a extra second or
@@ -64,7 +68,7 @@ class TypeExpressionHelper {
         }
     }
     hidden [string] CreateLiteral () {
-        $builder = [System.Text.StringBuilder]::new()
+        $builder = [StringBuilder]::new()
         # If we are building the type name as a generic type argument in a type literal we don't want
         # to enclose it with brackets.
         if ($this.encloseWithBrackets) { $builder.Append('[') }
@@ -77,13 +81,14 @@ class TypeExpressionHelper {
                 Append(']')
         }
         else {
-            $name = $this.GetAccelerators().
-                GetEnumerator().
-                Where{ $PSItem.Value -eq $this.Type }.
-                Key |
-                Sort-Object Length
+            $name = [string]::Empty
+            # Try to resolve the type name with a code method that won't take this script's
+            # using statements into account. This also handles type accelerators for us.
+            $resolvableName = [ToStringCodeMethods]::Type($this.Type)
+            if ($resolvableName -as [type]) {
+                $name = $resolvableName
+            }
 
-            if (-not $name) { $name = ($this.Type.Name -as [type]).Name }
             if (-not $name) { $name = $this.Type.ToString() }
 
             if ($name.Count -gt 1) { $name = $name[0] }
@@ -104,60 +109,5 @@ class TypeExpressionHelper {
         return $typeArguments.ForEach{
             [TypeExpressionHelper]::Create($PSItem, $enclose)
         } -join ', '
-    }
-    hidden [System.Collections.Generic.Dictionary[string, type]] GetAccelerators () {
-       return [ref].Assembly.GetType('System.Management.Automation.TypeAccelerators')::Get
-    }
-}
-
-class ExtendedMemberExpressionAst : MemberExpressionAst {
-    [type] $InferredType;
-    [MemberInfo] $InferredMember;
-    [BindingFlags] $BindingFlags;
-    [ReadOnlyCollection[ExpressionAst]] $Arguments;
-
-    ExtendedMemberExpressionAst ([IScriptExtent] $extent,
-                                 [ExpressionAst] $expression,
-                                 [CommandElementAst] $member,
-                                 [bool] $static,
-                                 [ReadOnlyCollection[ExpressionAst]] $arguments) :
-                                 base($extent, $expression, $member, $static) {
-
-        try {
-            $this.Arguments      = $arguments
-            $this.InferredMember = GetInferredMember -Ast $this
-            $this.InferredType   = ($this.InferredMember.ReturnType,
-                                    $this.InferredMember.PropertyType,
-                                    $this.InferredMember.FieldType).
-                                    Where({ $PSItem }, 'First')[0]
-
-            $this.BindingFlags   = $this.InferredMember.GetType().
-                GetProperty('BindingFlags', [BindingFlags]'Instance, NonPublic').
-                GetValue($this.InferredMember)
-        } catch {
-            $this.InferredType = [object]
-        }
-    }
-    static [ExtendedMemberExpressionAst] op_Implicit ([MemberExpressionAst] $ast) {
-
-        $expression = $ast.Expression.Copy()
-        if ($expression -is [MemberExpressionAst]) {
-            $expression = [ExtendedMemberExpressionAst]$expression
-        }
-        $newAst = [ExtendedMemberExpressionAst]::new(
-            $ast.Extent,
-            $expression,
-            $ast.Member.Copy(),
-            $ast.Static,
-            $ast.Arguments
-        )
-
-        if ($ast.Parent) {
-            $ast.Parent.GetType().
-                GetMethod('SetParent', [BindingFlags]'Instance, NonPublic').
-                Invoke($ast.Parent, $newAst)
-        }
-
-        return $newAst
     }
 }
