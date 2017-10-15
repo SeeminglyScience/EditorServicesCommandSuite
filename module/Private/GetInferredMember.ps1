@@ -36,7 +36,15 @@ function GetInferredMember {
         $Ast
     )
     process {
-        $type = GetInferredType -Ast $Ast.Expression
+        try {
+            $type = GetInferredType -Ast $Ast.Expression
+        } catch {
+            throw [System.Management.Automation.ErrorRecord]::new(
+                <# exception:     #> $exception,
+                <# errorId:       #> 'MissingMember',
+                <# errorCategory: #> 'InvalidResult',
+                <# targetObject:  #> $Ast)
+        }
 
         $member = $type.FindMembers(
             <# memberType:     #> 'All',

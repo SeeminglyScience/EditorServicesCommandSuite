@@ -149,7 +149,7 @@ function Expand-MemberExpression {
             param([Ast] $Ast)
             end {
                 try {
-                $members = GetInferredMember -Ast $Ast
+                    $members = GetInferredMember -Ast $Ast
                 } catch {
                     ThrowError -ErrorRecord $PSItem -Show
                 }

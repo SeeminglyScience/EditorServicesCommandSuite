@@ -125,14 +125,14 @@ function GetInferredType {
                 }
 
                 if ($inferredManifest) {
-                $moduleVariable = Get-Module |
-                    Where-Object Guid -eq $inferredManifest.GUID |
-                    ForEach-Object { $PSItem.SessionState.PSVariable.GetValue($Ast.VariablePath.UserPath) } |
-                    Where-Object { $null -ne $PSItem }
+                    $moduleVariable = Get-Module |
+                        Where-Object Guid -eq $inferredManifest.GUID |
+                        ForEach-Object { $PSItem.SessionState.PSVariable.GetValue($Ast.VariablePath.UserPath) } |
+                        Where-Object { $null -ne $PSItem }
 
-                if ($moduleVariable) {
-                    return $moduleVariable.Where({ $null -ne $PSItem }, 'First')[0].GetType()
-                }
+                    if ($moduleVariable) {
+                        return $moduleVariable.Where({ $null -ne $PSItem }, 'First')[0].GetType()
+                    }
                 }
 
 
@@ -157,14 +157,17 @@ function GetInferredType {
     }
     end {
         $type = GetInferredTypeImpl
-        if (-not $type) {
-            ThrowError -Exception ([InvalidOperationException]::new($Strings.CannotInferType -f $Ast)) `
-                       -Id        CannotInferType `
-                       -Category  InvalidOperation `
-                       -Target    $Ast
-            return
+        if ($type) {
+            return $type
         }
 
-        $type
+        $exception = [System.Management.Automation.PSInvalidOperationException]::new(
+            $Strings.CannotInferType -f $Ast)
+
+        throw [System.Management.Automation.ErrorRecord]::new(
+            <# exception:     #> $exception,
+            <# errorId:       #> 'CannotInferType',
+            <# errorCategory: #> 'InvalidOperation',
+            <# targetObject:  #> $Ast)
     }
 }
