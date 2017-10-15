@@ -38,11 +38,15 @@ function ConvertTo-LocalizationString {
 
         try {
             SetEditorLocation (ResolveRelativePath (GetSettings).StringLocalizationManifest)
-        } catch {
-            ThrowError -Exception ([ArgumentException]::new($Strings.InvalidSettingValue -f 'StringLocalizationManifest')) `
-                       -Id         `
-                       -Category   `
-                       -Target     $null
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            $exception = [System.Management.Automation.PSArgumentException]::new(
+                $Strings.InvalidSettingValue -f 'StringLocalizationManifest')
+            ThrowError -Exception  $exception `
+                       -Id         InvalidSettingValue`
+                       -Category   ObjectNotFound`
+                       -Target     $null `
+                       -Show
+            return
         }
 
         $hereString = Find-Ast { 'SingleQuotedHereString' -eq $_.StringConstantType } -First

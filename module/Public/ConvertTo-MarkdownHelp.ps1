@@ -16,7 +16,7 @@ function ConvertTo-MarkdownHelp {
 
         $settings = GetSettings
         try {
-        $manifest = GetInferredManifest
+            $manifest = GetInferredManifest
         } catch {
             ThrowError -ErrorRecord $PSItem -Show
             return
@@ -76,6 +76,7 @@ function ConvertTo-MarkdownHelp {
                        -Category  InvalidOperation `
                        -Target    $markdownContent `
                        -Show
+            return
         }
 
         $helpToken = $ast | Get-Token |
@@ -103,7 +104,12 @@ function ConvertTo-MarkdownHelp {
             $null = New-Item $targetMarkdownPath -ItemType File
         }
 
-        SetEditorLocation $targetMarkdownPath
+        try {
+            SetEditorLocation $targetMarkdownPath
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            ThrowError -ErrorRecord $PSItem -Show
+            return
+        }
 
         # Shape markdown according to linting rules.
         $markdownContent = $markdownContent -replace
