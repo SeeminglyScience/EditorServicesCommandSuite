@@ -46,4 +46,7 @@ ExportFunctionInlineDescription=Directly above the target extent.
 ExportFunctionExternalFileDescription=In an existing or new file.
 ExportFunctionNamePrompt=Name the new function
 MissingFunctionName=You must specify a function name.
+ShouldCreateResourceFilePrompt=Unable to find the localization file for this workspace. What would you like to do?
+ShouldCreateResourceFileYes=Create localization file
+ShouldCreateResourceFileNo=Cancel changes
 '@
