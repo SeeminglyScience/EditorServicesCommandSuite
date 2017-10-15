@@ -1,8 +1,10 @@
-using namespace Antlr4.StringTemplate.Compiler
-using namespace Microsoft.PowerShell.EditorServices.Extensions
 using namespace System.Collections.Generic
+using namespace System.Management.Automation.Host
 using namespace System.Management.Automation.Language
 using namespace System.Reflection
+using namespace System.Text
+using namespace Microsoft.PowerShell
+using namespace Microsoft.PowerShell.EditorServices.Extensions
 
 function Expand-MemberExpression {
     <#
@@ -11,143 +13,216 @@ function Expand-MemberExpression {
     [EditorCommand(DisplayName='Expand Member Expression')]
     [CmdletBinding()]
     param(
-        [Parameter(Position=1, ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [ValidateNotNullOrEmpty()]
-        [System.Management.Automation.Language.Ast]
-        $Ast = (Find-Ast -AtCursor),
-
-        [ValidateSet('GetMethod', 'InvokeMember', 'VerboseGetMethod', 'GetValue', 'SetValue')]
-        [string]
-        $TemplateName,
-
-        [switch]
-        $NoParameterNameComments
+        [System.Management.Automation.Language.Ast] $Ast
     )
     begin {
-        try {
-            $groupSource = Get-Content -Raw $PSScriptRoot\..\Templates\MemberExpression.stg
-            $group = New-StringTemplateGroup -Definition $groupSource -ErrorAction Stop
+        # Test if a member can be resolved with just name and flags. The most common reason this
+        # would return false is multiple overloads with the same binding flags.
+        function TestMemberIsComplex {
+            param([System.Reflection.MemberInfo] $Member)
+            end {
+                $helper = [MemberExpressionGeneration]::new(
+                    $Member,
+                    $Member.ReflectedType)
 
-            $instance = $group.GetType().
-                GetProperty('Instance', [BindingFlags]'Instance, NonPublic').
-                GetValue($group)
+                $helper.WriteBridge()
+                $helper.WriteBasicGetArgs()
+                $basicExpression = $helper.
+                    Builder.
+                    Remove(
+                        $helper.Builder.Length - 1,
+                        1).
+                    ToString()
 
-            $renderer = [MemberExpressionRenderer]::new()
-            $instance.RegisterRenderer([string], $renderer)
-            $instance.RegisterRenderer([type], [TypeRenderer]::new())
-        } catch {
-            ThrowError -Exception ([TemplateException]::new($Strings.TemplateGroupCompileError, $null)) `
-                       -Id        TemplateGroupCompileError `
-                       -Category  InvalidData `
-                       -Target    $PSItem
-        }
-}
-    process {
-        $context = $psEditor.GetEditorContext()
-        $memberExpressionAst = $Ast
-
-        if ($memberExpressionAst -isnot [MemberExpressionAst]) {
-
-            $memberExpressionAst = $Ast | Find-Ast { $PSItem -is [MemberExpressionAst] } -Ancestor -First
-
-            if ($memberExpressionAst -isnot [MemberExpressionAst]) {
-                ThrowError -Exception ([InvalidOperationException]::new($Strings.MissingMemberExpressionAst)) `
-                           -Id        MissingMemberExpressionAst `
-                           -Category  InvalidOperation `
-                           -Target    $Ast `
-                           -Show
-            }
-        }
-        [Stack[ExtendedMemberExpressionAst]]$expressionAsts = $memberExpressionAst
-        if ($memberExpressionAst.Expression -is [MemberExpressionAst]) {
-            for ($nested = $memberExpressionAst.Expression; $nested; $nested = $nested.Expression) {
-                if ($nested -is [MemberExpressionAst]) {
-                    $expressionAsts.Push($nested)
-                } else { break }
-            }
-        }
-        [List[string]]$expressions = @()
-        while ($expressionAsts.Count -and ($current = $expressionAsts.Pop())) {
-
-            # Throw if we couldn't find member information at any point.
-            if (-not ($current.InferredMember)) {
-                ThrowError -Exception ([MissingMemberException]::new($current.Expression, $current.Member.Value)) `
-                           -Id        MissingMember `
-                           -Category  InvalidResult `
-                           -Target    $Ast `
-                           -Show
-            }
-
-            switch ($current.Expression) {
-                { $PSItem -is [MemberExpressionAst] } {
-                    $variable = $renderer.TransformMemberName($PSItem.InferredMember.Name)
-                }
-                { $PSItem -is [VariableExpressionAst] } {
-                    $variable = $PSItem.VariablePath.UserPath
-                }
-                { $PSItem -is [TypeExpressionAst] } {
-                    $source = $current.InferredMember.ReflectedType
+                try {
+                    return [scriptblock]::
+                        Create($basicExpression).
+                        InvokeReturnAsIs() -isnot
+                        [MemberInfo]
+                } catch {
+                    return $true
                 }
             }
-            if ($variable) {
-                $source = '${0}' -f $variable
+        }
 
-                # We don't want to build out reflection expressions for public members so we chain
-                # them together in one of the expressions.
-                while (($current.InferredMember.IsPublic            -or
-                        $current.InferredMember.GetMethod.IsPublic) -and
-                        $expressionAsts.Count) {
-                    $source += '.{0}' -f $current.InferredMember.Name
+        # Creates a member expression using normal PowerShell syntax, plus arguments
+        # and parameter name comments.
+        function GetPublicMemberExpression {
+            param(
+                [System.Reflection.MemberInfo] $Member,
+                [string] $Expression
+            )
+            end {
+                if ($Member -isnot [MethodBase]) {
+                    return $Expression
+                }
 
-                    if ($current.InferredMember.MemberType -eq 'Method') {
-                        $source += '({0})' -f $current.Arguments.Extent.Text
+                $sb = [StringBuilder]::new($Expression).
+                    Append('(')
+
+                if ($parameters = $Member.GetParameters()) {
+                    $null = $sb.
+                        AppendLine().
+                        Append([MemberExpressionGeneration]::Indent).
+                        Append(
+                            [MemberExpressionGeneration]::
+                                GetInvocationArgs($parameters) -join (
+                                    ',' +
+                                    [Environment]::NewLine +
+                                    [MemberExpressionGeneration]::Indent))
+                }
+
+                $sb.Append(')')
+            }
+        }
+
+        # Create an invokable expression all ASTs passed including accessing non-public members.
+        function GetInvokableExpressions {
+            param([MemberExpressionAst[]] $Ast)
+            end {
+                $nextTarget = $Ast[0].Expression.ToString()
+                $lastAst = $Ast[-1]
+                foreach ($expression in $Ast) {
+                    $isLastAst = $expression -eq $lastAst
+                    $targetMember = GetTargetMember -Ast $expression
+
+                    if (-not $targetMember) {
+                        $exception = [MissingMemberException]::new(
+                            $expression.Expression,
+                            $expression.Member.Value)
+
+                        ThrowError -Exception $exception `
+                                   -Id        MissingMember `
+                                   -Category  InvalidResult `
+                                   -Target    $expression `
+                                   -Show
                     }
-                    $current = $expressionAsts.Pop()
+
+                    if ($expression.Expression.TypeName) {
+                        $nextTarget = $targetMember.ReflectedType
+                    }
+
+                    $isPrivateTypeConstructor =
+                        $targetMember -is [ConstructorInfo] -and -not
+                        $targetMember.ReflectedType.IsPublic
+
+                    $isPublic = $targetMember.IsPublic -or $targetMember.GetMethod.IsPublic
+                    if ($isPublic -and -not $isPrivateTypeConstructor) {
+                        $operator = '.'
+                        if ($expression.Expression -is [TypeExpressionAst]) {
+                            $useStaticOperator =
+                                $targetMember.IsStatic -or
+                                $targetMember.GetMethod.IsStatic -or
+                                $targetMember -is [ConstructorInfo]
+                            if ($useStaticOperator) {
+                                $operator = '::'
+                            }
+
+                            $nextTarget = [TypeExpressionHelper]::Create($targetMember.ReflectedType)
+                        }
+
+                        $nextTarget += $operator + ($targetMember.Name -replace '^\.ctor$', 'new')
+                        if ($isLastAst) {
+                            return GetPublicMemberExpression -Member $targetMember -Expression $nextTarget
+                        }
+
+                        continue
+                    }
+
+                    $needsVerbose = TestMemberIsComplex -Member $targetMember
+
+                    $variableExpression = '$' + [TextOps]::ToCamelCase((
+                        $targetMember.Name -replace '^\.ctor$', 'new'))
+
+                    $variableExpression + ' = ' + [MemberExpressionGeneration]::GetReflectionExpression(
+                        $nextTarget,
+                        $targetMember,
+                        $needsVerbose)
+
+                    $nextTarget = $variableExpression
                 }
             }
-
-            if ($psEditor) {
-                $scriptFile     = $context.CurrentFile.GetType().
-                                                       GetField('scriptFile', 60).
-                                                       GetValue($context.CurrentFile)
-
-                $line           = $scriptFile.GetLine($memberExpressionAst.Extent.StartLineNumber)
-                $indentOffset   = [regex]::Match($line, '^\s*').Value
-            }
-
-            $templateParameters = @{
-                ast                  = $current
-                source               = $source
-                includeParamComments = -not $NoParameterNameComments
-            }
-            $member = $current.InferredMember
-
-            # Automatically use the more explicit VerboseGetMethod template if building a reflection
-            # statement for a method with multiple overloads with the same parameter count.
-            $needsVerbose = $member -is [MethodInfo] -and -not
-                            $member.IsPublic -and
-                            $member.ReflectedType.GetMethods(60).Where{
-                                $PSItem.Name -eq $current.InferredMember.Name -and
-                                $PSItem.GetParameters().Count -eq $member.GetParameters().Count }.
-                                Count -gt 1
-
-            if ($TemplateName -and -not $expressionAsts.Count) {
-                $templateParameters.template = $TemplateName
-            } elseif ($needsVerbose) {
-                $templateParameters.template = 'VerboseGetMethod'
-            }
-            $expression = Invoke-StringTemplate -Group $group -Name Main -Parameters $templateParameters
-            $expressions.Add($expression)
         }
 
-        $result = $expressions -join (,[Environment]::NewLine * 2) `
-                               -split '\r?\n' `
-                               -join ([Environment]::NewLine + $indentOffset)
-        if ($psEditor) {
-            Set-ScriptExtent -Extent $memberExpressionAst.Extent `
-                             -Text   $result
-        } else {
-            $result
+        # Infer the MemberInfo of an AST.  Prompt for choice if multiple possible members are found.
+        function GetTargetMember {
+            param([Ast] $Ast)
+            end {
+                $members = GetInferredMember -Ast $Ast
+
+                if ($members.Count -le 1) {
+                    return $members
+                }
+
+                if ($property = $members.Where{ $PSItem -is [PropertyInfo] }) {
+                    return $property[0]
+                }
+
+                [ChoiceDescription[]] $choices = foreach ($member in $members) {
+                    $name = $member.Name
+                    if ($member -is [MethodBase]) {
+                        $name = $name + '(' + $member.GetParameters().Count + ')'
+                    }
+
+                    $parameterDescriptions = foreach ($parameter in $member.GetParameters()) {
+                        $parameterType = [ToStringCodeMethods]::Type(
+                            $parameter.ParameterType)
+
+                        if ($parameterType -match '\.') {
+                            $parameterType = $parameter.ParameterType.Name
+                        }
+
+                        '[' +
+                        $parameterType+
+                        '] ' +
+                        $parameter.Name
+                    }
+
+                    # yield
+                    [ChoiceDescription]::new(
+                        $name,
+                        $parameterDescriptions -join ', ')
+                }
+
+                $choice = ReadChoicePrompt -Prompt 'Please specify which overload to use' -Choices $choices
+
+                return $members[$choice]
+            }
         }
+
+        # Get all member expressions in a chain in reverse tree order.
+        # eg. return ASTs for "$ExecutionContent.SessionState" then "$ExecutionContext.SessionState.Internal"
+        function GetMemberExpressions {
+            param([MemberExpressionAst] $Ast)
+            end {
+                $memberExpressions = [List[MemberExpressionAst]]::new()
+                $memberExpressions.Add($Ast)
+
+                $currentExpression = $Ast.Expression
+                while ($currentExpression -is [MemberExpressionAst]) {
+                    $memberExpressions.Add($currentExpression)
+                    $currentExpression = $currentExpression.Expression
+                }
+
+                $memberExpressions.Reverse()
+                return $memberExpressions.ToArray()
+            }
+        }
+    }
+    end {
+        $targetAst = GetAncestorOrThrow -Ast $Ast -AstTypeName MemberExpressionAst -ShowOnThrow
+
+        $expressions = GetMemberExpressions -Ast $targetAst
+
+        $newExpressions = GetInvokableExpressions -Ast $expressions
+
+        [string] $firstLineIndent = $targetAst.Extent.StartScriptPosition.Line |
+            Select-String '^\s+' |
+            ForEach-Object { $PSItem.Matches[0].Value }
+
+        $final = $newExpressions -join ([Environment]::NewLine + [Environment]::NewLine) |
+            AddIndent -Amount ($firstLineIndent.Length) -ExcludeFirstLine
+
+        $targetAst | Set-ScriptExtent -Text $final
     }
 }

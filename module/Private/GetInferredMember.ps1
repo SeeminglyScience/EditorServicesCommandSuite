@@ -36,10 +36,6 @@ function GetInferredMember {
         $Ast
     )
     process {
-        # If the ast that was passed is our ExtendedMemberExpressionAst class then return the already
-        # inferred member info.
-        if ($Ast.InferredMember) { return $Ast.InferredMember }
-
         $type = GetInferredType -Ast $Ast.Expression
 
         # Predicate to use with FindMembers.
@@ -69,8 +65,6 @@ function GetInferredMember {
                 if ($PSItem -is [MethodBase]) { $PSItem.GetParameters().Count }
                 else { 0 }
             }}
-
-        if ($member.Count -gt 1) { $member = $member[0] }
 
         if (-not $member) {
             ThrowError -Exception ([MissingMemberException]::new($Ast.Expression, $Ast.Member.Value)) `

@@ -11,7 +11,10 @@ function GetAncestorOrThrow {
         $AstTypeName,
 
         [System.Management.Automation.PSCmdlet]
-        $ErrorContext
+        $ErrorContext,
+
+        [switch]
+        $ShowOnThrow
     )
     end {
         $astType = $AstTypeName -as [type]
@@ -30,6 +33,7 @@ function GetAncestorOrThrow {
             Target    = $Ast
             Category  = 'InvalidArgument'
             Id        = 'MissingAst'
+            Show      = $ShowOnThrow.IsPresent
         }
         if ($ErrorContext) { $throwErrorSplat.ErrorContext = $ErrorContext }
         ThrowError @throwErrorSplat
