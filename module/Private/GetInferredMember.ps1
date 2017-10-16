@@ -36,43 +36,31 @@ function GetInferredMember {
         $Ast
     )
     process {
-        $type = GetInferredType -Ast $Ast.Expression
-
-        # Predicate to use with FindMembers.
-        $predicate = {
-            param($Member, $Criteria)
-
-            $nameFilter, $argCountFilter = $Criteria
-
-            $Member.Name -eq $nameFilter -and
-            (-not $argCountFilter -or $Member.GetParameters().Count -eq $argCountFilter)
+        try {
+            $type = GetInferredType -Ast $Ast.Expression
+        } catch {
+            throw [System.Management.Automation.ErrorRecord]::new(
+                <# exception:     #> $exception,
+                <# errorId:       #> 'MissingMember',
+                <# errorCategory: #> 'InvalidResult',
+                <# targetObject:  #> $Ast)
         }
-        # Check if it looks like the argument count was specified explicitly.
-        $argumentCount     = $Ast.Arguments.Count
-        if ($Ast.Arguments.Count -eq 1 -and $Ast.Arguments.StaticType -eq ([int])) {
-            $argumentCount = $Ast.Arguments.Value
-        }
+
         $member = $type.FindMembers(
             <# memberType:     #> 'All',
             <# bindingAttr:    #> [BindingFlags]'NonPublic, Public, Instance, Static, IgnoreCase',
-            <# filter:         #> $predicate,
-            <# filterCriteria: #> @(($Ast.Member.Value -replace '^new$', '.ctor'), $argumentCount)
+            <# filter:         #> { param($member, $criteria) $member.Name -eq $criteria },
+            <# filterCriteria: #> ($Ast.Member.Value -replace '^new$', '.ctor'))
 
-            # Prioritize properties over fields and methods with smaller parameter counts.
-        ) | Sort-Object -Property `
-            @{Expression = { $PSItem.MemberType }; Ascending = $false },
-            @{Expression = {
-                if ($PSItem -is [MethodBase]) { $PSItem.GetParameters().Count }
-                else { 0 }
-            }}
-
-        if (-not $member) {
-            ThrowError -Exception ([MissingMemberException]::new($Ast.Expression, $Ast.Member.Value)) `
-                       -Id        MissingMember `
-                       -Category  InvalidResult `
-                       -Target    $Ast
+        if ($member) {
+            return $member
         }
 
-        $member
+        $exception = [System.MissingMemberException]::new($Ast.Expression, $Ast.Member.Value)
+        throw [System.Management.Automation.ErrorRecord]::new(
+            <# exception:     #> $exception,
+            <# errorId:       #> 'MissingMember',
+            <# errorCategory: #> 'InvalidResult',
+            <# targetObject:  #> $Ast)
     }
 }

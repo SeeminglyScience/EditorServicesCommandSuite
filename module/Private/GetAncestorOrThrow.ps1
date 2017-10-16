@@ -2,7 +2,6 @@ using namespace System.Management.Automation.Language
 
 function GetAncestorOrThrow {
     [OutputType([System.Management.Automation.Language.Ast])]
-    [CmdletBinding()]
     param(
         [System.Management.Automation.Language.Ast]
         $Ast,

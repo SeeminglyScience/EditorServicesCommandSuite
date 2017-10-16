@@ -155,7 +155,12 @@ function ConvertTo-FunctionDefinition {
                             continue
                         }
 
-                        $inferredType = GetInferredType -Ast $variable -ErrorAction Ignore
+                        try {
+                            $inferredType = GetInferredType -Ast $variable
+                        } catch {
+                            $inferredType = [object]
+                        }
+
                         if ($inferredType -ne [object]) {
                             $parameters[$asPascalCase] = [Tuple[string, string, type, bool]]::new(
                                 $asPascalCase,
@@ -167,8 +172,9 @@ function ConvertTo-FunctionDefinition {
                         continue
                     }
 
-                    $inferredType = GetInferredType -Ast $variable -ErrorAction Ignore
-                    if (-not $inferredType) {
+                    try {
+                        $inferredType = GetInferredType -Ast $variable
+                    } catch {
                         $inferredType = [object]
                     }
 

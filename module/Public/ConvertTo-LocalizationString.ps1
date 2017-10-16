@@ -30,21 +30,52 @@ function ConvertTo-LocalizationString {
             ThrowError -Exception ([ArgumentException]::new($Strings.StringNamePromptFail)) `
                        -Id        StringNamePromptFail `
                        -Category  InvalidArgument `
-                       -Target    $Name
+                       -Target    $Name `
+                       -Show
+            return
+        }
+
+        $resourceFile = ResolveRelativePath (GetSettings).StringLocalizationManifest
+        if ([string]::IsNullOrWhiteSpace($resourceFile)) {
+            $exception = [System.Management.Automation.PSArgumentException]::new(
+                $Strings.InvalidSettingValue -f 'StringLocalizationManifest')
+            ThrowError -Exception  $exception `
+                       -Id         InvalidSettingValue `
+                       -Category   ObjectNotFound `
+                       -Target     $null `
+                       -Show
+            return
+        }
+
+        if (-not (Test-Path $resourceFile)) {
+            $choices = $Strings.ShouldCreateResourceFileYes, $Strings.ShouldCreateResourceFileNo
+            $choice = ReadChoicePrompt -Prompt $Strings.ShouldCreateResourceFilePrompt -Choices $choices
+            if ($choice -ne 0) {
+                return
+            }
+
+            $null = New-Item $resourceFile -ItemType File -Force -ErrorAction Stop
+            "ConvertFrom-StringData @'", "'@" -join [Environment]::NewLine |
+                Out-File -FilePath $resourceFile -Encoding default -Append
+        }
+
+        try {
+            SetEditorLocation (ResolveRelativePath (GetSettings).StringLocalizationManifest)
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            $exception = [System.Management.Automation.PSArgumentException]::new(
+                $Strings.InvalidSettingValue -f 'StringLocalizationManifest')
+            ThrowError -Exception  $exception `
+                       -Id         InvalidSettingValue `
+                       -Category   ObjectNotFound `
+                       -Target     $null `
+                       -Show
+            return
         }
 
         $originalContents = $Ast.Value
         $Ast | Set-ScriptExtent -Text ('$Strings.{0}' -f $Name)
 
-        try {
-            SetEditorLocation (ResolveRelativePath (GetSettings).StringLocalizationManifest)
-        } catch {
-            ThrowError -Exception ([ArgumentException]::new($Strings.InvalidSettingValue -f 'StringLocalizationManifest')) `
-                       -Id         `
-                       -Category   `
-                       -Target     $null
-        }
-
+        SetEditorLocation $resourceFile
         $hereString = Find-Ast { 'SingleQuotedHereString' -eq $_.StringConstantType } -First
 
         $newHereString = $hereString.Extent.Text -replace

@@ -5,13 +5,18 @@ function GetSettings {
         function GetHashtable {
             if ($script:CSSettings) { return $script:CSSettings }
 
-            $targetPath = Join-Path $psEditor.Workspace.Path -ChildPath 'ESCSSettings.psd1'
+            if (-not [string]::IsNullOrWhiteSpace($psEditor.Workspace.Path)) {
+                $targetPath = Join-Path $psEditor.Workspace.Path -ChildPath 'ESCSSettings.psd1'
 
-            if (Test-Path $targetPath) {
-                $script:CSSettings = Import-LocalizedData -BaseDirectory $psEditor.Workspace.Path `
-                                                        -FileName 'ESCSSettings.psd1'
+                if (Test-Path $targetPath) {
+                    $importLocalizedDataSplat = @{
+                        BaseDirectory = $psEditor.Workspace.Path
+                        FileName      = 'ESCSSettings.psd1'
+                    }
 
-                return $script:CSSettings
+                    $script:CSSettings = Import-LocalizedData @importLocalizedDataSplat
+                    return $script:CSSettings
+                }
             }
 
             $script:CSSettings = $script:DEFAULT_SETTINGS

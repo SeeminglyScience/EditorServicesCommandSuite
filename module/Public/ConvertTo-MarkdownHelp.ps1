@@ -15,7 +15,13 @@ function ConvertTo-MarkdownHelp {
         $Ast = GetAncestorOrThrow $Ast -AstTypeName FunctionDefinitionAst -ErrorContext $PSCmdlet
 
         $settings = GetSettings
-        $manifest = GetInferredManifest
+        try {
+            $manifest = GetInferredManifest
+        } catch {
+            ThrowError -ErrorRecord $PSItem -Show
+            return
+        }
+
         $docsPath = Join-Path (ResolveRelativePath $settings.MarkdownDocsPath) $PSCulture
         # If project uri is defined in the manifest then take a guess at what the online uri
         # should be.
@@ -70,6 +76,7 @@ function ConvertTo-MarkdownHelp {
                        -Category  InvalidOperation `
                        -Target    $markdownContent `
                        -Show
+            return
         }
 
         $helpToken = $ast | Get-Token |
@@ -97,7 +104,12 @@ function ConvertTo-MarkdownHelp {
             $null = New-Item $targetMarkdownPath -ItemType File
         }
 
-        SetEditorLocation $targetMarkdownPath
+        try {
+            SetEditorLocation $targetMarkdownPath
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            ThrowError -ErrorRecord $PSItem -Show
+            return
+        }
 
         # Shape markdown according to linting rules.
         $markdownContent = $markdownContent -replace

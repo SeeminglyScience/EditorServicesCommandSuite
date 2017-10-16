@@ -1,5 +1,3 @@
-using namespace System.Management.Automation
-
 function GetType {
     <#
     .SYNOPSIS
@@ -26,30 +24,42 @@ function GetType {
         [string]
         $TypeName
     )
+    begin {
+        function GetTypeImpl {
+            param()
+            end {
+                if ($type = $TypeName -as [type]) {
+                    return $type
+                }
+
+                $type = [AppDomain]::CurrentDomain.
+                    GetAssemblies().
+                    ForEach{ $PSItem.GetType($TypeName, $false, $true) }.
+                    Where({ $PSItem }, 'First')[0]
+
+                if ($type) {
+                    return $type
+                }
+
+                $type = [AppDomain]::CurrentDomain.
+                    GetAssemblies().
+                    GetTypes().
+                    Where({ $PSItem.ToString() -match "$TypeName$" }, 'First')[0]
+
+                return $type
+            }
+        }
+    }
     process {
-        $type = $TypeName -as [type]
-
-        if (-not $type) {
-            $type = [AppDomain]::CurrentDomain.
-                GetAssemblies().
-                ForEach{ $PSItem.GetType($TypeName, $false, $true) }.
-                Where({ $PSItem }, 'First')[0]
+        if ($type = GetTypeImpl) {
+            return $type
         }
 
-        if (-not $type) {
-            $type = [AppDomain]::CurrentDomain.
-                GetAssemblies().
-                GetTypes().
-                Where({ $PSItem.ToString() -match "$TypeName$" }, 'First')[0]
-        }
-        # TODO: Pull using statements from the ast to catch some edge cases.
-        if (-not $type) {
-            ThrowError -Exception ([RuntimeException]::new($Strings.TypeNotFound -f $TypeName)) `
-                       -Id        TypeNotFound `
-                       -Category  InvalidOperation `
-                       -Target    $TypeName
-            return
-        }
-        $type
+        $exception = [PSArgumentException]::new($Strings.TypeNotFound -f $TypeName)
+        throw [System.Management.Automation.ErrorRecord]::new(
+            <# exception:     #> $exception,
+            <# errorId:       #> 'TypeNotFound',
+            <# errorCategory: #> 'InvalidArgument',
+            <# targetObject:  #> $TypeName)
     }
 }

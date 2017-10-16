@@ -59,11 +59,16 @@ function New-ESCSSettingsFile {
                        -Id        TemplateGroupCompileError `
                        -Category  InvalidOperation `
                        -Target    $groupDefinition
+            return
         }
 
         $null = New-Item $targetFilePath -Value $content
         if ($psEditor) {
-            SetEditorLocation $targetFilePath
+            try {
+                SetEditorLocation $targetFilePath
+            } catch [System.Management.Automation.ItemNotFoundException] {
+                ThrowError -ErrorRecord $PSItem -Show
+            }
         }
     }
 }
