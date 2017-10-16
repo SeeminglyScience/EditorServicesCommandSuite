@@ -33,32 +33,21 @@ Install-Module EditorServicesCommandSuite -Scope CurrentUser
 
 ```powershell
 # Place this in your VSCode profile
-Import-Module EditorServicesCommandSuite
-Import-EditorCommand -Module EditorServicesCommandSuite
+Import-CommandSuite
 ```
 
 ```powershell
 # Or copy this command and paste it into the integrated console
-psedit $profile;$psEditor|% g*t|% c*e|% i* "Import-Module EditorServicesCommandSuite`nImport-EditorCommand -Module EditorServicesCommandSuite`n" 1 1 1 1
+psedit $profile;$psEditor|% g*t|% c*e|% i* "Import-CommandSuite`n" 1 1 1 1
 ```
 
 ## Importing
 
-You can call any of the editor commands as functions like you would from any module. Or you can import them as registered editor commands in Editor Services.
-
-### Import all Editor Commands
-
 ```powershell
-Import-Module EditorServicesCommandSuite
-Import-EditorCommand -Module EditorServicesCommandSuite
+Import-CommandSuite
 ```
 
-### Import specific Editor Commands
-
-```powershell
-Import-Module EditorServicesCommandSuite
-Get-Command ConvertTo-MarkdownHelp, ConvertTo-SplatExpression | Import-EditorCommand
-```
+This function will import all editor commands in the module and initialize event handlers.
 
 ## Using Editor Commands
 

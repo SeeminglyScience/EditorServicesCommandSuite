@@ -3,7 +3,8 @@ using namespace System.Reflection
 using namespace System.Text
 
 class MemberExpressionGeneration {
-    static [string] $Indent = '    ';
+    # Work around for type resolution issues.
+    hidden static [string] $Indent = ('TextOps' -as [type])::Indent
 
     [MemberInfo] $Member;
     [psobject] $Target;

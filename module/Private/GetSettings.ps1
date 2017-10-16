@@ -1,7 +1,25 @@
 function GetSettings {
-    [CmdletBinding()]
-    param()
+    [CmdletBinding(DefaultParameterSetName='Auto')]
+    param(
+        [Parameter(ParameterSetName='Auto')]
+        [switch] $Auto,
+
+        [Parameter(ParameterSetName='Reload')]
+        [switch] $ForceReload,
+
+        [Parameter(ParameterSetName='Default')]
+        [switch] $ForceDefault
+    )
     end {
+        function GetSettingsFile {
+            $importLocalizedDataSplat = @{
+                BaseDirectory = $psEditor.Workspace.Path
+                FileName      = 'ESCSSettings.psd1'
+            }
+
+            return Import-LocalizedData @importLocalizedDataSplat
+        }
+
         function GetHashtable {
             if ($script:CSSettings) { return $script:CSSettings }
 
@@ -9,22 +27,20 @@ function GetSettings {
                 $targetPath = Join-Path $psEditor.Workspace.Path -ChildPath 'ESCSSettings.psd1'
 
                 if (Test-Path $targetPath) {
-                    $importLocalizedDataSplat = @{
-                        BaseDirectory = $psEditor.Workspace.Path
-                        FileName      = 'ESCSSettings.psd1'
-                    }
-
-                    $script:CSSettings = Import-LocalizedData @importLocalizedDataSplat
-                    return $script:CSSettings
+                    return GetSettingsFile
                 }
             }
 
-            $script:CSSettings = $script:DEFAULT_SETTINGS
-
-            return $script:CSSettings
+            return $script:DEFAULT_SETTINGS
         }
 
-        $settings = GetHashtable
+        $settings = switch ($PSCmdlet.ParameterSetName) {
+            Auto { GetHashtable }
+            Reload { GetSettingsFile }
+            Default { $script:DEFAULT_SETTINGS }
+        }
+
+        $script:CSSettings = $settings
 
         # Ensure all settings have a default value even if not present in user supplied file.
         if ($settings.PreValidated) { return $settings }
@@ -34,6 +50,7 @@ function GetSettings {
                 $settings.Add($setting.Key, $setting.Value)
             }
         }
+
         $settings.PreValidated = $true
         return $settings
     }
