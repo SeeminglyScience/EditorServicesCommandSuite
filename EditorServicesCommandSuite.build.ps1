@@ -3,9 +3,7 @@
 param()
 
 $moduleName = 'EditorServicesCommandSuite'
-$manifest   = Test-ModuleManifest -Path          $PSScriptRoot\module\$moduleName.psd1 `
-                                  -ErrorAction   Ignore `
-                                  -WarningAction Ignore
+$manifest = Test-ModuleManifest -Path $PSScriptRoot\module\$moduleName.psd1 -ErrorAction Ignore -WarningAction Ignore
 
 $script:Settings = @{
     Name          = $moduleName
@@ -29,47 +27,46 @@ $script:Discovery = @{
 }
 
 task Clean {
-    if (Test-Path $script:Folders.Release) {
-        Remove-Item $script:Folders.Release -Recurse
+    if (Test-Path $PSScriptRoot\Release) {
+        Remove-Item $PSScriptRoot\Release -Recurse
     }
-    $null = New-Item $script:Folders.Release -ItemType Directory
+    $null = New-Item $Folders.Release -ItemType Directory
 }
 
-task BuildDocs -If { $script:Discovery.HasDocs } {
-    $null = New-ExternalHelp -Path       $PSScriptRoot\docs\$PSCulture `
-                             -OutputPath ('{0}\{1}' -f $script:Folders.Release, $PSCulture)
+task BuildDocs -If { $Discovery.HasDocs } {
+    $output = '{0}\{1}' -f $Folders.Release, $PSCulture
+    $null = New-ExternalHelp -Path $PSScriptRoot\docs\$PSCulture -OutputPath $output
 }
 
 task CopyToRelease  {
-    Copy-Item -Path ('{0}\*' -f $script:Folders.PowerShell) `
-              -Destination $script:Folders.Release `
-              -Recurse `
-              -Force
+    $moduleName = $Settings.Name
+    & "$PSScriptRoot\tools\BuildMonolith.ps1" -OutputPath $Folders.Release -ModuleName $Settings.Name
+
+    "$moduleName.psd1",
+    'en-US' | ForEach-Object {
+        Join-Path $Folders.PowerShell -ChildPath $PSItem |
+            Copy-Item -Destination $Folders.Release -Recurse
+     }
 }
 
-task Analyze -If { $script:Settings.ShouldAnalyze } {
-    Invoke-ScriptAnalyzer -Path     $script:Folders.Release `
-                          -Settings $PSScriptRoot\ScriptAnalyzerSettings.psd1 `
-                          -Recurse
+task Analyze -If { $Settings.ShouldAnalyze } {
+    Invoke-ScriptAnalyzer -Path $Folders.Release -Settings $PSScriptRoot\ScriptAnalyzerSettings.psd1 -Recurse
 }
 
-task Test -If { $script:Discovery.HasTests -and $script:Settings.ShouldTest } {
+task Test -If { $Discovery.HasTests -and $Settings.ShouldTest } {
     Invoke-Pester -PesterOption @{ IncludeVSCodeMarker = $true }
 }
 
 task DoInstall {
     $installBase = $Home
     if ($profile) { $installBase = $profile | Split-Path }
-    $installPath = '{0}\Modules\{1}\{2}' -f $installBase, $script:Settings.Name, $script:Settings.Version
+    $installPath = '{0}\Modules\{1}\{2}' -f $installBase, $Settings.Name, $Settings.Version
 
     if (-not (Test-Path $installPath)) {
         $null = New-Item $installPath -ItemType Directory
     }
 
-    Copy-Item -Path ('{0}\*' -f $script:Folders.Release) `
-              -Destination $installPath `
-              -Force `
-              -Recurse
+    Copy-Item -Path ('{0}\*' -f $Folders.Release) -Destination $installPath -Force -Recurse
 }
 
 task DoPublish {
@@ -78,7 +75,7 @@ task DoPublish {
     }
 
     $apiKey = (Import-Clixml $env:USERPROFILE\.PSGallery\apikey.xml).GetNetworkCredential().Password
-    Publish-Module -Name $script:Folders.Release -NuGetApiKey $apiKey -Confirm
+    Publish-Module -Name $Folders.Release -NuGetApiKey $apiKey -Confirm
 }
 
 task Build -Jobs Clean, CopyToRelease, BuildDocs
