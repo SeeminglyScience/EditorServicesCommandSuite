@@ -46,6 +46,10 @@ The ConvertTo-MarkdownHelp function will replace existing CBH (comment based hel
 The ConvertTo-SplatExpression function transforms a CommandAst to use a splat expression instead
 of inline parameters.
 
+### [Import-CommandSuite](Import-CommandSuite.md)
+
+The Import-CommandSuite function imports the EditorServicesCommandSuite module and initalizes internal processes like setting up event handlers. You can import the module directly without using this function, but it isn't supported and may cause unexpected behavior. This function can be invoked after the module is loaded in case of accidental or auto loading.
+
 ### [Expand-Expression](Expand-Expression.md)
 
 The Expand-Expression function replaces text at a specified range with it's output in PowerShell. As an editor command it will expand output of selected text.

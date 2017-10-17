@@ -5,6 +5,8 @@ enum CaseType {
 }
 
 class TextOps {
+    static [string] $Indent = '    ';
+
     static [string] TransformCase([psobject] $text, [CaseType] $type) {
         $methodName = 'ToUpperInvariant'
         if ($type -eq [CaseType]::Camel) {

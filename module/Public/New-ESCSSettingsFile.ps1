@@ -5,8 +5,9 @@ function New-ESCSSettingsFile {
     .EXTERNALHELP EditorServicesCommandSuite-help.xml
     #>
     [CmdletBinding()]
-    [SuppressMessage('PSAvoidShouldContinueWithoutForce', '',
-                     Justification='ShouldContinue is called from a subroutine without CmdletBinding.')]
+    [SuppressMessage(
+        'PSAvoidShouldContinueWithoutForce', '',
+        Justification='ShouldContinue is called from a subroutine without CmdletBinding.')]
     param(
         [ValidateNotNullOrEmpty()]
         [string]
@@ -41,26 +42,28 @@ function New-ESCSSettingsFile {
         $targetFilePath = Join-Path $Path -ChildPath 'ESCSSettings.psd1'
         HandleFileExists $targetFilePath
 
-        try {
-            $groupDefinition = Get-Content $PSScriptRoot\..\Templates\SettingsFile.stg -Raw -ErrorAction Stop
+        $builder = [System.Text.StringBuilder]::new().Append('@{')
 
-            $templateSplat = @{
-                Group = (New-StringTemplateGroup -Definition $groupDefinition)
-                Name  = 'Base'
-                Parameters = @{
-                    Settings = $script:DEFAULT_SETTINGS.GetEnumerator()
-                    Strings  = [pscustomobject]$Strings
-                }
+        $null = foreach ($setting in $DEFAULT_SETTINGS.GetEnumerator()) {
+            if ($settings.Key -eq 'PreValidated') {
+                continue
             }
 
-            $content = Invoke-StringTemplate @templateSplat
-        } catch {
-            ThrowError -Exception ([InvalidOperationException]::new($Strings.TemplateGroupCompileError)) `
-                       -Id        TemplateGroupCompileError `
-                       -Category  InvalidOperation `
-                       -Target    $groupDefinition
-            return
+            $builder.AppendLine().Append([TextOps]::Indent)
+            $resourceStringName = 'SettingComment{0}' -f $setting.Key
+            if ($Strings.ContainsKey($resourceStringName)) {
+                $builder.
+                    AppendFormat('# {0}', $Strings[$resourceStringName]).
+                    AppendLine().
+                    Append([TextOps]::Indent)
+            }
+
+            $builder.
+                AppendFormat('{0} = ''{1}''', $setting.Key, $setting.Value).
+                AppendLine()
         }
+
+        $content = $builder.AppendLine('}').ToString()
 
         $null = New-Item $targetFilePath -Value $content
         if ($psEditor) {
