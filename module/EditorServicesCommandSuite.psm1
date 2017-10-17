@@ -19,9 +19,13 @@ if (-not ('Antlr4.StringTemplate.StringRenderer' -as [type])) {
     Add-Type -Path $psstPath\Antlr4.StringTemplate.dll
 }
 
+# ~MONOLITH_INJECT_START~
+# This section will be replaced with the contents of the files it calls during the build process.
+# See tools/BuildMonolith.ps1 for more details.
 "$PSScriptRoot\Classes", "$PSScriptRoot\Public", "$PSScriptRoot\Private" |
     Get-ChildItem -Filter '*.ps1' |
     ForEach-Object { . $PSItem.FullName }
+# ~MONOLITH_INJECT_END~
 
 # Export only the functions using PowerShell standard verb-noun naming.
 # Be sure to list each exported functions in the FunctionsToExport field of the module manifest file.
