@@ -66,8 +66,8 @@ function ConvertTo-SplatExpression {
             $splat.($parameter.Key) = $parameter.Value.Value
         }
 
-        # Remove the hypen, change to camelCase and add 'Splat'
         if (-not $VariableName) {
+            # Remove the hypen, change to camelCase and add 'Splat'
             $variableName = [regex]::Replace(
                 ($commandName.Extent.Text -replace '-'),
                 '^[A-Z]',
