@@ -11,6 +11,9 @@ function ConvertTo-SplatExpression {
     param(
         [System.Management.Automation.Language.Ast]
         $Ast
+        
+        [String]
+        $VariableName
     )
     begin {
         function ConvertFromExpressionAst($expression) {
@@ -64,11 +67,13 @@ function ConvertTo-SplatExpression {
         }
 
         # Remove the hypen, change to camelCase and add 'Splat'
-        $variableName = [regex]::Replace(
-            ($commandName.Extent.Text -replace '-'),
-            '^[A-Z]',
-            { $args[0].Value.ToLower() }) +
-            'Splat'
+        if (-not $VariableName) {
+            $variableName = [regex]::Replace(
+                ($commandName.Extent.Text -replace '-'),
+                '^[A-Z]',
+                { $args[0].Value.ToLower() }) +
+                'Splat'
+        }
 
         $sb = [System.Text.StringBuilder]::
             new('${0}' -f $variableName).
