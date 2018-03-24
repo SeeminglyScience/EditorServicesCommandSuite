@@ -13,7 +13,7 @@ Convert a command expression to use splatting.
 ## SYNTAX
 
 ```powershell
-ConvertTo-SplatExpression [[-Ast] <Ast>]
+ConvertTo-SplatExpression [[-Ast] <Ast>] [[-VariableName] <String>]
 ```
 
 ## DESCRIPTION
@@ -56,6 +56,22 @@ Aliases:
 Required: False
 Position: 1
 Default value: (Find-Ast -AtCursor)
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -VariableName
+
+Specifies the Varabile name to use for the splat hashtable variable.
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 2
+Default value: none
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
