@@ -10,7 +10,7 @@ function ConvertTo-SplatExpression {
     [EditorCommand(DisplayName='Convert Command to Splat Expression')]
     param(
         [System.Management.Automation.Language.Ast]
-        $Ast
+        $Ast,
         
         [String]
         $VariableName
