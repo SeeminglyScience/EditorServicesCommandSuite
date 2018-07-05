@@ -2,62 +2,71 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "PowerShell",
-            "request": "launch",
-            "name": "PowerShell debugHarness (Temporary Console)",
-            "script": "${workspaceRoot}/debugHarness.ps1",
-            "args": [],
-            "cwd":"${workspaceRoot}",
-            "createTemporaryIntegratedConsole": true
-        },
-        {
-            "type": "PowerShell",
-            "request": "launch",
-            "name": "PowerShell debugHarness",
-            "script": "${workspaceRoot}/debugHarness.ps1",
-            "args": [],
-            "cwd":"${workspaceRoot}"
-        },
-        {
-            "type": "PowerShell",
-            "request": "launch",
-            "name": "PowerShell Launch Current File",
-            "script": "${file}",
-            "args": [],
-            "cwd": "${file}"
-        },
-        {
-            "type": "PowerShell",
-            "request": "launch",
-            "name": "PowerShell Launch Current File in Temporary Console",
-            "script": "${file}",
-            "args": [],
-            "cwd": "${file}",
-            "createTemporaryIntegratedConsole": true
-        },
-        {
-            "type": "PowerShell",
-            "request": "launch",
-            "name": "PowerShell Launch Current File w/Args Prompt",
-            "script": "${file}",
-            "args": [
-                "${command:SpecifyScriptArgs}"
-            ],
-            "cwd": "${file}"
-        },
-        {
-            "type": "PowerShell",
+            "name": ".NET FullCLR Attach",
+            "type": "clr",
             "request": "attach",
-            "name": "PowerShell Attach to Host Process",
-            "processId": "${command:PickPSHostProcess}",
-            "runspaceId": 1
+            "processId": "${command:pickProcess}",
+            "justMyCode": true,
         },
         {
-            "type": "PowerShell",
+            "name": ".NET FullCLR Launch (console)",
+            "type": "clr",
             "request": "launch",
-            "name": "PowerShell Interactive Session",
-            "cwd": "${workspaceRoot}"
-        }
-    ]
+            "preLaunchTask": "Build",
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "justMyCode": true,
+            "console": "externalTerminal",
+            "program": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-NoExit",
+                "-Command",
+                ". \"${workspaceRoot}/debugHarness.ps1\"",
+            ],
+        },
+        {
+            "name": ".NET CoreCLR Attach",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}",
+            "justMyCode": true,
+        },
+        {
+            "name": ".NET CoreCLR Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build",
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "justMyCode": true,
+            "console": "externalTerminal",
+            "linux": {
+                "program": "/usr/bin/pwsh",
+                "args": [
+                    "-NoExit",
+                    "-Command",
+                    ". \"${workspaceRoot}/debugHarness.ps1\"",
+                ],
+            },
+            "osx": {
+                "program": "/usr/local/bin/pwsh",
+                "args": [
+                    "-NoExit",
+                    "-Command",
+                    ". \"${workspaceRoot}/debugHarness.ps1\"",
+                ],
+            },
+            "program": "pwsh.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-NoExit",
+                "-Command",
+                ". \"${workspaceRoot}/debugHarness.ps1\"",
+            ],
+        },
+    ],
 }
 

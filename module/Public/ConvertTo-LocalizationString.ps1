@@ -6,16 +6,24 @@ function ConvertTo-LocalizationString {
     .EXTERNALHELP EditorServicesCommandSuite-help.xml
     #>
     [CmdletBinding()]
+    [EditorServicesCommandSuite.Internal.PSAstRefactor(ResourceVariable='Strings', ResourcePrefix='ConvertToLocalizationString')]
     [EditorCommand(DisplayName='Add Closest String to Localization File')]
     param(
-        [System.Management.Automation.Language.Ast]
-        $Ast = (Find-Ast -AtCursor),
+        [System.Management.Automation.Language.StringConstantExpressionAst]
+        $RefactorTarget = (Find-Ast -AtCursor),
 
         [string]
-        $Name
+        $Name,
+
+        [switch]
+        $Test
     )
     end {
-        $Ast = GetAncestorOrThrow $Ast -AstTypeName StringConstantExpressionAst -ErrorContext $PSCmdlet
+        if ($Test.IsPresent) {
+            return [StringConstantType]::SingleQuoted -eq $RefactorTarget.StringConstantType
+        }
+
+        $Ast = GetAncestorOrThrow $RefactorTarget -AstTypeName StringConstantExpressionAst -ErrorContext $PSCmdlet
 
         if (-not $Name) {
             if ($Host -is [System.Management.Automation.Host.IHostSupportsInteractiveSession]) {
@@ -59,8 +67,11 @@ function ConvertTo-LocalizationString {
                 Out-File -FilePath $resourceFile -Encoding default -Append
         }
 
+        $originalContents = $Ast.Value
+        $Ast | Set-ScriptExtent -Text ('$Strings.{0}' -f $Name)
+
         try {
-            SetEditorLocation (ResolveRelativePath (GetSettings).StringLocalizationManifest)
+            SetEditorLocation $resourceFile
         } catch [System.Management.Automation.ItemNotFoundException] {
             $exception = [System.Management.Automation.PSArgumentException]::new(
                 $Strings.InvalidSettingValue -f 'StringLocalizationManifest')
@@ -72,10 +83,6 @@ function ConvertTo-LocalizationString {
             return
         }
 
-        $originalContents = $Ast.Value
-        $Ast | Set-ScriptExtent -Text ('$Strings.{0}' -f $Name)
-
-        SetEditorLocation $resourceFile
         $hereString = Find-Ast { 'SingleQuotedHereString' -eq $_.StringConstantType } -First
 
         $newHereString = $hereString.Extent.Text -replace

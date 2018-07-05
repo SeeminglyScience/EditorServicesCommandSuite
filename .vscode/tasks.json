@@ -9,99 +9,81 @@
 {
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
-    "version": "0.1.0",
-    "runner": "terminal",
-
-    // Start PowerShell
+    "version": "2.0.0",
     "windows": {
-        "command": "PowerShell.exe"
+        "options": {
+            "shell": {
+                "executable": "powershell.exe",
+                "args": [ "-ExecutionPolicy Bypass", "-NoProfile", "-Command" ],
+            },
+        },
     },
     "linux": {
-        "command": "/usr/bin/powershell"
+        "options": {
+            "shell": {
+                "executable": "/usr/bin/pwsh",
+                "args": [ "-NoProfile", "-Command" ],
+            },
+        },
     },
     "osx": {
-        "command": "/usr/local/bin/powershell"
+        "options": {
+            "shell": {
+                "executable": "/usr/local/bin/pwsh",
+                "args": [ "-NoProfile", "-Command" ],
+            },
+        },
     },
-
-    // The command is a shell script
-    "isShellCommand": true,
-
-    // Show the output window always
-    "showOutput": "always",
-
-    "args": [
-        "-NoProfile", "-ExecutionPolicy", "Bypass"
-    ],
-
-    // Associate with test task runner
+    "type": "shell",
     "tasks": [
         {
-            "taskName": "Clean",
-            "suppressTaskName": true,
-            "showOutput": "always",
-            "args": [
-                "Invoke-Build -Task Clean"
-            ]
+            "label": "Clean",
+            "command": "Invoke-Build",
+            "args": [ "-Task", "Clean" ],
         },
         {
-            "taskName": "Build",
-            "suppressTaskName": true,
-            "isBuildCommand": true,
-            "showOutput": "always",
-            "args": [
-                "Invoke-Build"
-            ]
+            "label": "Build",
+            "command": "Invoke-Build",
+            "group": {
+                "kind": "build",
+                "isDefault": true,
+            },
+            "problemMatcher": {
+                "base": "$msCompile",
+                "fileLocation": "absolute",
+            },
         },
         {
-            "taskName": "BuildHelp",
-            "suppressTaskName": true,
-            "showOutput": "always",
-            "args": [
-                "Invoke-Build -Task BuildDocs"
-            ]
+            "label": "Test",
+            "command": "Invoke-Build",
+            "args": [ "-Task", "Test" ],
+            "group": {
+                "kind": "test",
+                "isDefault": true,
+            },
         },
         {
-            "taskName": "Analyze",
-            "suppressTaskName": true,
-            "showOutput": "always",
-            "args": [
-                "Invoke-Build -Task Analyze"
-            ]
+            "label": "Test With Coverage",
+            "group": "test",
+            "command": "Invoke-Build",
+            "args": [ "-Task", "Test", "-GenerateCodeCoverage" ],
         },
         {
-            "taskName": "Install",
-            "suppressTaskName": true,
-            "showOutput": "always",
-            "args": [
-                "Invoke-Build -Task Install"
-            ]
+            "label": "Build and Test",
+            "group": "test",
+            "command": "Invoke-Build",
+            "args": [ "-Task", "Prerelease"],
         },
         {
-            "taskName": "Test",
-            "suppressTaskName": true,
-            "isTestCommand": true,
-            "showOutput": "always",
-            "args": [
-                "Invoke-Build -Task Test"
-            ],
-            "problemMatcher": [
-                {
-                    "owner": "powershell",
-                    "fileLocation": ["absolute"],
-                    "severity": "error",
-                    "pattern": [
-                        {
-                            "regexp": "^\\s*(\\[-\\]\\s*.*?)(\\d+)ms\\s*$",
-                            "message": 1
-                        },
-                        {
-                            "regexp": "^\\s+at\\s+[^,]+,\\s*(.*?):\\s+line\\s+(\\d+)$",
-                            "file": 1,
-                            "line": 2
-                        }
-                    ]
-                }
-            ]
+            "label": "Build and Test With Coverage",
+            "group": "test",
+            "command": "Invoke-Build",
+            "args": [ "-Task", "Prerelease", "-GenerateCodeCoverage"],
+        },
+        {
+            "label": "Install",
+            "command": "Invoke-Build",
+            "args": [ "-Task", "Install", "-Configuration", "Release" ],
         }
     ]
 }

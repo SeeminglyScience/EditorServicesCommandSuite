@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Microsoft All Rules" Description="This rule set contains all rules. Running this rule set may result in a large number of warnings being reported. Use this rule set to get a comprehensive picture of all issues in your code. This can help you decide which of the more focused rule sets are most appropriate to run for your projects." ToolsVersion="10.0">
+  <Localization ResourceAssembly="Microsoft.VisualStudio.CodeAnalysis.RuleSets.Strings.dll" ResourceBaseName="Microsoft.VisualStudio.CodeAnalysis.RuleSets.Strings.Localized">
+    <Name Resource="AllRules_Name" />
+    <Description Resource="AllRules_Description" />
+  </Localization>
+  <IncludeAll Action="Warning" />
+  <Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
+    <!--A call to an instance member of the local class or a base class is not prefixed with ‘this.’, within a C# code file.-->
+    <Rule Id="SA1101" Action="None" />
+    <!--A C# statement containing opening and closing curly brackets is written completely on a single line.-->
+    <Rule Id="SA1501" Action="None" />
+    <!--A C# element containing opening and closing curly brackets is written completely on a single line.-->
+    <Rule Id="SA1502" Action="None" />
+    <!--The opening and closing curly brackets for a C# statement have been omitted.-->
+    <Rule Id="SA1503" Action="None" />
+    <!--A C# code file is missing a standard file header.-->
+    <Rule Id="SA1633" Action="None" />
+    <!--A field name in C# is prefixed with m_ or s_.-->
+    <Rule Id="SA1308" Action="None" />
+    <!--A field name in C# begins with an underscore.-->
+    <Rule Id="SA1309" Action="None" />
+    <!--A field name in C# contains an underscore.-->
+    <Rule Id="SA1310" Action="None" />
+    <!--The name of a static readonly field does not begin with an upper-case letter.-->
+    <Rule Id="SA1311" Action="None" />
+    <!--A field within a C# class has an access modifier other than private.-->
+    <Rule Id="SA1401" Action="None" />
+  </Rules>
+</RuleSet>
+

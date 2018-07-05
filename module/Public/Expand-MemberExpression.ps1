@@ -10,10 +10,14 @@ function Expand-MemberExpression {
     <#
     .EXTERNALHELP EditorServicesCommandSuite-help.xml
     #>
+    [EditorServicesCommandSuite.Internal.PSAstRefactor(ResourceVariable='Strings', ResourcePrefix='ExpandMemberExpression')]
     [EditorCommand(DisplayName='Expand Member Expression')]
     [CmdletBinding()]
     param(
-        [System.Management.Automation.Language.Ast] $Ast
+        [System.Management.Automation.Language.MemberExpressionAst] $RefactorTarget,
+
+        [System.Management.Automation.Hidden()]
+        [switch] $Test
     )
     begin {
         # Test if a member can be resolved with just name and flags. The most common reason this
@@ -33,7 +37,7 @@ function Expand-MemberExpression {
                         $helper.Builder.Length - 1,
                         1).
                     ToString()
-
+                gci
                 try {
                     return [scriptblock]::
                         Create($basicExpression).
@@ -214,6 +218,15 @@ function Expand-MemberExpression {
         }
     }
     end {
+        if ($Test.IsPresent) {
+            return $true
+        }
+
+        $Ast = $RefactorTarget
+        if (-not $Ast) {
+            $Ast = Find-Ast -AtCursor
+        }
+
         $targetAst = GetAncestorOrThrow -Ast $Ast -AstTypeName MemberExpressionAst -ShowOnThrow
 
         $expressions = GetMemberExpressions -Ast $targetAst

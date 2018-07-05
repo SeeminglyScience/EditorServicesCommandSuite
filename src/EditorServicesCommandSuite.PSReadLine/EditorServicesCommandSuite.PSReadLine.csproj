@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\EditorServicesCommandSuite.Common.props" />
+  <ItemGroup>
+    <ProjectReference Include="..\EditorServicesCommandSuite\EditorServicesCommandSuite.csproj" />
+    <Reference Include="Microsoft.PowerShell.PSReadLine2">
+      <HintPath>..\..\lib\PSReadLine\Microsoft.PowerShell.PSReadLine2.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
+
+

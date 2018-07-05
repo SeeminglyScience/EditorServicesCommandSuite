@@ -1,17 +1,23 @@
 using namespace System.Collections.Generic
 using namespace System.Management.Automation
 using namespace System.Management.Automation.Language
+
 using namespace Microsoft.PowerShell.EditorServices.Extensions
+
 
 function ConvertTo-FunctionDefinition {
     <#
     .EXTERNALHELP EditorServicesCommandSuite-help.xml
     #>
+    [EditorServicesCommandSuite.Internal.PSSelectionRefactor(ResourceVariable='Strings', ResourcePrefix='ConvertToFunctionDefinition')]
     [EditorCommand(DisplayName='Create New Function From Selection')]
     [CmdletBinding(DefaultParameterSetName='__AllParameterSets')]
+    [OutputType([bool], ParameterSetName='Test')]
+    [OutputType([void])]
     param(
         [ValidateNotNullOrEmpty()]
-        [System.Management.Automation.Language.IScriptExtent] $Extent,
+        [Alias('Extent')]
+        [System.Management.Automation.Language.IScriptExtent] $RefactorTarget,
 
         [ValidateNotNullOrEmpty()]
         [string] $FunctionName,
@@ -24,7 +30,10 @@ function ConvertTo-FunctionDefinition {
         [switch] $BeginBlock,
 
         [Parameter(ParameterSetName='Inline')]
-        [switch] $Inline
+        [switch] $Inline,
+
+        [Parameter()]
+        [switch] $Test
     )
     begin {
         # Ensure a script extent includes the entire starting line including whitespace.
@@ -67,8 +76,8 @@ function ConvertTo-FunctionDefinition {
 
         # Get specified extent, selected text, or throw.
         function GetTargetExtent {
-            if ($Extent) {
-                return $Extent | ExpandExtent
+            if ($RefactorTarget) {
+                return $RefactorTarget | ExpandExtent
             }
 
             $selectedRange = $psEditor.GetEditorContext().SelectedRange
@@ -79,7 +88,7 @@ function ConvertTo-FunctionDefinition {
             ThrowError -Exception ([PSArgumentException]::new($Strings.NoExtentSelected)) `
                        -Id NoExtentSelected `
                        -Category InvalidArgument `
-                       -Target $Extent `
+                       -Target $RefactorTarget `
                        -Show
         }
 
@@ -494,6 +503,10 @@ function ConvertTo-FunctionDefinition {
         }
     }
     end {
+        if ($Test.IsPresent) {
+            return $true
+        }
+
         $FunctionName = ValidateFunctionName
         $targetExtent = GetTargetExtent
 

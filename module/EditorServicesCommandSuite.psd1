@@ -48,14 +48,17 @@ RequiredModules = 'PSStringTemplate'
 FunctionsToExport = 'Add-CommandToManifest',
                     'Add-ModuleQualification',
                     'Add-PinvokeMethod',
+                    'Add-SurroundingExpression',
                     'ConvertTo-FunctionDefinition',
                     'ConvertTo-LocalizationString',
                     'ConvertTo-MarkdownHelp',
                     'ConvertTo-SplatExpression',
+                    'Convert-StringExpression',
                     'Expand-Expression',
                     'Expand-MemberExpression',
                     'Expand-TypeImplementation',
                     'Import-CommandSuite',
+                    'Invoke-DocumentRefactor',
                     'New-ESCSSettingsFile',
                     'Remove-Semicolon',
                     'Set-HangingIndent',
@@ -72,7 +75,8 @@ VariablesToExport = @()
 AliasesToExport = @()
 
 # List of all files packaged with this module
-FileList = 'EditorServicesCommandSuite.psd1',
+FileList = '..\..\module\Public\Invoke-DocumentRefactor.ps1',
+           'EditorServicesCommandSuite.psd1',
            'EditorServicesCommandSuite.psm1',
            'Public\Add-CommandToManifest.ps1',
            'Public\Add-ModuleQualification.ps1',

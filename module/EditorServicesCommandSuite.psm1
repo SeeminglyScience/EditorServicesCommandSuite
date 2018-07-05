@@ -1,5 +1,37 @@
 Import-LocalizedData -BindingVariable Strings -FileName Strings -ErrorAction Ignore
 
+Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.dll"
+Import-Module $PSScriptRoot/RefactorCmdlets/RefactorCmdlets.cdxml
+
+if (-not $CommandSuite -or $CommandSuite -isnot [EditorServicesCommandSuite.Internal.CommandSuite]) {
+    $IsMainRunspace = $true
+
+    if ($null -ne $psEditor) {
+        Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.EditorServices.dll"
+        try {
+            $powerShellContext = [Microsoft.PowerShell.EditorServices.PowerShellContext]::new(
+                [Microsoft.PowerShell.EditorServices.Utility.NullLogger]::new(),
+                $false)
+        } catch [System.Management.Automation.MethodException] {
+            $powerShellContext = [Microsoft.PowerShell.EditorServices.PowerShellContext]::new(
+                [Microsoft.PowerShell.EditorServices.Utility.NullLogger]::new())
+        }
+
+        $CommandSuite = [EditorServicesCommandSuite.EditorServices.Internal.CommandSuite]::GetCommandSuite(
+            $psEditor,
+            $ExecutionContext,
+            $Host,
+            $powerShellContext)
+    } else {
+        Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.PSReadLine.dll"
+        $CommandSuite = [EditorServicesCommandSuite.PSReadLine.Internal.CommandSuite]::GetCommandSuite(
+            $ExecutionContext,
+            $Host)
+    }
+} else {
+    $IsMainRunspace = $false
+}
+
 $script:DEFAULT_SETTINGS = @{
     MainModuleDirectory        = '.\module'
     SourceManifestPath         = '.\module\*.psd1'
@@ -26,6 +58,10 @@ if (-not ('Antlr4.StringTemplate.StringRenderer' -as [type])) {
     Get-ChildItem -Filter '*.ps1' |
     ForEach-Object { . $PSItem.FullName }
 # ~MONOLITH_INJECT_END~
+
+if ($isMainRunspace) {
+    $CommandSuite.ImportSessionRefactors($ExecutionContext.SessionState)
+}
 
 # Export only the functions using PowerShell standard verb-noun naming.
 # Be sure to list each exported functions in the FunctionsToExport field of the module manifest file.

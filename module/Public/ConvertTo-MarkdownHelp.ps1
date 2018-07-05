@@ -5,13 +5,24 @@ function ConvertTo-MarkdownHelp {
     <#
     .EXTERNALHELP EditorServicesCommandSuite-help.xml
     #>
+    [EditorServicesCommandSuite.Internal.PSTokenRefactor(ResourceVariable='Strings', ResourcePrefix='ConvertToMarkdownHelp')]
     [EditorCommand(DisplayName='Generate Markdown from Closest Function')]
     [CmdletBinding()]
     param(
-        [System.Management.Automation.Language.Ast]
-        $Ast
+        [System.Management.Automation.Language.Token]
+        $RefactorTarget,
+
+        [switch]
+        $Test
     )
     end {
+        if ($Test.IsPresent) {
+            return [TokenKind]::Comment -eq $RefactorTarget.Kind -and
+                $RefactorTarget.Text -match '\.(SYNOPSIS|DESCRIPTION)' -and
+                $RefactorTarget.Text -notmatch '\.EXTERNALHELP'
+        }
+
+        $Ast = Find-Ast -AtCursor
         $Ast = GetAncestorOrThrow $Ast -AstTypeName FunctionDefinitionAst -ErrorContext $PSCmdlet
 
         $settings = GetSettings
