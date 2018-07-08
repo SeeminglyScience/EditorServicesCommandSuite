@@ -7,24 +7,14 @@ using System.Reflection;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Internal;
 
-using static GlobalSettingsStrings;
-
 namespace EditorServicesCommandSuite.Utility
 {
-    public enum SettingsScope
-    {
-        Process,
-
-        Workspace,
-
-        User,
-
-        Machine,
-    }
-
     internal class Settings : IDisposable
     {
         internal const string SettingFileName = "ESCSSettings.psd1";
+
+        internal const string SettingFileExtension = ".psd1";
+
         private static Lazy<Settings> s_instance = new Lazy<Settings>(CreateDefault);
 
         private Settings(
@@ -46,31 +36,31 @@ namespace EditorServicesCommandSuite.Utility
 
         internal static Settings Main => s_instance.Value;
 
-        [Setting(nameof(MainModuleDirectory))]
+        [Setting(nameof(MainModuleDirectory), Default = @"'.\module'")]
         internal static string MainModuleDirectory =>
-            GetSetting(nameof(MainModuleDirectory), @".\module");
+            GetSetting(nameof(MainModuleDirectory), @"'.\module'");
 
-        [Setting(nameof(SourceManifestPath))]
+        [Setting(nameof(SourceManifestPath), Default = @"'.\module\*.psd1'")]
         internal static string SourceManifestPath =>
-            GetSetting(nameof(SourceManifestPath), @".\module\*.psd1");
+            GetSetting(nameof(SourceManifestPath), @"'.\module\*.psd1'");
 
-        [Setting(nameof(StringLocalizationManifest))]
+        [Setting(nameof(StringLocalizationManifest), Default = @"'.\module\en-US\Strings.psd1'")]
         internal static string StringLocalizationManifest =>
             GetSetting(nameof(StringLocalizationManifest), @".\module\en-US\Strings.psd1");
 
-        [Setting(nameof(MarkdownDocsPath))]
+        [Setting(nameof(MarkdownDocsPath), Default = @"'.\docs'")]
         internal static string MarkdownDocsPath =>
             GetSetting(nameof(MarkdownDocsPath), @".\docs");
 
-        [Setting(nameof(NewLine))]
+        [Setting(nameof(NewLine), Default = "[Environment]::NewLine")]
         internal static string NewLine =>
             GetSetting(nameof(NewLine), Environment.NewLine);
 
-        [Setting(nameof(TabString))]
+        [Setting(nameof(TabString), Default = "'    '")]
         internal static string TabString =>
             GetSetting(nameof(TabString), "    ");
 
-        [Setting(nameof(EnableAutomaticNamespaceRemoval))]
+        [Setting(nameof(EnableAutomaticNamespaceRemoval), Default = "$true")]
         internal static bool EnableAutomaticNamespaceRemoval =>
             GetSetting(nameof(EnableAutomaticNamespaceRemoval), true);
 
@@ -199,7 +189,11 @@ namespace EditorServicesCommandSuite.Utility
                     })
                 .GroupBy(setting => setting.Attribute.Key)
                 .Select(settingGroup => settingGroup.First())
-                .Select(setting => new CommandSuiteSettingInfo(setting.Attribute.Key, setting.Type));
+                .Select(setting =>
+                    new CommandSuiteSettingInfo(
+                        setting.Attribute.Key,
+                        setting.Type,
+                        setting.Attribute.Default));
         }
 
         private bool TryGetRawValue(string key, out object value)

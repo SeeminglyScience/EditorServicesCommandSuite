@@ -71,13 +71,13 @@ namespace EditorServicesCommandSuite.Language
 
         private class UsingStatementsConfiguration : RefactorConfiguration
         {
-            [DefaultFromSettingAttribute("UsingStatements.SeparateGroupsWithNewLine")]
+            [DefaultFromSettingAttribute("UsingStatements.SeparateGroupsWithNewLine", Default = "$true")]
             public bool SeparateGroupsWithNewLine { get; set; } = true;
 
-            [DefaultFromSettingAttribute("UsingStatements.SystemNamespaceFirst")]
+            [DefaultFromSettingAttribute("UsingStatements.SystemNamespaceFirst", Default = "$true")]
             public bool SystemNamespaceFirst { get; set; } = true;
 
-            [DefaultFromSettingAttribute("UsingStatements.UsingKindOrder")]
+            [DefaultFromSettingAttribute("UsingStatements.UsingKindOrder", Default = "'Assembly', 'Module', 'Namespace'")]
             public UsingStatementKind[] UsingKindOrder { get; set; } = new UsingStatementKind[]
             {
                 UsingStatementKind.Assembly,

@@ -13,13 +13,18 @@ namespace EditorServicesCommandSuite.Utility
 
         private readonly Type _typeOfValue;
 
-        internal CommandSuiteSettingInfo(string key, Type typeOfValue)
+        internal CommandSuiteSettingInfo(string key, Type typeOfValue, string defaultAsExpression)
         {
             _typeOfValue = typeOfValue ?? typeof(object);
             FullName = key;
             NameParts = key.Split(Symbols.Dot);
+
             _descriptionResourceName =
                 string.Join(Symbols.Underscore.ToString(), NameParts) + "Description";
+
+            DefaultAsExpression = string.IsNullOrWhiteSpace(defaultAsExpression)
+                ? new string(Symbols.Null)
+                : defaultAsExpression;
 
             if (NameParts.Length == 1)
             {
@@ -72,5 +77,11 @@ namespace EditorServicesCommandSuite.Utility
         /// well as the setting's name.
         /// </summary>
         internal string[] NameParts { get; }
+
+        /// <summary>
+        /// Gets the default value of the setting as it would be expressed in a
+        /// PowerShell script.
+        /// </summary>
+        internal string DefaultAsExpression { get; }
     }
 }

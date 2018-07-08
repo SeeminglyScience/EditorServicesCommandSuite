@@ -112,8 +112,8 @@ namespace EditorServicesCommandSuite.Commands
                 Force.IsPresent,
                 isAppend: false,
                 canWhatIf: true,
-                defaultFileName: "ESCSSettings.psd1",
-                requiredExtension: ".psd1"))
+                defaultFileName: Settings.SettingFileName,
+                requiredExtension: Settings.SettingFileExtension))
             {
                 return;
             }
@@ -225,7 +225,7 @@ namespace EditorServicesCommandSuite.Commands
                         _writer.WriteChars(Symbols.NumberSign, Symbols.Space);
                         _writer.WriteHashtableEntry(
                             setting.Name,
-                            () => _writer.WriteChars(Symbols.Null));
+                            () => _writer.Write(setting.DefaultAsExpression));
                     },
                     () => _writer.WriteLines(2));
                 return;

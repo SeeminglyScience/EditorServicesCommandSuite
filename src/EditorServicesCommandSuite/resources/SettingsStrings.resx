@@ -139,7 +139,7 @@
     <value>Specifies whether namespaces will automatically be removed when writing type literal expressions. Removed namespaces will be automatically added as a using statement.</value>
   </data>
   <data name="CommandSplatRefactor_VariableNameDescription" xml:space="preserve">
-    <value>The variable name to use when creating the splat expression variable. The default behavior is to name the string similar to "getCommandNameHereSplat".</value>
+    <value>The variable name to use when creating the splat expression variable. The default behavior is to name the string similar to "getCommandNameHereSplat". Setting this to $null will enforce the default behavior.</value>
   </data>
   <data name="CommandSplatRefactor_NewLineAfterHashtableDescription" xml:space="preserve">
     <value>Specifies whether a new line should be placed between the hashtable and the original command expression.</value>

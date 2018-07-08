@@ -11,5 +11,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         }
 
         public string Key { get; }
+
+        public string Default { get; set; }
     }
 }
