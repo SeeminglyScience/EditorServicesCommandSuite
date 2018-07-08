@@ -263,6 +263,68 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 () => WriteLine());
         }
 
+        internal void WriteWrappedLines(string text, int length, Action separator)
+        {
+            WriteWrappedLines(
+                text.ToCharArray(),
+                length,
+                separator);
+        }
+
+        internal void WriteWrappedLines(char[] chars, int length, Action separator)
+        {
+            var lineStart = 0;
+            var column = 0;
+            int? lastWhiteSpace = null;
+            bool justForcedNewLine = false;
+            for (var i = 0; i < chars.Length; i++, column++)
+            {
+                if (chars[i] == '\n')
+                {
+                    if (justForcedNewLine)
+                    {
+                        lineStart = i + 1;
+                        column = -1;
+                        justForcedNewLine = false;
+                        continue;
+                    }
+
+                    int extraOffset = i != 0 && chars[i - 1] == '\r' ? 1 : 0;
+                    Write(chars, lineStart, column - extraOffset);
+                    separator();
+                    lineStart = i + 1;
+                    column = -1;
+                    lastWhiteSpace = null;
+                    continue;
+                }
+
+                if (chars[i] == '\r')
+                {
+                    continue;
+                }
+
+                if (char.IsWhiteSpace(chars[i]))
+                {
+                    lastWhiteSpace = column;
+                }
+
+                if (column >= length && lastWhiteSpace != null)
+                {
+                    Write(chars, lineStart, lastWhiteSpace.Value);
+                    separator();
+                    column = lastWhiteSpace == column ? 0 : column - lastWhiteSpace.Value - 1;
+                    lineStart = lineStart + lastWhiteSpace.Value + 1;
+                    lastWhiteSpace = null;
+                    justForcedNewLine = true;
+                    continue;
+                }
+
+                justForcedNewLine = false;
+            }
+
+            Write(chars, lineStart, chars.Length - lineStart);
+        }
+
         protected void CreateDocumentEditsImpl(int overwriteCount)
         {
             if (!_isWritePending)

@@ -236,6 +236,26 @@ namespace EditorServicesCommandSuite.CodeGeneration
             }
         }
 
+        internal void WriteComment(string text, int maxLineLength)
+        {
+            WriteChars(NumberSign, Space);
+            maxLineLength = maxLineLength - Indent - 2;
+            if (text.Length <= maxLineLength)
+            {
+                Write(text);
+                return;
+            }
+
+            WriteWrappedLines(
+                text,
+                maxLineLength - Indent - 2,
+                () =>
+                {
+                    WriteLine();
+                    WriteChars(NumberSign, Space);
+                });
+        }
+
         internal void WriteMemberDefinition(MemberDescription member)
         {
             if (member.IsStatic)

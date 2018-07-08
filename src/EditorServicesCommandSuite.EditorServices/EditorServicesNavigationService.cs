@@ -23,7 +23,10 @@ namespace EditorServicesCommandSuite.EditorServices
         {
             _messageService.SendRequest(
                 OpenFileRequest.Type,
-                path,
+                new OpenFileDetails()
+                {
+                    FilePath = path,
+                },
                 waitForResponse: true);
         }
 
@@ -36,7 +39,10 @@ namespace EditorServicesCommandSuite.EditorServices
         {
             return _messageService.SendRequestAsync(
                 OpenFileRequest.Type,
-                path,
+                new OpenFileDetails()
+                {
+                    FilePath = path,
+                },
                 waitForResponse: true);
         }
 

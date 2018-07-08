@@ -117,13 +117,53 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="InvalidRefactorTarget" xml:space="preserve">
-    <value>Unable to determine a valid target for the specified refactor provider.</value>
+  <data name="ReadWriteFileNotFileSystemProvider" xml:space="preserve">
+    <value>Cannot open file because the current provider ({0}) cannot open a file.</value>
   </data>
-  <data name="UntitledWorkspaceNotSupported" xml:space="preserve">
-    <value>This action is not supported in an untitled workspace.</value>
+  <data name="FileAlreadyExistsNoForce" xml:space="preserve">
+    <value>The file '{0}' already exists.</value>
   </data>
-  <data name="NoCommandSuiteInstance" xml:space="preserve">
-    <value>No existing CommandSuite instance was found. Initialization with the host editor may have failed.</value>
+  <data name="ParentDirectoryMissingNoForce" xml:space="preserve">
+    <value>Could not find a part of the path '{0}'.</value>
+  </data>
+  <data name="CreateDirectoryDescription" xml:space="preserve">
+    <value>Performing the operation "Create Directory" on target "Destination: {0}".</value>
+  </data>
+  <data name="CreateDirectoryWarning" xml:space="preserve">
+    <value>Are you sure you want to perform this action?
+Performing the operation "Create Directory" on target "Destination: {0}".</value>
+  </data>
+  <data name="CreateDirectoryCaption" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="CreateFileDescription" xml:space="preserve">
+    <value>Performing the operation "Create File" on target "Destination: {0}".</value>
+  </data>
+  <data name="CreateFileWarning" xml:space="preserve">
+    <value>Are you sure you want to perform this action?
+Performing the operation "Create File" on target "Destination: {0}".</value>
+  </data>
+  <data name="CreateFileCaption" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="OpenFileDescription" xml:space="preserve">
+    <value>Performing the operation "Open File" on target "Destination: {0}".</value>
+  </data>
+  <data name="OpenFileWarning" xml:space="preserve">
+    <value>Are you sure you want to perform this action?
+Performing the operation "Open File" on target "Destination: {0}".</value>
+  </data>
+  <data name="OpenFileCaption" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="RemoveItemDescription" xml:space="preserve">
+    <value>Performing the operation "Remove File" on target "{0}".</value>
+  </data>
+  <data name="RemoveItemWarning" xml:space="preserve">
+    <value>Are you sure you want to perform this action?
+Performing the operation "Remove File" on target "{0}".</value>
+  </data>
+  <data name="RemoveItemCaption" xml:space="preserve">
+    <value>Confirm</value>
   </data>
 </root>

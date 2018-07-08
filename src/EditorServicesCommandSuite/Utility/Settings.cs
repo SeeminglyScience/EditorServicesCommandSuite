@@ -1,11 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Reflection;
+using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Internal;
+
+using static GlobalSettingsStrings;
 
 namespace EditorServicesCommandSuite.Utility
 {
-    internal enum SettingsScope
+    public enum SettingsScope
     {
         Process,
 
@@ -18,6 +24,7 @@ namespace EditorServicesCommandSuite.Utility
 
     internal class Settings : IDisposable
     {
+        internal const string SettingFileName = "ESCSSettings.psd1";
         private static Lazy<Settings> s_instance = new Lazy<Settings>(CreateDefault);
 
         private Settings(
@@ -39,33 +46,33 @@ namespace EditorServicesCommandSuite.Utility
 
         internal static Settings Main => s_instance.Value;
 
-        internal static string MainModuleDirectory => GetSetting(
-            "MainModuleDirectory",
-            @".\module");
+        [Setting(nameof(MainModuleDirectory))]
+        internal static string MainModuleDirectory =>
+            GetSetting(nameof(MainModuleDirectory), @".\module");
 
-        internal static string SourceManifestPath => GetSetting(
-            "SourceManifestPath",
-            @".\module\*.psd1");
+        [Setting(nameof(SourceManifestPath))]
+        internal static string SourceManifestPath =>
+            GetSetting(nameof(SourceManifestPath), @".\module\*.psd1");
 
-        internal static string StringLocalizationManifest => GetSetting(
-            "StringLocalizationManifest",
-            @".\module\en-US\Strings.psd1");
+        [Setting(nameof(StringLocalizationManifest))]
+        internal static string StringLocalizationManifest =>
+            GetSetting(nameof(StringLocalizationManifest), @".\module\en-US\Strings.psd1");
 
-        internal static string MarkdownDocsPath => GetSetting(
-            "MarkdownDocsPath",
-            @".\docs");
+        [Setting(nameof(MarkdownDocsPath))]
+        internal static string MarkdownDocsPath =>
+            GetSetting(nameof(MarkdownDocsPath), @".\docs");
 
-        internal static string NewLine => GetSetting(
-            "NewLine",
-            Environment.NewLine);
+        [Setting(nameof(NewLine))]
+        internal static string NewLine =>
+            GetSetting(nameof(NewLine), Environment.NewLine);
 
-        internal static string TabString => GetSetting(
-            "TabString",
-            "    ");
+        [Setting(nameof(TabString))]
+        internal static string TabString =>
+            GetSetting(nameof(TabString), "    ");
 
-        internal static bool EnableAutomaticNamespaceRemoval => GetSetting(
-            "EnableAutomaticNamespaceRemoval",
-            true);
+        [Setting(nameof(EnableAutomaticNamespaceRemoval))]
+        internal static bool EnableAutomaticNamespaceRemoval =>
+            GetSetting(nameof(EnableAutomaticNamespaceRemoval), true);
 
         private SettingsContext Process { get; }
 
@@ -85,29 +92,58 @@ namespace EditorServicesCommandSuite.Utility
 
         internal static Settings CreateDefault()
         {
-            var workspacePath =
-                string.IsNullOrWhiteSpace(CommandSuite.Instance?.DocumentContext?.Workspace)
-                    ? string.Empty
-                    : Path.Combine(
-                        CommandSuite.Instance.DocumentContext.Workspace,
+            return new Settings(
+                GetPathFromScope(SettingsScope.Workspace),
+                GetPathFromScope(SettingsScope.User),
+                GetPathFromScope(SettingsScope.Machine));
+        }
+
+        internal static string GetPathFromScope(SettingsScope scope)
+        {
+            switch (scope)
+            {
+                case SettingsScope.Machine:
+                    return Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        "EditorServicesCommandSuite",
                         "ESCSSettings.psd1");
+                case SettingsScope.User:
+                    return Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "EditorServicesCommandSuite",
+                        "ESCSSettings.psd1");
+                case SettingsScope.Workspace:
+                    return string.IsNullOrWhiteSpace(CommandSuite.Instance?.DocumentContext?.Workspace)
+                        ? string.Empty
+                        : Path.Combine(
+                            CommandSuite.Instance.DocumentContext.Workspace,
+                            "ESCSSettings.psd1");
+            }
 
-            var userPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "EditorServicesCommandSuite",
-                "ESCSSettings.psd1");
-
-            var machinePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "EditorServicesCommandSuite",
-                "ESCSSettings.psd1");
-
-            return new Settings(workspacePath, userPath, machinePath);
+            return string.Empty;
         }
 
         internal static void SetSetting<TValue>(string key, TValue value)
         {
             Main.Process.SetSetting(key, value);
+        }
+
+        internal static void SetSetting(string key, object value, Type typeOfValue)
+        {
+            Main.Process.SetSetting(
+                key,
+                LanguagePrimitives.ConvertTo(value, typeOfValue));
+        }
+
+        internal static bool TrySetSetting(string key, object value, Type typeOfValue)
+        {
+            if (LanguagePrimitives.TryConvertTo(value, typeOfValue, out object convertedValue))
+            {
+                Main.Process.SetSetting(key, convertedValue);
+                return true;
+            }
+
+            return false;
         }
 
         internal static TValue GetSetting<TValue>(string key, TValue defaultValue)
@@ -118,6 +154,12 @@ namespace EditorServicesCommandSuite.Utility
             }
 
             return defaultValue;
+        }
+
+        internal static object GetSetting(string key, Type typeOfValue)
+        {
+            TryGetSetting(key, typeOfValue, out object value);
+            return value;
         }
 
         internal static bool TryGetSetting(string key, Type typeOfValue, out object value)
@@ -140,6 +182,24 @@ namespace EditorServicesCommandSuite.Utility
 
             value = default(TResult);
             return false;
+        }
+
+        internal static IEnumerable<CommandSuiteSettingInfo> GetAllSettings()
+        {
+            return typeof(Settings).Assembly.GetTypes()
+                .Where(type => type.IsSubclassOf(typeof(RefactorConfiguration)))
+                .Concat(new[] { typeof(Settings) })
+                .SelectMany(type => type
+                    .GetProperties(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+                    .Where(property => property.IsDefined(typeof(SettingAttribute), true)))
+                .Select(property => new
+                    {
+                        Type = property.PropertyType,
+                        Attribute = property.GetCustomAttribute<SettingAttribute>(true),
+                    })
+                .GroupBy(setting => setting.Attribute.Key)
+                .Select(settingGroup => settingGroup.First())
+                .Select(setting => new CommandSuiteSettingInfo(setting.Attribute.Key, setting.Type));
         }
 
         private bool TryGetRawValue(string key, out object value)

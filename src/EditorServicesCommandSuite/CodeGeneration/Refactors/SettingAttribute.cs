@@ -3,11 +3,13 @@ using System;
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    internal class DefaultFromSettingAttribute : SettingAttribute
+    internal class SettingAttribute : Attribute
     {
-        internal DefaultFromSettingAttribute(string key)
-            : base(key)
+        internal SettingAttribute(string key)
         {
+            Key = key;
         }
+
+        public string Key { get; }
     }
 }

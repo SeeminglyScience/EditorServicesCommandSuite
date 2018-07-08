@@ -117,13 +117,40 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="InvalidRefactorTarget" xml:space="preserve">
-    <value>Unable to determine a valid target for the specified refactor provider.</value>
+  <data name="MainModuleDirectoryDescription" xml:space="preserve">
+    <value>The relative path from the current workspace to the root directory of the module.</value>
   </data>
-  <data name="UntitledWorkspaceNotSupported" xml:space="preserve">
-    <value>This action is not supported in an untitled workspace.</value>
+  <data name="SourceManifestPathDescription" xml:space="preserve">
+    <value>The relative path from the current workspace to the main module manifest file.</value>
   </data>
-  <data name="NoCommandSuiteInstance" xml:space="preserve">
-    <value>No existing CommandSuite instance was found. Initialization with the host editor may have failed.</value>
+  <data name="StringLocalizationManifestDescription" xml:space="preserve">
+    <value>The relative path from the current workspace to the string localization psd1 file.</value>
+  </data>
+  <data name="MarkdownDocsPathDescription" xml:space="preserve">
+    <value>The relative path from the current workspace to the directory where markdown files are stored.</value>
+  </data>
+  <data name="NewLineDescription" xml:space="preserve">
+    <value>The string used to created line breaks. Defaults to "[Environment]::NewLine"</value>
+  </data>
+  <data name="TabStringDescription" xml:space="preserve">
+    <value>The string used to created indents. Defaults to four spaces.</value>
+  </data>
+  <data name="EnableAutomaticNamespaceRemovalDescription" xml:space="preserve">
+    <value>Specifies whether namespaces will automatically be removed when writing type literal expressions. Removed namespaces will be automatically added as a using statement.</value>
+  </data>
+  <data name="CommandSplatRefactor_VariableNameDescription" xml:space="preserve">
+    <value>The variable name to use when creating the splat expression variable. The default behavior is to name the string similar to "getCommandNameHereSplat".</value>
+  </data>
+  <data name="CommandSplatRefactor_NewLineAfterHashtableDescription" xml:space="preserve">
+    <value>Specifies whether a new line should be placed between the hashtable and the original command expression.</value>
+  </data>
+  <data name="UsingStatements_SeparateGroupsWithNewLineDescription" xml:space="preserve">
+    <value>Specifies whether groups of using statement types should be separated with a new line character.</value>
+  </data>
+  <data name="UsingStatements_SystemNamespaceFirstDescription" xml:space="preserve">
+    <value>Specifies whether using statements that start with "System" should be ordered first regardless of alphabetical order.</value>
+  </data>
+  <data name="UsingStatements_UsingKindOrderDescription" xml:space="preserve">
+    <value>The order in which groups of using statement types will appear.</value>
   </data>
 </root>

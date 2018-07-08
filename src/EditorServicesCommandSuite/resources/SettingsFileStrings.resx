@@ -117,13 +117,10 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="InvalidRefactorTarget" xml:space="preserve">
-    <value>Unable to determine a valid target for the specified refactor provider.</value>
+  <data name="InvalidScopeNoPath" xml:space="preserve">
+    <value>The specified setting scope "{0}" is not valid because there is no path associated with it.</value>
   </data>
-  <data name="UntitledWorkspaceNotSupported" xml:space="preserve">
-    <value>This action is not supported in an untitled workspace.</value>
-  </data>
-  <data name="NoCommandSuiteInstance" xml:space="preserve">
-    <value>No existing CommandSuite instance was found. Initialization with the host editor may have failed.</value>
+  <data name="NewFileUntitledWorkspace" xml:space="preserve">
+    <value>The specified setting scope "Workspace" is not valid because the current workspace is untitled and has no path associated with it. Open the editor to a workspace, specify a different setting scope, or specify a path for the setting file and then try the command again.</value>
   </data>
 </root>

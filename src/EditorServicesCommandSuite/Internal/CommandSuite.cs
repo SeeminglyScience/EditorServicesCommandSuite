@@ -58,7 +58,20 @@ namespace EditorServicesCommandSuite.Internal
         /// Gets the current instance or <see langword="null" /> if it has not been
         /// created yet.
         /// </summary>
-        protected internal static CommandSuite Instance => s_instance;
+        protected internal static CommandSuite Instance
+        {
+            get
+            {
+                if (s_instance != null)
+                {
+                    return s_instance;
+                }
+
+                // Throw an exception with an error record to avoid null reference
+                // exceptions if the editor host failed to properly initalize.
+                throw new NoCommandSuiteInstanceException();
+            }
+        }
 
         /// <summary>
         /// Gets the diagnostics provider.

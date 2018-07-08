@@ -2,6 +2,8 @@ namespace EditorServicesCommandSuite.Internal
 {
     public static class Symbols
     {
+        public const char NumberSign = '#';
+
         public const char Backslash = '\\';
 
         public const char ForwardSlash = '/';
@@ -42,6 +44,8 @@ namespace EditorServicesCommandSuite.Internal
 
         public const char Equal = '=';
 
+        public const char Underscore = '_';
+
         public const char TypeLiteralBegin = SquareOpen;
 
         public const char TypeLiteralEnd = SquareClose;
@@ -59,6 +63,8 @@ namespace EditorServicesCommandSuite.Internal
         public const char ParametersOpen = ParenOpen;
 
         public const char ParametersClose = ParenClose;
+
+        public static readonly char[] Null = { Dollar, 'n', 'u', 'l', 'l' };
 
         public static readonly char[] New = { 'n', 'e', 'w' };
 

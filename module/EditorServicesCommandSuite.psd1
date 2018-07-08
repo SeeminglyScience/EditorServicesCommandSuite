@@ -59,14 +59,13 @@ FunctionsToExport = 'Add-CommandToManifest',
                     'Expand-TypeImplementation',
                     'Import-CommandSuite',
                     'Invoke-DocumentRefactor',
-                    'New-ESCSSettingsFile',
                     'Remove-Semicolon',
                     'Set-HangingIndent',
                     'Set-RuleSuppression',
                     'Set-UsingStatementOrder'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-CmdletsToExport = @()
+CmdletsToExport = 'Get-CommandSuiteSetting', 'Set-CommandSuiteSetting', 'New-CommandSuiteSettingFile'
 
 # Variables to export from this module
 VariablesToExport = @()

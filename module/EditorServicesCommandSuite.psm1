@@ -1,6 +1,6 @@
 Import-LocalizedData -BindingVariable Strings -FileName Strings -ErrorAction Ignore
 
-Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.dll"
+Import-Module $PSScriptRoot/EditorServicesCommandSuite.dll
 Import-Module $PSScriptRoot/RefactorCmdlets/RefactorCmdlets.cdxml
 
 if (-not $CommandSuite -or $CommandSuite -isnot [EditorServicesCommandSuite.Internal.CommandSuite]) {
@@ -66,4 +66,4 @@ if ($isMainRunspace) {
 # Export only the functions using PowerShell standard verb-noun naming.
 # Be sure to list each exported functions in the FunctionsToExport field of the module manifest file.
 # This improves performance of command discovery in PowerShell.
-Export-ModuleMember -Function *-*
+Export-ModuleMember -Function *-* -Cmdlet *-*

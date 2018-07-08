@@ -37,6 +37,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             if (DoesSupportOpenDocument)
             {
                 _documentOpener.OpenDocument(path);
+                return;
             }
 
             throw new NotSupportedException();
@@ -47,6 +48,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             if (DoesSupportOpenDocument)
             {
                 _documentOpener.OpenDocument(path, cancellationToken);
+                return;
             }
 
             throw new NotSupportedException();
