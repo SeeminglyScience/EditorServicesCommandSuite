@@ -153,6 +153,21 @@ namespace EditorServicesCommandSuite.CodeGeneration
             Indent = _indentStack.Pop();
         }
 
+        internal void WriteIndentIfPending()
+        {
+            if (_pendingIndent == null || _pendingIndent == 0)
+            {
+                return;
+            }
+
+            int indent = _pendingIndent.Value;
+            _pendingIndent = null;
+            for (var i = 1; i <= indent; i++)
+            {
+                Write(_coreTab);
+            }
+        }
+
         internal void WriteChars(char first, char second)
         {
             WriteIndentIfPending();
@@ -501,21 +516,6 @@ namespace EditorServicesCommandSuite.CodeGeneration
             await WriteAsync(CoreNewLine);
             _isWritePending = true;
             _pendingIndent = Indent;
-        }
-
-        private void WriteIndentIfPending()
-        {
-            if (_pendingIndent == null || _pendingIndent == 0)
-            {
-                return;
-            }
-
-            int indent = _pendingIndent.Value;
-            _pendingIndent = null;
-            for (var i = 1; i <= indent; i++)
-            {
-                Write(_coreTab);
-            }
         }
 
         private async Task WriteIndentIfPendingAsync()

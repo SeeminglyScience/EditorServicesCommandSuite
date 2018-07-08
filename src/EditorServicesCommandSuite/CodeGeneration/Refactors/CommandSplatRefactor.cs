@@ -46,15 +46,13 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             var splatWriter = new PowerShellScriptWriter(commandAst);
             splatWriter.SetPosition(parentStatement);
-            splatWriter.Write(Symbols.Dollar);
-            splatWriter.Write(variableName);
-            splatWriter.Write(new[] { Symbols.Space, Symbols.Equal, Symbols.Space });
-            splatWriter.OpenHashtable();
+            splatWriter.WriteAssignment(
+                () => splatWriter.WriteVariable(variableName),
+                () => splatWriter.OpenHashtable());
 
             var elementsWriter = new PowerShellScriptWriter(commandAst);
             elementsWriter.SetPosition(elementsExtent);
-            elementsWriter.Write(Symbols.At);
-            elementsWriter.Write(variableName);
+            elementsWriter.WriteVariable(variableName, isSplat: true);
 
             var first = true;
             foreach (var param in boundParameters.BoundParameters)
@@ -98,10 +96,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             if (newLineAfterHashtable)
             {
-                splatWriter.WriteLineNoIndent();
+                splatWriter.WriteLine();
             }
 
             splatWriter.WriteLine();
+            splatWriter.WriteIndentIfPending();
             splatWriter.CreateDocumentEdits();
             elementsWriter.CreateDocumentEdits(elementsExtent.Text.Length);
             return splatWriter.Edits.Concat(elementsWriter.Edits);
@@ -139,8 +138,17 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return DefaultSplatVariable;
             }
 
+            string constantValue = nameConstant.Value;
+            if (constantValue.Contains(Symbols.Backslash) || constantValue.Contains(Symbols.ForwardSlash))
+            {
+                // Command appears to be module qualified, so try to determine the actual command name.
+                constantValue = System.Text.RegularExpressions.Regex
+                    .Split(constantValue, @"\\|/")
+                    .Last();
+            }
+
             var variableName =
-                nameConstant.Value
+                constantValue
                     .Replace(Symbols.Dash.ToString(), string.Empty)
                     + SplatVariableSuffix;
 

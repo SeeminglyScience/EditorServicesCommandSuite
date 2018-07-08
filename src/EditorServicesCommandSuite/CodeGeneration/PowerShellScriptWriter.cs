@@ -15,6 +15,13 @@ namespace EditorServicesCommandSuite.CodeGeneration
 {
     internal class PowerShellScriptWriter : DocumentEditWriter
     {
+        private static readonly char[] s_invalidVariableNameChars =
+        {
+            '!', '@', '#', '$', '%', '^', '*', '(', ')', '+', '=', '|',
+            '\\', '/', '\'', '"', '.', ',', '{', '}', '~', '`', ' ', '\t',
+            '\r', '\n'
+        };
+
         private static readonly ScriptBlockAst s_emptyAst = new ScriptBlockAst(
             PositionUtilities.EmptyExtent,
             new ParamBlockAst(
@@ -233,6 +240,38 @@ namespace EditorServicesCommandSuite.CodeGeneration
             {
                 index = index + TabString.Length;
                 Indent++;
+            }
+        }
+
+        internal void WriteAssignment(Action rhs, Action lhs)
+        {
+            rhs();
+            WriteChars(Space, Equal, Space);
+            lhs();
+        }
+
+        internal void WriteVariable(string variableName, bool isSplat = false)
+        {
+            if (isSplat)
+            {
+                Write(At);
+            }
+            else
+            {
+                Write(Dollar);
+            }
+
+            bool shouldEscape = variableName.IndexOfAny(s_invalidVariableNameChars) != -1;
+            if (shouldEscape)
+            {
+                Write(CurlyOpen);
+            }
+
+            Write(variableName);
+
+            if (shouldEscape)
+            {
+                Write(CurlyClose);
             }
         }
 
