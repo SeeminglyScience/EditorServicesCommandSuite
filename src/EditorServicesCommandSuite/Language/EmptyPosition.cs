@@ -14,9 +14,8 @@ namespace EditorServicesCommandSuite.Language
 
         public int Offset => 0;
 
-        public string GetFullScript() => string.Empty;
-
         internal static EmptyPosition Empty => new EmptyPosition();
 
+        public string GetFullScript() => string.Empty;
     }
 }

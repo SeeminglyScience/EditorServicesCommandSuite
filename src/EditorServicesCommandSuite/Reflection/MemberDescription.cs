@@ -23,7 +23,6 @@ namespace EditorServicesCommandSuite.Reflection
         /// <summary>
         /// Gets the MemberType of the member.
         /// </summary>
-
         public abstract MemberTypes MemberType { get; }
 
         /// <summary>

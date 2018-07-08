@@ -19,7 +19,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
         {
             '!', '@', '#', '$', '%', '^', '*', '(', ')', '+', '=', '|',
             '\\', '/', '\'', '"', '.', ',', '{', '}', '~', '`', ' ', '\t',
-            '\r', '\n'
+            '\r', '\n',
         };
 
         private static readonly ScriptBlockAst s_emptyAst = new ScriptBlockAst(
@@ -317,7 +317,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             Write(member.Name);
             if (member.MemberType == MemberTypes.Property)
             {
-                Write(PropertyClose);
+                Write(Semi);
                 return;
             }
 
@@ -331,7 +331,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
                     Write(parameter.Name);
                 },
                 MethodParameterSeparator);
-            Write(new[] { ParametersClose, Space });
+            Write(new[] { ParenClose, Space });
             OpenScriptBlock();
             Write(Throw);
             Write(Space);
@@ -377,9 +377,9 @@ namespace EditorServicesCommandSuite.CodeGeneration
             WriteTypeExpression(type);
             Write(StaticOperator);
             Write(memberName);
-            Write(ParametersOpen);
+            Write(ParenOpen);
             argumentWriter?.Invoke();
-            Write(ParametersClose);
+            Write(ParenClose);
         }
 
         internal void WriteStaticMemberExpression(PSTypeName type, string memberName, Action argumentWriter)
@@ -387,21 +387,21 @@ namespace EditorServicesCommandSuite.CodeGeneration
             WriteTypeExpression(type);
             Write(StaticOperator);
             Write(memberName);
-            Write(ParametersOpen);
+            Write(ParenOpen);
             argumentWriter?.Invoke();
-            Write(ParametersClose);
+            Write(ParenClose);
         }
 
         internal void OpenScriptBlock()
         {
-            Write(ScriptBlockOpen);
+            Write(CurlyOpen);
             FrameOpen();
         }
 
         internal void CloseScriptBlock()
         {
             FrameClose();
-            Write(ScriptBlockClose);
+            Write(CurlyClose);
         }
 
         internal void OpenHashtable()
@@ -457,7 +457,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
         {
             if (writeBrackets)
             {
-                Write(TypeLiteralBegin);
+                Write(SquareOpen);
             }
 
             if (type.Type != null)
@@ -481,7 +481,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
             if (writeBrackets)
             {
-                Write(TypeLiteralEnd);
+                Write(SquareClose);
             }
         }
 
@@ -531,7 +531,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
         internal void OpenParamBlock(bool shouldPushIndent = false)
         {
             Write(Param);
-            Write(ParametersOpen);
+            Write(ParenOpen);
             if (!shouldPushIndent)
             {
                 return;
@@ -547,7 +547,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 FrameClose();
             }
 
-            Write(ParametersClose);
+            Write(ParenClose);
         }
 
         internal void WriteUsingStatement(string name, UsingStatementKind kind)

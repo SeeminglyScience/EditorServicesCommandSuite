@@ -6,7 +6,7 @@ using Microsoft.PowerShell.Cmdletization;
 
 namespace EditorServicesCommandSuite.Internal
 {
-    public class TaskCmdletAdapter : CmdletAdapter<object>
+    internal class TaskCmdletAdapter : CmdletAdapter<object>
     {
         private static readonly Dictionary<string, string> s_emptyPrivateData =
             new Dictionary<string, string>();

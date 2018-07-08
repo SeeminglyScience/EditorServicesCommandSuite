@@ -55,6 +55,7 @@ namespace EditorServicesCommandSuite.Utility
                     IsAppend = isAppend,
                     ShouldDeleteCurrent = false,
                     ShouldCreateParent = false,
+                    SupportsWhatIf = canWhatIf,
                     IsValid = true,
                     DefaultFileName = defaultFileName,
                     RequiredExtension = requiredExtension,

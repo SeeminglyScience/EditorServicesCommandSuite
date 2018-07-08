@@ -50,20 +50,6 @@ namespace EditorServicesCommandSuite.Commands
                         setting.Description));
         }
 
-        private Func<CommandSuiteSettingInfo, bool> GetFilterDelegate(
-            WildcardPattern pattern,
-            string parameterName)
-        {
-            if (parameterName.Equals("FullName", StringComparison.OrdinalIgnoreCase))
-            {
-                return new Func<CommandSuiteSettingInfo, bool>(
-                    setting => pattern.IsMatch(setting.FullName));
-            }
-
-            return new Func<CommandSuiteSettingInfo, bool>(
-                setting => pattern.IsMatch(setting.Name));
-        }
-
         private static string GetCompletionValue(string parameterName, CommandSuiteSettingInfo setting)
         {
             if (parameterName.Equals("Name", System.StringComparison.OrdinalIgnoreCase))
@@ -82,6 +68,20 @@ namespace EditorServicesCommandSuite.Commands
             }
 
             return s_settingCache = Settings.GetAllSettings().ToArray();
+        }
+
+        private Func<CommandSuiteSettingInfo, bool> GetFilterDelegate(
+            WildcardPattern pattern,
+            string parameterName)
+        {
+            if (parameterName.Equals("FullName", StringComparison.OrdinalIgnoreCase))
+            {
+                return new Func<CommandSuiteSettingInfo, bool>(
+                    setting => pattern.IsMatch(setting.FullName));
+            }
+
+            return new Func<CommandSuiteSettingInfo, bool>(
+                setting => pattern.IsMatch(setting.Name));
         }
     }
 }

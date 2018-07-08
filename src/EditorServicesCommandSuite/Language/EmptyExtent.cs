@@ -25,6 +25,5 @@ namespace EditorServicesCommandSuite.Language
         public string Text => string.Empty;
 
         internal static EmptyExtent Empty => new EmptyExtent();
-
     }
 }

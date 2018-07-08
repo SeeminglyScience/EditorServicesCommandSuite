@@ -12,7 +12,8 @@ namespace EditorServicesCommandSuite.Internal
     {
         private ErrorRecord _error;
 
-        internal NoCommandSuiteInstanceException() : base(RefactorStrings.NoCommandSuiteInstance)
+        internal NoCommandSuiteInstanceException()
+            : base(RefactorStrings.NoCommandSuiteInstance)
         {
         }
 

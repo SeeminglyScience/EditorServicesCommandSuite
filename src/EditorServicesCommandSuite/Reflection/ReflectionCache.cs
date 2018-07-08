@@ -6,9 +6,6 @@ namespace EditorServicesCommandSuite.Reflection
 {
     internal static class ReflectionCache
     {
-        private static readonly BindingFlags s_instance =
-            BindingFlags.NonPublic | BindingFlags.Instance;
-
         internal static Type PositionHelper;
 
         internal static Type InternalScriptExtent;
@@ -22,6 +19,9 @@ namespace EditorServicesCommandSuite.Reflection
         internal static MethodInfo InternalScriptPosition_CloneWithNewOffset;
 
         internal static PropertyInfo ExpandableStringExpressionAst_FormatExpression;
+
+        private static readonly BindingFlags s_instance =
+            BindingFlags.NonPublic | BindingFlags.Instance;
 
         static ReflectionCache()
         {

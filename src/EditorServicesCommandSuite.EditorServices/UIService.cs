@@ -131,7 +131,7 @@ namespace EditorServicesCommandSuite.EditorServices
                     HelpMessage =
                         helpMessageSelector == null
                             ? string.Empty
-                            : helpMessageSelector(items[i - 1])
+                            : helpMessageSelector(items[i - 1]),
                 };
             }
         }

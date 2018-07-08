@@ -19,7 +19,8 @@ namespace EditorServicesCommandSuite.PSReadLine
 
         internal StringBuilder _inputBuffer = new StringBuilder();
 
-        internal SelectItemMenu(TItem[] items) : this(items, DefaultItemRenderer)
+        internal SelectItemMenu(TItem[] items)
+            : this(items, DefaultItemRenderer)
         {
         }
 
@@ -54,6 +55,7 @@ namespace EditorServicesCommandSuite.PSReadLine
                         {
                             _inputBuffer.Remove(_inputBuffer.Length - 1, 1);
                         }
+
                         break;
                     case ConsoleKey.Enter:
                         inputAccepted = true;
@@ -63,6 +65,7 @@ namespace EditorServicesCommandSuite.PSReadLine
                         break;
                 }
             }
+
             return default(TItem);
         }
 
@@ -76,7 +79,6 @@ namespace EditorServicesCommandSuite.PSReadLine
             if (_inputBuffer.Length > 0)
             {
                 _menuBuffer.Append(_inputBuffer);
-
             }
             else
             {
@@ -96,7 +98,9 @@ namespace EditorServicesCommandSuite.PSReadLine
         {
             _menuBuffer.AppendFormat(
                 CultureInfo.CurrentCulture,
-                "{0} - {1}", index + 1, _itemRenderer(item));
+                "{0} - {1}",
+                index + 1,
+                _itemRenderer(item));
             _menuBuffer.AppendLine();
         }
     }

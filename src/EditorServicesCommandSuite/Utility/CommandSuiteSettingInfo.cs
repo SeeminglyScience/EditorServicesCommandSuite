@@ -62,14 +62,8 @@ namespace EditorServicesCommandSuite.Utility
         /// </summary>
         public object Value
         {
-            get
-            {
-                return Settings.GetSetting(FullName, _typeOfValue);
-            }
-            set
-            {
-                Settings.SetSetting(FullName, value, _typeOfValue);
-            }
+            get { return Settings.GetSetting(FullName, _typeOfValue); }
+            set { Settings.SetSetting(FullName, value, _typeOfValue); }
         }
 
         /// <summary>

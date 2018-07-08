@@ -24,7 +24,7 @@
       "documentationRules": {
           "xmlHeader": false,
           "documentationCulture": "en-US",
-          "documentExposedElements": false,
+          "documentExposedElements": true,
           "documentInternalElements": false
       }
   }

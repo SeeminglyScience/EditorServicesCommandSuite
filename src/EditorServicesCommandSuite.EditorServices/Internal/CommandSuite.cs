@@ -7,6 +7,10 @@ using Microsoft.PowerShell.EditorServices.Utility;
 
 namespace EditorServicesCommandSuite.EditorServices.Internal
 {
+    /// <summary>
+    /// Provides a central entry point for interacting with a Editor Services based command
+    /// suite session.
+    /// </summary>
     public class CommandSuite : EditorServicesCommandSuite.Internal.CommandSuite
     {
         private const string EditorOperationsFieldName = "editorOperations";
@@ -59,18 +63,49 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
 
         internal EditorSession EditorSession { get; }
 
+        /// <summary>
+        /// Gets the diagnostics provider.
+        /// </summary>
         protected override IRefactorAnalysisContext Diagnostics { get; }
 
+        /// <summary>
+        /// Gets the processor for <see cref="DocumentEdit" /> objects.
+        /// </summary>
         protected override IDocumentEditProcessor Documents { get; }
 
+        /// <summary>
+        /// Gets the interface for interacting with the UI.
+        /// </summary>
         protected override IRefactorUI UI { get; }
 
+        /// <summary>
+        /// Gets the interface for getting information about the users current
+        /// state in an open document. (e.g. cursor position, selection, etc)
+        /// </summary>
         protected override DocumentContextProvider DocumentContext { get; }
 
+        /// <summary>
+        /// Gets the interface for safely invoking PowerShell commands.
+        /// </summary>
         protected override IPowerShellExecutor Execution { get; }
 
+        /// <summary>
+        /// Gets the interface for getting information about the state of the
+        /// current workspace.
+        /// </summary>
         protected override IRefactorWorkspace Workspace { get; }
 
+        /// <summary>
+        /// Gets the command suite instance for the process, or creates
+        /// it if it does not exist yet.
+        /// </summary>
+        /// <param name="psEditor">The psEditor variable from the integrated terminal.</param>
+        /// <param name="engine">The PowerShell engine.</param>
+        /// <param name="host">The PowerShell host.</param>
+        /// <param name="internalContext">The PowerShellContext to use for invoking commands.</param>
+        /// <returns>
+        /// The command suite instance for the process.
+        /// </returns>
         public static CommandSuite GetCommandSuite(
             EditorObject psEditor,
             EngineIntrinsics engine,
@@ -91,6 +126,11 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
             return s_instance;
         }
 
+        /// <summary>
+        /// Get the <see cref="NavigationService" /> that will be used to create the internal
+        /// navigation service.
+        /// </summary>
+        /// <returns>The <see cref="NavigationService" />.</returns>
         protected override NavigationService GetNavigationServiceImpl()
         {
             return _navigation;
