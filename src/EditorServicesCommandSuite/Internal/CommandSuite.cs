@@ -35,6 +35,7 @@ namespace EditorServicesCommandSuite.Internal
 
             Refactors = new RefactorService();
             s_instance = this;
+            ExecutionContext = engine;
         }
 
         internal InternalNavigationService InternalNavigation
@@ -210,8 +211,8 @@ namespace EditorServicesCommandSuite.Internal
             }
 
             var selectedRefactor = await UI.ShowChoicePromptAsync(
-                "Test",
-                "Pick a refactor",
+                RefactorStrings.SelectRefactorCaption,
+                RefactorStrings.SelectRefactorMessage,
                 refactors.ToArray(),
                 item => item.Name,
                 item => item.Description);

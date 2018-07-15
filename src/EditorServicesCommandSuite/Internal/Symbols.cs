@@ -6,6 +6,16 @@ namespace EditorServicesCommandSuite.Internal
     public static class Symbols
     {
         /// <summary>
+        /// The character: "&gt;"
+        /// </summary>
+        public const char GreaterThan = '>';
+
+        /// <summary>
+        /// The character: "&lt;"
+        /// </summary>
+        public const char LessThan = '<';
+
+        /// <summary>
         /// The character: "#"
         /// </summary>
         public const char NumberSign = '#';

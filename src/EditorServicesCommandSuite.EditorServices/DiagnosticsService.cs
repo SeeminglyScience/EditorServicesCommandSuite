@@ -95,13 +95,14 @@ namespace EditorServicesCommandSuite.EditorServices
             string value,
             CancellationToken cancellationToken)
         {
-            return _executor.ExecuteCommand<PSObject>(
-                new PSCommand()
-                    .AddCommand("Invoke-ScriptAnalyzer")
-                    .AddParameter(pssaParameterName, value)
-                    .AddCommand("Select-Object")
-                    .AddParameter("Property", "*"),
-                cancellationToken)
+            return _executor
+                .ExecuteCommand<PSObject>(
+                    new PSCommand()
+                        .AddCommand("Invoke-ScriptAnalyzer")
+                        .AddParameter(pssaParameterName, value)
+                        .AddCommand("Select-Object")
+                        .AddParameter("Property", "*"),
+                    cancellationToken)
                 .Select(ToDiagnosticMarker);
         }
 

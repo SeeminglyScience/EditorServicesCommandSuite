@@ -56,7 +56,7 @@ namespace EditorServicesCommandSuite.EditorServices
             _powerShellContext.Initialize(
                 new ProfilePaths(string.Empty, string.Empty, string.Empty),
                 _runspace,
-                true);
+                ownsInitialRunspace: true);
         }
 
         public IEnumerable<TResult> ExecuteCommand<TResult>(
@@ -65,12 +65,13 @@ namespace EditorServicesCommandSuite.EditorServices
         {
             using (cancellationToken.Register(() => _powerShellContext.AbortExecution()))
             {
-                return _powerShellContext.ExecuteCommand<TResult>(
-                    psCommand,
-                    null,
-                    false,
-                    false,
-                    false)
+                return _powerShellContext
+                    .ExecuteCommand<TResult>(
+                        psCommand,
+                        errorMessages: null,
+                        sendOutputToHost: false,
+                        sendErrorToHost: false,
+                        addToHistory: false)
                     .ConfigureAwait(continueOnCapturedContext: false)
                     .GetAwaiter()
                     .GetResult();
@@ -85,10 +86,10 @@ namespace EditorServicesCommandSuite.EditorServices
             {
                 return await _powerShellContext.ExecuteCommand<TResult>(
                     psCommand,
-                    null,
-                    false,
-                    false,
-                    false);
+                    errorMessages: null,
+                    sendOutputToHost: false,
+                    sendErrorToHost: false,
+                    addToHistory: false);
             }
         }
     }

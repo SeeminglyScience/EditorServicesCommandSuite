@@ -20,6 +20,10 @@ namespace EditorServicesCommandSuite.Reflection
 
         internal static PropertyInfo ExpandableStringExpressionAst_FormatExpression;
 
+        internal static Type TypeAccelerators;
+
+        internal static PropertyInfo TypeAccelerators_Get;
+
         private static readonly BindingFlags s_instance =
             BindingFlags.NonPublic | BindingFlags.Instance;
 
@@ -70,6 +74,12 @@ namespace EditorServicesCommandSuite.Reflection
                     .GetProperty(
                         "FormatExpression",
                         s_instance);
+
+            TypeAccelerators = typeof(PSObject)
+                .Assembly
+                .GetType("System.Management.Automation.TypeAccelerators");
+
+            TypeAccelerators_Get = TypeAccelerators?.GetProperty("Get");
         }
     }
 }
