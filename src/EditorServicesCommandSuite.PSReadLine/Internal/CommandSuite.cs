@@ -16,7 +16,7 @@ namespace EditorServicesCommandSuite.PSReadLine.Internal
             : base(engine, host)
         {
             Documents = new DocumentService();
-            UI = new UIService(host);
+            UI = new UIService();
             DocumentContext = new ContextService();
             Diagnostics = new NullDiagnosticService();
             _navigation = new PSReadLineNavigationService();
@@ -62,9 +62,13 @@ namespace EditorServicesCommandSuite.PSReadLine.Internal
             EngineIntrinsics engine,
             PSHost host)
         {
-            if (Instance != null)
+            try
             {
                 return Instance;
+            }
+            catch (NoCommandSuiteInstanceException)
+            {
+                // Exception is thrown when CommandSuite has not yet been created.
             }
 
             var commandSuite = new CommandSuite(engine, host);
