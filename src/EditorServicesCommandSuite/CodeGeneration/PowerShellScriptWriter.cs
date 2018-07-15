@@ -243,6 +243,33 @@ namespace EditorServicesCommandSuite.CodeGeneration
             }
         }
 
+        internal void WriteEnum<TEnum>(TEnum value)
+            where TEnum : struct
+        {
+            WriteTypeExpression(typeof(TEnum));
+            string stringValue = value.ToString();
+            if (!stringValue.Contains(Symbols.Comma))
+            {
+                Write(StaticOperator);
+                Write(value);
+                return;
+            }
+
+            WriteStringExpression(StringConstantType.SingleQuoted, stringValue);
+        }
+
+        internal MethodChainWriter StartMethodChain()
+        {
+            return new MethodChainWriter(this);
+        }
+
+        internal void WriteExplicitMethodParameterName(string memberName)
+        {
+            WriteChars(LessThan, NumberSign, Space);
+            Write(memberName);
+            WriteChars(Colon, Space, NumberSign, GreaterThan, Space);
+        }
+
         internal void WriteAssignment(Action rhs, Action lhs)
         {
             rhs();
@@ -339,6 +366,16 @@ namespace EditorServicesCommandSuite.CodeGeneration
             CloseScriptBlock();
         }
 
+        internal void WriteConstructor(Type type)
+        {
+            WriteConstructor(type, argumentWriter: null);
+        }
+
+        internal void WriteConstructor(Type type, Action argumentWriter)
+        {
+            WriteStaticMethodInvocation(new PSTypeName(type), New, argumentWriter);
+        }
+
         internal void WriteConstructor(PSTypeName type)
         {
             WriteStaticMemberExpression(type, New, isMethod: true);
@@ -347,6 +384,14 @@ namespace EditorServicesCommandSuite.CodeGeneration
         internal void WriteConstructor(PSTypeName type, Action argumentWriter)
         {
             WriteStaticMethodInvocation(type, New, argumentWriter);
+        }
+
+        internal void WriteStaticMemberExpression(Type type, string memberName, bool isMethod = false)
+        {
+            WriteStaticMemberExpression(
+                new PSTypeName(type),
+                memberName,
+                isMethod);
         }
 
         internal void WriteStaticMemberExpression(PSTypeName type, string memberName, bool isMethod = false)
@@ -445,16 +490,34 @@ namespace EditorServicesCommandSuite.CodeGeneration
             Write(quoteChar);
         }
 
-        internal void WriteTypeExpression(Type type, bool writeBrackets = true, bool forAttribute = false)
+        internal void WriteTypeExpression(
+            Type type,
+            bool writeBrackets = true,
+            bool forAttribute = false,
+            bool allowNonPublic = false,
+            bool skipGenericArgs = false)
         {
             WriteTypeExpression(
                 new PSTypeName(type),
                 writeBrackets,
-                forAttribute);
+                forAttribute,
+                allowNonPublic,
+                skipGenericArgs);
         }
 
-        internal void WriteTypeExpression(PSTypeName type, bool writeBrackets = true, bool forAttribute = false)
+        internal void WriteTypeExpression(
+            PSTypeName type,
+            bool writeBrackets = true,
+            bool forAttribute = false,
+            bool allowNonPublic = false,
+            bool skipGenericArgs = false)
         {
+            if (type.Type != null && !MemberUtil.IsTypeExpressible(type.Type) && allowNonPublic)
+            {
+                WriteReflectionTypeExpression(type.Type);
+                return;
+            }
+
             if (writeBrackets)
             {
                 Write(SquareOpen);
@@ -467,7 +530,8 @@ namespace EditorServicesCommandSuite.CodeGeneration
                         type.Type,
                         dropNamespaces: ShouldDropNamespaces,
                         out string[] droppedNamespaces,
-                        forAttribute));
+                        forAttribute,
+                        skipGenericArgs));
 
                 foreach (string ns in droppedNamespaces)
                 {
@@ -483,6 +547,45 @@ namespace EditorServicesCommandSuite.CodeGeneration
             {
                 Write(SquareClose);
             }
+        }
+
+        internal void WriteReflectionTypeExpression(Type type)
+        {
+            if (type.IsGenericType && MemberUtil.IsTypeExpressible(type, shouldSkipGenericArgs: true))
+            {
+                WriteTypeExpression(new PSTypeName(type), skipGenericArgs: true);
+            }
+            else
+            {
+                Write(SquareOpen);
+                Write(MemberUtil.GetShortestExpressibleTypeName(type, out string droppedNamespace));
+                if (!string.IsNullOrEmpty(droppedNamespace))
+                {
+                    _pendingUsingWrites.Add(droppedNamespace);
+                }
+
+                WriteChars(SquareClose, Dot);
+                Write("Assembly");
+                Write(Dot);
+                Write("GetType");
+                Write(ParenOpen);
+                WriteStringExpression(StringConstantType.SingleQuoted, type.ToString());
+                Write(ParenClose);
+            }
+
+            if (!type.IsGenericType)
+            {
+                return;
+            }
+
+            Write(Dot);
+            Write("MakeGenericType");
+            Write(ParenOpen);
+            WriteEachWithSeparator(
+                type.GetGenericArguments(),
+                t => WriteTypeExpression(new PSTypeName(t), allowNonPublic: true),
+                () => WriteChars(Comma, Dot));
+            Write(ParenClose);
         }
 
         internal void WriteAttributeStatement(PSTypeName typeName)

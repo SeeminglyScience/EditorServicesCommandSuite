@@ -342,12 +342,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         protected void CreateDocumentEditsImpl(int overwriteCount)
         {
-            if (!_isWritePending)
-            {
-                return;
-            }
-
-            _edits.Add(CreateEdit(overwriteCount));
+            CreatePendingEdit(overwriteCount);
         }
 
         private string DrainChars(int overwriteCount, StreamReader reader)
