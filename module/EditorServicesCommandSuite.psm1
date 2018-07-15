@@ -10,11 +10,11 @@ if (-not $CommandSuite -or $CommandSuite -isnot [EditorServicesCommandSuite.Inte
         Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.EditorServices.dll"
         try {
             $powerShellContext = [Microsoft.PowerShell.EditorServices.PowerShellContext]::new(
-                [Microsoft.PowerShell.EditorServices.Utility.NullLogger]::new(),
+                [EditorServicesCommandSuite.EditorServices.Internal.NullLogger]::Instance,
                 $false)
         } catch [System.Management.Automation.MethodException] {
             $powerShellContext = [Microsoft.PowerShell.EditorServices.PowerShellContext]::new(
-                [Microsoft.PowerShell.EditorServices.Utility.NullLogger]::new())
+                [EditorServicesCommandSuite.EditorServices.Internal.NullLogger]::Instance)
         }
 
         $CommandSuite = [EditorServicesCommandSuite.EditorServices.Internal.CommandSuite]::GetCommandSuite(

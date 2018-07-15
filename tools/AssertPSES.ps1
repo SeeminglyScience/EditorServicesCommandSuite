@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateNotNull()]
-    [version] $RequiredVersion = '1.7.0'
+    [version] $RequiredVersion = '1.8.1'
 )
 begin {
     Add-Type -AssemblyName System.IO.Compression
@@ -81,7 +81,7 @@ end {
                 }
 
                 $isDesktop = $entry.FullName.StartsWith(
-                    'PowerShellEditorServices\bin\Desktop',
+                    'PowerShellEditorServices\PowerShellEditorServices\bin\Desktop',
                     [StringComparison]::OrdinalIgnoreCase)
 
                 if ($isDesktop) {
@@ -90,7 +90,7 @@ end {
                 }
 
                 $isCore = $entry.FullName.StartsWith(
-                    'PowerShellEditorServices\bin\Core',
+                    'PowerShellEditorServices\PowerShellEditorServices\bin\Core',
                     [StringComparison]::OrdinalIgnoreCase)
 
                 if ($isCore) {
