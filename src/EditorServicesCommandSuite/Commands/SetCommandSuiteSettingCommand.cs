@@ -36,6 +36,7 @@ namespace EditorServicesCommandSuite.Commands
             Mandatory = true,
             ValueFromPipeline = true,
             ParameterSetName = FullNameParameterSet)]
+        [ArgumentCompleter(typeof(CommandSuiteSettingCompleter))]
         public string FullName { get; set; }
 
         /// <summary>

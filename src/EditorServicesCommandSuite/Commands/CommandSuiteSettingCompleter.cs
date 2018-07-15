@@ -47,7 +47,7 @@ namespace EditorServicesCommandSuite.Commands
                         GetCompletionValue(parameterName, setting),
                         setting.FullName,
                         CompletionResultType.ParameterValue,
-                        setting.Description));
+                        string.IsNullOrEmpty(setting.Description) ? setting.FullName : setting.Description));
         }
 
         private static string GetCompletionValue(string parameterName, CommandSuiteSettingInfo setting)
