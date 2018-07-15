@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
-using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Language;
@@ -64,9 +63,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 pwsh.AddCommand(_function)
                     .AddParameter(TargetParameterName, GetTargetByKind(Kind, request));
 
-                await _executor.ExecuteCommandAsync<bool>(
-                    pwsh.Commands.Clone(),
-                    CancellationToken.None);
+                await _executor.ExecuteCommandAsync<bool>(pwsh.Commands.Clone());
 
                 return Enumerable.Empty<DocumentEdit>();
             }
@@ -75,6 +72,12 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         public bool TryGetRefactorInfo(DocumentContextBase request, out IRefactorInfo info)
         {
             var target = GetTargetByKind(Kind, request);
+            if (target == null)
+            {
+                info = null;
+                return false;
+            }
+
             if (!_targetType.IsAssignableFrom(target.GetType()) ||
                 !CanRefactorTarget(request, target))
             {
@@ -158,9 +161,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     .AddParameter(TestParameterName, true)
                     .AddParameter(TargetParameterName, target);
 
-                return _executor.ExecuteCommand<bool>(
-                    pwsh.Commands.Clone(),
-                    CancellationToken.None)
+                return _executor
+                    .ExecuteCommand<bool>(
+                        pwsh.Commands.Clone(),
+                        request.CancellationToken)
                     .FirstOrDefault();
             }
         }
@@ -179,7 +183,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             if (kind == RefactorKind.Token)
             {
-                return request.Token.Value;
+                return request.Token?.Value;
             }
 
             return request.SelectionExtent;

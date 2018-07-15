@@ -33,7 +33,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         bool IDocumentRefactorProvider.TryGetRefactorInfo(DocumentContextBase request, out IRefactorInfo info)
         {
             info = null;
-            return request.Token.Value is TToken token &&
+            return request.Token?.Value is TToken token &&
                 TryGetRefactorInfo(request, token, out info);
         }
 
