@@ -6,6 +6,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
     public enum ExpressionSurroundType
     {
         /// <summary>
+        /// Indicates that the caller should prompt for a surround type.
+        /// </summary>
+        Prompt,
+
+        /// <summary>
         /// Indicates that the selection should be wrapped in an if statement.
         /// </summary>
         IfStatement,

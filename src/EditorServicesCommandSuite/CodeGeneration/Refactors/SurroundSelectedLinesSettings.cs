@@ -6,6 +6,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
     {
         [Parameter(Position = 0)]
         [ValidateNotNull]
-        public ExpressionSurroundType? SurroundType { get; set; }
+        public ExpressionSurroundType SurroundType { get; set; }
     }
 }

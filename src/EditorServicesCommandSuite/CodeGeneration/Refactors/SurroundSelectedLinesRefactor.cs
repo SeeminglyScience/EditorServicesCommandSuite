@@ -47,9 +47,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         {
             var config = request.GetConfiguration<SurroundSelectedLinesSettings>();
             SurroundOption optionChoice;
-            if (config.SurroundType != null)
+            if (config.SurroundType != ExpressionSurroundType.Prompt)
             {
-                optionChoice = s_options.First(option => option.Type == config.SurroundType.Value);
+                optionChoice = s_options.First(option => option.Type == config.SurroundType);
             }
             else
             {
