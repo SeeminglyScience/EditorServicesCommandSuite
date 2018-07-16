@@ -84,11 +84,8 @@ task ResGenImpl {
 
 task BuildManaged {
     $script:dotnet = $dotnet = & $PSScriptRoot\tools\GetDotNet.ps1 -Unix:$Discover.IsUnix
-    # if (!$Discovery.IsUnix) {
-    #     & $dotnet build --framework net462 --configuration $Configuration --verbosity q -nologo
-    # }
 
-    & $dotnet build --framework netstandard2.0 --configuration $Configuration --verbosity q -nologo
+    & $dotnet publish --framework netstandard2.0 --configuration $Configuration --verbosity q -nologo
 }
 
 task BuildRefactorModule {
@@ -121,9 +118,10 @@ task CopyToRelease  {
     }
 
     $releaseFolder = $Folders.Release
-    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite/bin/$Configuration/netstandard2.0/EditorServicesCommandSuite.* -Destination $releaseFolder
-    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.EditorServices/bin/$Configuration/netstandard2.0/EditorServicesCommandSuite.* -Destination $releaseFolder
-    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/EditorServicesCommandSuite.* -Destination $releaseFolder
+    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite/bin/$Configuration/netstandard2.0/publish/EditorServicesCommandSuite.* -Destination $releaseFolder
+    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.EditorServices/bin/$Configuration/netstandard2.0/publish/EditorServicesCommandSuite.* -Destination $releaseFolder
+    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/EditorServicesCommandSuite.* -Destination $releaseFolder
+    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/System.Buffers.dll -Destination $releaseFolder
 }
 
 task Analyze -If { $Settings.ShouldAnalyze } {

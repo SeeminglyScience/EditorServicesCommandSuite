@@ -1,11 +1,14 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Management.Automation.Language;
 using System.Text;
 using System.Text.RegularExpressions;
+using EditorServicesCommandSuite.Internal;
 
 namespace EditorServicesCommandSuite.PSReadLine
 {
@@ -13,31 +16,27 @@ namespace EditorServicesCommandSuite.PSReadLine
 
     internal delegate bool SelectItemMatcher<TItem>(int index, TItem item, string input);
 
-    internal class SelectItemMenu<TItem>
+    internal class SelectItemMenu<TItem> : IDisposable
     {
-        // private const string ClearCurrentLineAnsiEscape = "\x1b[K";
-
-        // private const string SetHorizontalCursorPositionAnsiEscape = "\x1b[{0}G";
-
-        // private const string SetVerticalPositionAnsiEscape = "\x1b[{0}d";
-
-        // private const string EnterAlternateBufferAnsiEscape = "\x1b[?1049h";
-
-        // private const string ExitAlternateBufferAnsiEscape = "\x1b[?1049l";
-
         private static readonly MatchCollection s_emptyMatchCollection = Regex.Matches(string.Empty, "z");
 
         private readonly TextWriter _out;
 
-        private readonly StringBuilder _input = new StringBuilder(Console.WindowWidth - 1, Console.WindowWidth - 1);
+        private readonly StringBuilder _input = new StringBuilder(Console.WindowWidth - 1);
 
         private readonly Dictionary<TItem, string> _renderCache = new Dictionary<TItem, string>();
 
-        private readonly int _maxLineLength;
+        private readonly Dictionary<TItem, string> _descriptionCache = new Dictionary<TItem, string>();
 
-        private readonly int _maxLines;
+        private string _renderedScript;
 
-        private readonly RenderedItem[] _renderedItems;
+        private bool _isDisposed = false;
+
+        private RenderedItem[] _renderedItems;
+
+        private int _lastWindowWidth = Console.WindowWidth;
+
+        private int _lastWindowHeight = Console.WindowHeight;
 
         private int _renderedItemsLength;
 
@@ -59,6 +58,8 @@ namespace EditorServicesCommandSuite.PSReadLine
 
         private int _lastItemsLineLength;
 
+        private int _lastRenderedLinesCount;
+
         private int _selectionIndex;
 
         private TItem _selectedItem;
@@ -67,12 +68,12 @@ namespace EditorServicesCommandSuite.PSReadLine
         {
             Caption = caption;
             Message = message;
-            Items = items;
+            Items = items.Distinct().ToArray();
             _out = Console.Out;
-            _maxLineLength = Console.BufferWidth - 1;
-            _maxLines = Console.WindowHeight - 1;
-            _renderedItems = new RenderedItem[Items.Length];
+            _renderedItems = ArrayPool<RenderedItem>.Shared.Rent(Items.Length);
         }
+
+        internal Tuple<Ast, Token[], IScriptPosition> CompletionData { get; set; }
 
         internal string Caption { get; }
 
@@ -116,29 +117,67 @@ namespace EditorServicesCommandSuite.PSReadLine
             }
         }
 
+        private SelectItemRenderer<TItem> ItemDescriptionRenderer { get; set; }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
         internal SelectItemMenu<TItem> RenderItem(SelectItemRenderer<TItem> renderer)
         {
+            ThrowIfDisposed();
             ItemRenderer = renderer;
+            return this;
+        }
+
+        internal SelectItemMenu<TItem> RenderItemDescription(SelectItemRenderer<TItem> renderer)
+        {
+            ThrowIfDisposed();
+            ItemDescriptionRenderer = renderer;
             return this;
         }
 
         internal SelectItemMenu<TItem> IsMatch(SelectItemMatcher<TItem> matcher)
         {
+            ThrowIfDisposed();
             ItemMatcher = matcher;
             return this;
         }
 
-        internal TItem Prompt()
-        {
-            return Bind();
-        }
-
         internal TItem Bind()
         {
+            ThrowIfDisposed();
             using (Menus.NewAlternateBuffer())
             {
                 return ReadChoice();
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                ArrayPool<RenderedItem>.Shared.Return(_renderedItems);
+                _renderedItems = null;
+            }
+
+            _isDisposed = true;
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (!_isDisposed)
+            {
+                return;
+            }
+
+            throw new InvalidOperationException();
         }
 
         private static string DefaultItemRenderer(int index, TItem item)
@@ -400,7 +439,7 @@ namespace EditorServicesCommandSuite.PSReadLine
                 return;
             }
 
-            if (_input.MaxCapacity == _input.Length)
+            if (Console.WindowWidth - 1 == _input.Length)
             {
                 return;
             }
@@ -471,15 +510,40 @@ namespace EditorServicesCommandSuite.PSReadLine
                     y));
         }
 
-        private void ClearLine()
+        private void ClearLine(int amount = 1)
         {
-            _out.Write(Ansi.ClearCurrentLine);
+            if (amount == 1)
+            {
+                _out.Write(Ansi.ClearCurrentLine);
+                return;
+            }
+
+            _out.Write(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    Ansi.ClearLines,
+                    amount));
         }
 
         private void Render(bool isForSelectionChange = false)
         {
+            if (_lastWindowWidth != Console.WindowWidth ||
+                _lastWindowHeight != Console.WindowHeight)
+            {
+                // Force full redraw on window resize.
+                EnsureInputWithinBounds();
+                _lastWindowWidth = Console.WindowWidth;
+                _lastWindowHeight = Console.WindowHeight;
+                isForSelectionChange = false;
+                _isHeaderWritten = false;
+                SetCursorX(0);
+                SetCursorY(0);
+                _out.Write(Ansi.ClearScreen);
+            }
+
             if (!_isHeaderWritten)
             {
+                WriteSubjectScript();
                 _out.Write(Ansi.Colors.Primary);
                 _out.WriteLine(Caption);
                 _out.Write(Ansi.Colors.Secondary);
@@ -496,10 +560,52 @@ namespace EditorServicesCommandSuite.PSReadLine
             _out.WriteLine(_input);
             _out.WriteLine();
             _out.WriteLine();
+            _out.Write(Ansi.Colors.Reset);
 
             RenderItems(skipMatchRebuild: isForSelectionChange);
             SetCursorY(_inputLine);
             SetCursorX(_cursorX);
+        }
+
+        private void WriteSubjectScript()
+        {
+            if (_renderedScript != null)
+            {
+                _out.Write(_renderedScript);
+                _out.WriteLine();
+                _out.WriteLine();
+                return;
+            }
+
+            if (CompletionData == null || string.IsNullOrWhiteSpace(CompletionData.Item1.Extent.Text))
+            {
+                _renderedScript = string.Empty;
+                return;
+            }
+
+            Token[] tokens = CompletionData.Item2;
+            if (Util.GetStringHeight(CompletionData.Item1.Extent.Text, _lastWindowWidth) > 4)
+            {
+                Parser.ParseInput(CompletionData.Item3.Line, out tokens, out _);
+            }
+
+            _renderedScript = Util.GetRenderedScript(tokens);
+            _out.Write(_renderedScript);
+            _out.WriteLine();
+            _out.WriteLine();
+        }
+
+        private void EnsureInputWithinBounds()
+        {
+            int newMaxLength = Console.WindowWidth - 1;
+            if (newMaxLength >= _input.Length)
+            {
+                return;
+            }
+
+            _input.Remove(
+                newMaxLength,
+                _input.Length - newMaxLength);
         }
 
         private int ReallyRenderItems(int currentMaxLines)
@@ -508,6 +614,7 @@ namespace EditorServicesCommandSuite.PSReadLine
             string input = _input.ToString();
             int totalLines = 0;
             int matchIndex = 0;
+            int maxLineLength = _lastWindowWidth - 1;
             for (var i = 0; i < Items.Length; i++)
             {
                 if (!ItemMatcher(i, Items[i], input))
@@ -516,10 +623,25 @@ namespace EditorServicesCommandSuite.PSReadLine
                 }
 
                 string renderedItem = RenderItem(i, Items[i]);
-                int additionalLines =
-                    renderedItem.Length <= _maxLineLength
-                        ? 1
-                        : (int)System.Math.Ceiling((double)renderedItem.Length / (double)_maxLineLength);
+                string description = RenderItemDescription(i, Items[i]);
+                string fullString = $"{renderedItem} {description}";
+
+                int additionalLines = Util.GetStringHeight(fullString, maxLineLength);
+                if (additionalLines > 4)
+                {
+                    description = string.Empty;
+                    additionalLines = Util.GetStringHeight(renderedItem, maxLineLength);
+                    if (additionalLines > 4)
+                    {
+                        renderedItem = Regex
+                            .Replace(renderedItem, @"(\r?\n)+", "; ")
+                            .Substring(0, Math.Min(maxLineLength - 3, renderedItem.Length - 3))
+                            + "...";
+
+                        additionalLines = 1;
+                    }
+                }
+
                 if ((totalLines + additionalLines) >= currentMaxLines)
                 {
                     break;
@@ -540,6 +662,7 @@ namespace EditorServicesCommandSuite.PSReadLine
                     Matches = matchCollection,
                     Rank = CalculateRank(renderedItem, matchCollection),
                     Text = renderedItem,
+                    Description = description,
                 };
 
                 matchIndex++;
@@ -587,13 +710,15 @@ namespace EditorServicesCommandSuite.PSReadLine
         private void RenderItems(bool skipMatchRebuild = false)
         {
             int startingLine = Console.CursorTop;
-            int currentMaxLines = _maxLines - startingLine;
+            int currentMaxLines = _lastWindowHeight - startingLine;
             int totalLines = skipMatchRebuild ? _lastItemsLineLength : ReallyRenderItems(currentMaxLines);
-            for (var i = 0; i < currentMaxLines; i++)
+            for (var i = 0; i < _lastRenderedLinesCount; i++)
             {
                 SetCursorY(i + startingLine);
                 ClearLine();
             }
+
+            _lastRenderedLinesCount = totalLines;
 
             SetCursorY(startingLine);
             _lastItemsStartingLine = startingLine;
@@ -623,16 +748,22 @@ namespace EditorServicesCommandSuite.PSReadLine
                 int lastIndex = 0;
                 foreach (Match match in _renderedItems[i].Matches)
                 {
-                    Write(chars, lastIndex, match.Index - lastIndex);
+                    Write(chars, lastIndex, match.Index - lastIndex, color: colorEscape);
                     WriteEmphasis(chars, match.Index, match.Length);
                     lastIndex = match.Index + match.Length;
                 }
 
-                Write(chars, lastIndex, chars.Length - lastIndex, newLine: true);
-                // if (isSelected)
-                // {
-                //     _out.Write("\x1b[24m");
-                // }
+                Write(chars, lastIndex, chars.Length - lastIndex, color: colorEscape);
+                _out.Write(Ansi.Colors.Reset);
+                if (!string.IsNullOrEmpty(_renderedItems[i].Description))
+                {
+                    _out.Write(Symbols.Space);
+                    _out.Write(Ansi.Colors.Secondary);
+                    _out.Write(_renderedItems[i].Description);
+                    _out.Write(Ansi.Colors.Reset);
+                }
+
+                _out.WriteLine();
             }
         }
 
@@ -678,6 +809,24 @@ namespace EditorServicesCommandSuite.PSReadLine
             return renderedItem;
         }
 
+        private string RenderItemDescription(int index, TItem item)
+        {
+            if (ItemDescriptionRenderer == null)
+            {
+                return string.Empty;
+            }
+
+            string renderedItem;
+            if (_descriptionCache.TryGetValue(item, out renderedItem))
+            {
+                return renderedItem;
+            }
+
+            renderedItem = ItemDescriptionRenderer(index, item);
+            _descriptionCache.Add(item, renderedItem);
+            return renderedItem;
+        }
+
         private struct RenderedItem
         {
             internal TItem Item;
@@ -687,6 +836,8 @@ namespace EditorServicesCommandSuite.PSReadLine
             internal double Rank;
 
             internal string Text;
+
+            internal string Description;
 
             internal MatchCollection Matches;
         }

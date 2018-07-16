@@ -7,8 +7,6 @@ namespace EditorServicesCommandSuite.PSReadLine
 {
     internal static class Menus
     {
-        private static object s_syncObject = new object();
-
         private static int s_alternateBufferCount;
 
         internal static bool IsInAlternateBuffer

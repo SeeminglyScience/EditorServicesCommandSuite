@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Globalization;
+using System.Management.Automation;
+using System.Management.Automation.Language;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
 using Microsoft.PowerShell;
@@ -9,6 +12,15 @@ namespace EditorServicesCommandSuite.PSReadLine
     internal class UIService : IRefactorUI
     {
         private readonly ConcurrentQueue<Message> s_messages = new ConcurrentQueue<Message>();
+
+        private enum MessageType
+        {
+            Information,
+
+            Warning,
+
+            Error,
+        }
 
         public Task<TItem> ShowChoicePromptAsync<TItem>(string caption, string message, TItem[] items)
         {
@@ -80,41 +92,34 @@ namespace EditorServicesCommandSuite.PSReadLine
             Func<TItem, string> helpMessageSelector = null)
         {
             PSConsoleReadLine.GetBufferState(out string input, out int cursor);
-            if (!string.IsNullOrEmpty(caption))
+
+            TItem result;
+            using (SelectItemMenu<TItem> itemSelect = Menus.ItemSelect(caption, message, items))
             {
-                caption = string.Format(
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    "{0}\n\n{1}",
-                    input,
-                    caption);
+                if (labelSelector != null)
+                {
+                    itemSelect.RenderItem((index, item) => labelSelector(item));
+                }
+
+                if (helpMessageSelector != null)
+                {
+                    itemSelect.RenderItemDescription((index, item) => helpMessageSelector(item));
+                }
+
+                itemSelect.CompletionData =
+                    CommandCompletion.MapStringInputToParsedInput(
+                        input,
+                        cursor);
+
+                result = itemSelect.Bind();
             }
 
-            var itemSelect = Menus.ItemSelect(
-                caption,
-                message,
-                items);
-
-            if (labelSelector != null)
-            {
-                itemSelect.RenderItem((index, item) => labelSelector(item));
-            }
-
-            TItem result = itemSelect.Prompt();
             while (s_messages.TryDequeue(out Message queuedMessage))
             {
                 WriteMessageImpl(queuedMessage);
             }
 
             return result;
-        }
-
-        private enum MessageType
-        {
-            Information,
-
-            Warning,
-
-            Error
         }
 
         private struct Message

@@ -4,13 +4,17 @@ namespace EditorServicesCommandSuite.PSReadLine
 {
     internal static class Ansi
     {
-        private readonly static PSConsoleReadLineOptions s_psrlOptions = PSConsoleReadLine.GetOptions();
+        internal const string ClearScreen = "\x1b[2J";
 
         internal const string ClearCurrentLine = "\x1b[K";
+
+        internal const string ClearLines = "\x1b[{0}M";
 
         internal const string EnterAlternateBuffer = "\x1b[?1049h";
 
         internal const string ExitAlternateBuffer = "\x1b[?1049l";
+
+        private static readonly PSConsoleReadLineOptions s_psrlOptions = PSConsoleReadLine.GetOptions();
 
         internal static class Movement
         {
@@ -27,9 +31,9 @@ namespace EditorServicesCommandSuite.PSReadLine
         {
             internal const string Reset = "\x1b[0m\x1b[24m\x1b[27m";
 
-            internal static string Primary { get; } = Default;
+            internal static string Primary => Default;
 
-            internal static string Secondary { get; } = ContinuationPrompt;
+            internal static string Secondary => Operator;
 
             internal static string Success { get; } = "\x1b[38;2;0;126;51";
 
