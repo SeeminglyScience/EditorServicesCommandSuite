@@ -23,13 +23,13 @@ namespace EditorServicesCommandSuite.CodeGeneration
         };
 
         private static readonly ScriptBlockAst s_emptyAst = new ScriptBlockAst(
-            PositionUtilities.EmptyExtent,
+            Empty.Extent,
             new ParamBlockAst(
-                PositionUtilities.EmptyExtent,
+                Empty.Extent,
                 Enumerable.Empty<AttributeAst>(),
                 Enumerable.Empty<ParameterAst>()),
             new StatementBlockAst(
-                PositionUtilities.EmptyExtent,
+                Empty.Extent,
                 Enumerable.Empty<StatementAst>(),
                 Enumerable.Empty<TrapStatementAst>()),
             isFilter: false);

@@ -130,7 +130,7 @@ namespace EditorServicesCommandSuite.Utility
 
             if (statements.Count == 0)
             {
-                return Empty<TResult>.Array;
+                return Empty.Array<TResult>();
             }
 
             if (statements.Count == 1)
@@ -263,7 +263,7 @@ namespace EditorServicesCommandSuite.Utility
             ExpressionAst expression;
             if (!_values.TryGetValue(fieldName, out expression))
             {
-                return Empty<TResult>.Array;
+                return Empty.Array<TResult>();
             }
 
             return UnwrapArrayExpression<TResult>(expression);

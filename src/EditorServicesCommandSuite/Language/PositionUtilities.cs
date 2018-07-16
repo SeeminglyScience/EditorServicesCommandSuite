@@ -7,10 +7,6 @@ namespace EditorServicesCommandSuite.Language
 {
     internal static class PositionUtilities
     {
-        internal static EmptyExtent EmptyExtent => new EmptyExtent();
-
-        internal static EmptyPosition EmptyPosition => new EmptyPosition();
-
         internal static IScriptExtent NewScriptExtent(
             IScriptExtent source,
             int newStartOffset,

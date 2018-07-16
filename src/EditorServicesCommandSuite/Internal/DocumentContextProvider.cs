@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Language;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Internal
 {
@@ -118,7 +119,7 @@ namespace EditorServicesCommandSuite.Internal
                 {
                     if (_selectionExtent == null)
                     {
-                        return PositionUtilities.EmptyExtent;
+                        return Empty.Extent;
                     }
 
                     return _selectionExtent;
@@ -131,7 +132,7 @@ namespace EditorServicesCommandSuite.Internal
                 {
                     if (_cursorPosition == null)
                     {
-                        return PositionUtilities.EmptyPosition;
+                        return Empty.Position;
                     }
 
                     return _cursorPosition;

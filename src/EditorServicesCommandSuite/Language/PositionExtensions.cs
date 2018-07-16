@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation.Language;
 using EditorServicesCommandSuite.Reflection;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Language
 {
@@ -48,7 +49,7 @@ namespace EditorServicesCommandSuite.Language
         {
             if (!extents.Any())
             {
-                return PositionUtilities.EmptyExtent;
+                return Empty.Extent;
             }
 
             return PositionUtilities.NewScriptExtent(
