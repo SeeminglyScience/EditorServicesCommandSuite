@@ -1,5 +1,3 @@
-Import-LocalizedData -BindingVariable Strings -FileName Strings -ErrorAction Ignore
-
 Import-Module $PSScriptRoot/EditorServicesCommandSuite.dll
 Import-Module $PSScriptRoot/RefactorCmdlets/RefactorCmdlets.cdxml
 
@@ -32,35 +30,22 @@ if (-not $CommandSuite -or $CommandSuite -isnot [EditorServicesCommandSuite.Inte
     $IsMainRunspace = $false
 }
 
-$script:DEFAULT_SETTINGS = @{
-    MainModuleDirectory        = '.\module'
-    SourceManifestPath         = '.\module\*.psd1'
-    MarkdownDocsPath           = '.\docs'
-    StringLocalizationManifest = '.\module\en-US\Strings.psd1'
-}
-
-# PSST doesn't load Antlr until first use, and we need them loaded
-# to create renderers.
-if (-not ('Antlr4.StringTemplate.StringRenderer' -as [type])) {
-    if (-not ($psstPath = (Get-Module PSStringTemplate).ModuleBase)) {
-        # platyPS doesn't seem to be following RequiredModules, this should only ever run
-        # while running platyPS.  Need to look into this more.
-        $psstPath = (Get-Module PSStringTemplate -ListAvailable).ModuleBase
+function Invoke-DocumentRefactor {
+    [CmdletBinding()]
+    param()
+    end {
+        try {
+            $null = $CommandSuite.RequestRefactor($PSCmdlet).
+                ConfigureAwait($false).
+                GetAwaiter().
+                GetResult()
+        } catch [OperationCanceledException] {
+            # Do nothing. This should only be when a menu selection is cancelled, which I'm
+            # equating to ^C
+        } catch {
+            $PSCmdlet.WriteError($PSItem)
+        }
     }
-    Add-Type -Path $psstPath\Antlr3.Runtime.dll
-    Add-Type -Path $psstPath\Antlr4.StringTemplate.dll
-}
-
-# ~MONOLITH_INJECT_START~
-# This section will be replaced with the contents of the files it calls during the build process.
-# See tools/BuildMonolith.ps1 for more details.
-"$PSScriptRoot\Classes", "$PSScriptRoot\Public", "$PSScriptRoot\Private" |
-    Get-ChildItem -Filter '*.ps1' |
-    ForEach-Object { . $PSItem.FullName }
-# ~MONOLITH_INJECT_END~
-
-if ($isMainRunspace) {
-    $CommandSuite.ImportSessionRefactors($ExecutionContext.SessionState)
 }
 
 # Export only the functions using PowerShell standard verb-noun naming.
