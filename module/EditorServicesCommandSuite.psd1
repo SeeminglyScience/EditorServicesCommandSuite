@@ -47,22 +47,16 @@ RequiredModules = 'PSStringTemplate'
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = 'Add-CommandToManifest',
                     'Add-ModuleQualification',
-                    'Add-PinvokeMethod',
                     'Add-SurroundingExpression',
                     'ConvertTo-FunctionDefinition',
                     'ConvertTo-LocalizationString',
                     'ConvertTo-MarkdownHelp',
                     'ConvertTo-SplatExpression',
                     'Convert-StringExpression',
-                    'Expand-Expression',
                     'Expand-MemberExpression',
                     'Expand-TypeImplementation',
-                    'Import-CommandSuite',
                     'Invoke-DocumentRefactor',
-                    'Remove-Semicolon',
-                    'Set-HangingIndent',
-                    'Set-RuleSuppression',
-                    'Set-UsingStatementOrder'
+                    'Set-RuleSuppression'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = 'Get-CommandSuiteSetting', 'Set-CommandSuiteSetting', 'New-CommandSuiteSettingFile'
