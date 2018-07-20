@@ -16,15 +16,38 @@ namespace EditorServicesCommandSuite.PSReadLine
 
         private static readonly PSConsoleReadLineOptions s_psrlOptions = PSConsoleReadLine.GetOptions();
 
+        internal static class Modification
+        {
+            internal const string DeleteCharacter = "\x1b[1P";
+
+            internal const string DeleteCharacters = "\x1b[{0}P";
+
+            internal const string InsertCharacter = "\x1b[1@";
+
+            internal const string InsertCharacters = "\x1b[{0}@";
+
+            internal const string InsertLine = "\x1b[1L";
+
+            internal const string InsertLines = "\x1b[{0}L";
+
+            internal const string DeleteLine = "\x1b[1M";
+
+            internal const string DeleteLines = "\x1b[{0}M";
+        }
+
         internal static class Movement
         {
             internal const string SetVerticalCursorPosition = "\x1b[{0}d";
 
             internal const string SetHorizontalCursorPosition = "\x1b[{0}G";
 
-            internal const string CursorRight = "\x1bC";
+            internal const string CursorRight = "\x1b[1C";
 
-            internal const string CursorLeft = "\x1bD";
+            internal const string MultipleCursorRight = "\x1b[{0}C";
+
+            internal const string CursorLeft = "\x1b[1D";
+
+            internal const string MultipleCursorLeft = "\x1b[{0}D";
         }
 
         internal static class Colors

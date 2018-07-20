@@ -52,6 +52,8 @@ namespace EditorServicesCommandSuite.PSReadLine
 
         private int _inputLine;
 
+        private int _resultsStartLine;
+
         private int _cursorX;
 
         private int _lastItemsStartingLine;
@@ -344,6 +346,8 @@ namespace EditorServicesCommandSuite.PSReadLine
 
             _input.Remove(_cursorX - 1, 1);
             _cursorX--;
+            _out.Write(Ansi.Movement.CursorLeft);
+            _out.Write(Ansi.Modification.DeleteCharacter);
             Render();
         }
 
@@ -365,7 +369,10 @@ namespace EditorServicesCommandSuite.PSReadLine
             }
 
             int deleteTo = GetBackwardWordOffset();
-            _input.Remove(deleteTo, _cursorX - deleteTo);
+            int amountToDelete = _cursorX - deleteTo;
+            _input.Remove(deleteTo, amountToDelete);
+            _out.Write(Ansi.Movement.MultipleCursorLeft, amountToDelete);
+            _out.Write(Ansi.Modification.DeleteCharacters, amountToDelete);
             _cursorX = deleteTo;
             Render();
         }
@@ -445,6 +452,8 @@ namespace EditorServicesCommandSuite.PSReadLine
             }
 
             _input.Insert(_cursorX, key.KeyChar);
+            _out.Write(Ansi.Modification.InsertCharacter);
+            _out.Write(key.KeyChar);
             _cursorX++;
             Render();
         }
@@ -548,19 +557,14 @@ namespace EditorServicesCommandSuite.PSReadLine
                 _out.WriteLine(Caption);
                 _out.Write(Ansi.Colors.Secondary);
                 _out.WriteLine(Message);
-                _out.WriteLine();
-                _out.WriteLine();
+                _out.Write(Ansi.Modification.InsertLines, 2);
                 _inputLine = Console.CursorTop;
+                _out.WriteLine(_input);
+                _out.Write(Ansi.Modification.InsertLines, 2);
+                _out.Write(Ansi.Colors.Reset);
                 _isHeaderWritten = true;
+                _resultsStartLine = Console.CursorTop;
             }
-
-            SetCursorY(_inputLine);
-            SetCursorX(0);
-            ClearLine();
-            _out.WriteLine(_input);
-            _out.WriteLine();
-            _out.WriteLine();
-            _out.Write(Ansi.Colors.Reset);
 
             RenderItems(skipMatchRebuild: isForSelectionChange);
             SetCursorY(_inputLine);
@@ -709,19 +713,19 @@ namespace EditorServicesCommandSuite.PSReadLine
 
         private void RenderItems(bool skipMatchRebuild = false)
         {
-            int startingLine = Console.CursorTop;
-            int currentMaxLines = _lastWindowHeight - startingLine;
+            int currentMaxLines = _lastWindowHeight - _resultsStartLine;
             int totalLines = skipMatchRebuild ? _lastItemsLineLength : ReallyRenderItems(currentMaxLines);
+            SetCursorX(0);
             for (var i = 0; i < _lastRenderedLinesCount; i++)
             {
-                SetCursorY(i + startingLine);
+                SetCursorY(i + _resultsStartLine);
                 ClearLine();
             }
 
             _lastRenderedLinesCount = totalLines;
 
-            SetCursorY(startingLine);
-            _lastItemsStartingLine = startingLine;
+            SetCursorY(_resultsStartLine);
+            _lastItemsStartingLine = _resultsStartLine;
             _lastItemsLineLength = totalLines;
 
             if (_renderedItemsLength == 0)
@@ -748,12 +752,12 @@ namespace EditorServicesCommandSuite.PSReadLine
                 int lastIndex = 0;
                 foreach (Match match in _renderedItems[i].Matches)
                 {
-                    Write(chars, lastIndex, match.Index - lastIndex, color: colorEscape);
-                    WriteEmphasis(chars, match.Index, match.Length);
+                    Write(_renderedItems[i].Text, lastIndex, match.Index - lastIndex, color: colorEscape);
+                    WriteEmphasis(_renderedItems[i].Text, match.Index, match.Length);
                     lastIndex = match.Index + match.Length;
                 }
 
-                Write(chars, lastIndex, chars.Length - lastIndex, color: colorEscape);
+                Write(_renderedItems[i].Text, lastIndex, chars.Length - lastIndex, color: colorEscape);
                 _out.Write(Ansi.Colors.Reset);
                 if (!string.IsNullOrEmpty(_renderedItems[i].Description))
                 {
@@ -767,7 +771,7 @@ namespace EditorServicesCommandSuite.PSReadLine
             }
         }
 
-        private void Write(char[] buffer, int index, int count, bool newLine = false, string color = null)
+        private void Write(string buffer, int index, int count, bool newLine = false, string color = null)
         {
             if (string.IsNullOrEmpty(color))
             {
@@ -786,7 +790,7 @@ namespace EditorServicesCommandSuite.PSReadLine
             }
         }
 
-        private void WriteEmphasis(char[] buffer, int index, int count)
+        private void WriteEmphasis(string buffer, int index, int count)
         {
             _out.Write(Ansi.Colors.Emphasis);
             _out.Write(buffer, index, count);

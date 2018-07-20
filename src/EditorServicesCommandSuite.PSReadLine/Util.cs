@@ -44,65 +44,93 @@ namespace EditorServicesCommandSuite.PSReadLine
                     tokens[i].Extent.StartOffset - lastEndOffset);
 
                 lastEndOffset = tokens[i].Extent.EndOffset;
-                switch (tokens[i])
-                {
-                    case StringToken stringToken:
-                    {
-                        if (stringToken.TokenFlags.HasFlag(TokenFlags.CommandName))
-                        {
-                            sb.Append(Ansi.Colors.Command);
-                            break;
-                        }
-
-                        sb.Append(Ansi.Colors.String);
-                        break;
-                    }
-                    case NumberToken numberToken: sb.Append(Ansi.Colors.Number); break;
-                    case ParameterToken parameterToken: sb.Append(Ansi.Colors.Parameter); break;
-                    case VariableToken variableToken: sb.Append(Ansi.Colors.Variable); break;
-                    default:
-                    {
-                        if (tokens[i].TokenFlags.HasFlag(TokenFlags.BinaryOperator) ||
-                            tokens[i].TokenFlags.HasFlag(TokenFlags.UnaryOperator))
-                        {
-                            sb.Append(Ansi.Colors.Operator);
-                            break;
-                        }
-
-                        if (tokens[i].TokenFlags.HasFlag(TokenFlags.CommandName))
-                        {
-                            sb.Append(Ansi.Colors.Command);
-                            break;
-                        }
-
-                        if (tokens[i].TokenFlags.HasFlag(TokenFlags.MemberName))
-                        {
-                            sb.Append(Ansi.Colors.Member);
-                            break;
-                        }
-
-                        if (tokens[i].TokenFlags.HasFlag(TokenFlags.TypeName))
-                        {
-                            sb.Append(Ansi.Colors.Type);
-                            break;
-                        }
-
-                        if (tokens[i].TokenFlags.HasFlag(TokenFlags.Keyword))
-                        {
-                            sb.Append(Ansi.Colors.Keyword);
-                            break;
-                        }
-
-                        sb.Append(Ansi.Colors.Default);
-                        break;
-                    }
-                }
-
-                sb.Append(tokens[i].Text);
+                WriteToken(tokens[i], sb);
             }
 
             sb.Append(Ansi.Colors.Reset);
             return sb.ToString();
+        }
+
+        private static void WriteToken(Token token, StringBuilder sb)
+        {
+            switch (token)
+            {
+                case StringExpandableToken expandableToken:
+                {
+                    int startingOffset = expandableToken.Extent.StartOffset;
+                    int lastEndOffset = startingOffset;
+                    for (var i = 0; i < expandableToken.NestedTokens.Count; i++)
+                    {
+                        sb.Append(Ansi.Colors.String);
+                        sb.Append(
+                            expandableToken.Text,
+                            lastEndOffset - startingOffset,
+                            expandableToken.NestedTokens[i].Extent.StartOffset - lastEndOffset);
+
+                        WriteToken(expandableToken.NestedTokens[i], sb);
+                        lastEndOffset = expandableToken.NestedTokens[i].Extent.EndOffset;
+                    }
+
+                    sb.Append(Ansi.Colors.String);
+                    sb.Append(
+                        expandableToken.Text,
+                        lastEndOffset - startingOffset,
+                        expandableToken.Extent.EndOffset - lastEndOffset);
+                    return;
+                }
+                case StringToken stringToken:
+                {
+                    if (stringToken.TokenFlags.HasFlag(TokenFlags.CommandName))
+                    {
+                        sb.Append(Ansi.Colors.Command);
+                        break;
+                    }
+
+                    sb.Append(Ansi.Colors.String);
+                    break;
+                }
+                case NumberToken numberToken: sb.Append(Ansi.Colors.Number); break;
+                case ParameterToken parameterToken: sb.Append(Ansi.Colors.Parameter); break;
+                case VariableToken variableToken: sb.Append(Ansi.Colors.Variable); break;
+                default:
+                {
+                    if (token.TokenFlags.HasFlag(TokenFlags.BinaryOperator) ||
+                        token.TokenFlags.HasFlag(TokenFlags.UnaryOperator))
+                    {
+                        sb.Append(Ansi.Colors.Operator);
+                        break;
+                    }
+
+                    if (token.TokenFlags.HasFlag(TokenFlags.CommandName))
+                    {
+                        sb.Append(Ansi.Colors.Command);
+                        break;
+                    }
+
+                    if (token.TokenFlags.HasFlag(TokenFlags.MemberName))
+                    {
+                        sb.Append(Ansi.Colors.Member);
+                        break;
+                    }
+
+                    if (token.TokenFlags.HasFlag(TokenFlags.TypeName))
+                    {
+                        sb.Append(Ansi.Colors.Type);
+                        break;
+                    }
+
+                    if (token.TokenFlags.HasFlag(TokenFlags.Keyword))
+                    {
+                        sb.Append(Ansi.Colors.Keyword);
+                        break;
+                    }
+
+                    sb.Append(Ansi.Colors.Default);
+                    break;
+                }
+            }
+
+            sb.Append(token.Text);
         }
     }
 }
