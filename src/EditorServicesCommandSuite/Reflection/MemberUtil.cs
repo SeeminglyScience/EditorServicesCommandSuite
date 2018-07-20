@@ -4,6 +4,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
 using System.Text;
+using EditorServicesCommandSuite.Inference;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Utility;
 using Microsoft.PowerShell;
@@ -18,16 +19,77 @@ namespace EditorServicesCommandSuite.Reflection
             | BindingFlags.Instance
             | BindingFlags.Static;
 
+        public static BindingFlags GetBindingFlags(MemberInfo member)
+        {
+            if (member is MethodBase method)
+            {
+                return GetBindingFlags(method.IsPublic, method.IsStatic);
+            }
+
+            if (member is FieldInfo field)
+            {
+                return GetBindingFlags(field.IsPublic, field.IsStatic);
+            }
+
+            if (member is PropertyInfo property)
+            {
+                return GetBindingFlags(property.GetGetMethod(nonPublic: true));
+            }
+
+            if (member is EventInfo eventInfo)
+            {
+                return GetBindingFlags(eventInfo.GetAddMethod(nonPublic: true));
+            }
+
+            if (member is Type type)
+            {
+                return GetBindingFlags(type.IsNestedPublic, isStatic: true);
+            }
+
+            return default(BindingFlags);
+        }
+
+        public static BindingFlags GetBindingFlags(bool isPublic, bool isStatic, bool ignoreCase = false)
+        {
+            var flags = isPublic ? BindingFlags.Public : BindingFlags.NonPublic;
+            flags |= isStatic ? BindingFlags.Static : BindingFlags.Instance;
+            return ignoreCase ? flags | BindingFlags.IgnoreCase : flags;
+        }
+
         public static bool IsTypeImplementable(Type type)
         {
             return !type.GetMethods(s_allMembers).Any(member => FilterIsNotImplementableRequired(member, null));
         }
 
-        public static bool IsTypeResolvable(Type type)
+        public static bool IsTypeExpressible(Type type)
         {
-            return type.IsPublic &&
-                !(type.IsPointer || type.IsByRef || type.IsGenericTypeDefinition) &&
-                (!type.IsConstructedGenericType || type.GetGenericArguments().All(IsTypeResolvable));
+            return IsTypeExpressible(type, shouldSkipGenericArgs: false);
+        }
+
+        public static bool IsTypeExpressible(Type type, bool shouldSkipGenericArgs)
+        {
+            if (!IsTypeVisible(type))
+            {
+                return false;
+            }
+
+            if (type.IsPointer || type.IsByRef || type.IsGenericParameter)
+            {
+                return false;
+            }
+
+            if (!shouldSkipGenericArgs && type.IsGenericTypeDefinition)
+            {
+                return false;
+            }
+
+            if (shouldSkipGenericArgs || !type.IsConstructedGenericType)
+            {
+                return true;
+            }
+
+            return !type.ContainsGenericParameters
+                && type.GetGenericArguments().All(IsTypeExpressible);
         }
 
         public static IEnumerable<MemberDescription> GetImplementableMethods(Type subject)
@@ -81,11 +143,18 @@ namespace EditorServicesCommandSuite.Reflection
             Type type,
             bool dropNamespaces,
             out string[] droppedNamespaces,
-            bool forAttribute = false)
+            bool forAttribute = false,
+            bool skipGenericArgs = false)
         {
             var dropped = new HashSet<string>();
             var builder = new StringBuilder();
-            GetTypeNameForLiteralImpl(type, dropNamespaces, dropped, builder);
+            GetTypeNameForLiteralImpl(
+                type,
+                dropNamespaces,
+                dropped,
+                builder,
+                skipGenericArgs);
+
             droppedNamespaces = dropped.ToArray();
             if (forAttribute)
             {
@@ -95,31 +164,119 @@ namespace EditorServicesCommandSuite.Reflection
             return builder.ToString();
         }
 
-        private static bool FilterIsImplementable(MemberInfo m, object criteria)
+        internal static IEnumerable<MemberInfo> GetMembers(Type type, bool isStatic = false, bool includeNonPublic = false)
         {
-            return m is MethodInfo method &&
-                (method.Attributes.HasFlag(MethodAttributes.Public) ||
-                method.Attributes.HasFlag(MethodAttributes.Family) ||
-                method.Attributes.HasFlag(MethodAttributes.FamORAssem)) &&
-                !method.IsGenericMethod &&
-                IsTypeResolvable(method.ReturnType) &&
-                method.GetParameters().All(p => IsTypeResolvable(p.ParameterType));
+            var flags = BindingFlags.Public;
+            if (includeNonPublic)
+            {
+                flags |= BindingFlags.NonPublic;
+            }
+
+            flags |= isStatic ? BindingFlags.Static : BindingFlags.Instance;
+            return type.GetMembers(flags);
         }
 
-        private static bool FilterIsNotImplementableRequired(MemberInfo m, object criteria)
+        internal static IEnumerable<PSMemberInfo> GetPSMembers(
+            Type type,
+            bool isStatic = false,
+            bool includeNonPublic = false)
         {
-            return m is MethodInfo method &&
-                method.IsAbstract &&
-                !FilterIsImplementable(m, criteria);
+            var flags = BindingFlags.Public;
+            flags |= isStatic ? BindingFlags.Static : BindingFlags.Instance;
+            if (includeNonPublic)
+            {
+                flags |= BindingFlags.NonPublic;
+            }
+
+            foreach (MemberInfo member in type.GetMembers(flags))
+            {
+                if (member is MethodInfo method)
+                {
+                    yield return new ReflectionMethodInfo(method);
+                    continue;
+                }
+
+                if (member is ConstructorInfo constructor)
+                {
+                    yield return new ReflectionMethodInfo(constructor);
+                    continue;
+                }
+
+                if (member is PropertyInfo property)
+                {
+                    yield return new ReflectionPropertyInfo(property);
+                    continue;
+                }
+
+                if (member is FieldInfo field)
+                {
+                    yield return new ReflectionFieldInfo(field);
+                    continue;
+                }
+            }
         }
 
-        private static void GetTypeNameForLiteralImpl(
+        internal static bool IsTypeVisible(Type type)
+        {
+            if (type.IsPublic)
+            {
+                return true;
+            }
+
+            if (!type.IsNestedPublic)
+            {
+                return false;
+            }
+
+            return IsTypeVisible(type.ReflectedType);
+        }
+
+        internal static string GetShortestExpressibleTypeName(Type type, out string droppedNamespace)
+        {
+            var assembly = type.Assembly;
+            var accelerators = ReflectionCache.TypeAccelerators_Get?.GetValue(null) as Dictionary<string, Type>;
+            if (accelerators != null)
+            {
+                string foundAccelerator = accelerators
+                    .Where(pair => pair.Value.Assembly == assembly)
+                    .OrderBy(pair => pair.Key.Length)
+                    .FirstOrDefault()
+                    .Key;
+
+                if (!string.IsNullOrEmpty(foundAccelerator))
+                {
+                    droppedNamespace = null;
+                    return foundAccelerator;
+                }
+            }
+
+            if (Settings.EnableAutomaticNamespaceRemoval)
+            {
+                Type shortestName = assembly.GetTypes()
+                    .Where(t => IsTypeExpressible(t) && t.IsPublic)
+                    .OrderBy(t => t.Name.Length)
+                    .FirstOrDefault();
+
+                droppedNamespace = shortestName?.Namespace;
+                return shortestName.Name;
+            }
+
+            droppedNamespace = null;
+            return assembly.GetTypes()
+                .Where(t => IsTypeExpressible(t) && t.IsPublic)
+                .OrderBy(t => t.FullName.Length)
+                .FirstOrDefault()
+                ?.FullName;
+        }
+
+        internal static void GetTypeNameForLiteralImpl(
             Type type,
             bool dropNamespaces,
             HashSet<string> droppedNamespaces,
-            StringBuilder builder)
+            StringBuilder builder,
+            bool skipGenericArgs)
         {
-            if (!type.IsGenericType)
+            if (skipGenericArgs || !type.IsGenericType)
             {
                 var byEngine = ToStringCodeMethods.Type(new PSObject(type));
                 if (!byEngine.Equals(type.FullName, StringComparison.Ordinal))
@@ -138,6 +295,12 @@ namespace EditorServicesCommandSuite.Reflection
                 builder.Append(type.Namespace).Append(Symbols.Dot);
             }
 
+            if (skipGenericArgs)
+            {
+                builder.Append(type.Name);
+                return;
+            }
+
             builder.Append(type.Name.Split(Symbols.Backtick)[0]);
             if (!type.IsGenericType)
             {
@@ -152,7 +315,8 @@ namespace EditorServicesCommandSuite.Reflection
                     type,
                     dropNamespaces,
                     droppedNamespaces,
-                    builder);
+                    builder,
+                    skipGenericArgs);
 
                 if (i < genericArgs.Length - 1)
                 {
@@ -161,6 +325,24 @@ namespace EditorServicesCommandSuite.Reflection
             }
 
             builder.Append(Symbols.SquareClose);
+        }
+
+        private static bool FilterIsImplementable(MemberInfo m, object criteria)
+        {
+            return m is MethodInfo method &&
+                (method.Attributes.HasFlag(MethodAttributes.Public) ||
+                method.Attributes.HasFlag(MethodAttributes.Family) ||
+                method.Attributes.HasFlag(MethodAttributes.FamORAssem)) &&
+                !method.IsGenericMethod &&
+                IsTypeExpressible(method.ReturnType) &&
+                method.GetParameters().All(p => IsTypeExpressible(p.ParameterType));
+        }
+
+        private static bool FilterIsNotImplementableRequired(MemberInfo m, object criteria)
+        {
+            return m is MethodInfo method &&
+                method.IsAbstract &&
+                !FilterIsImplementable(m, criteria);
         }
 
         private static string GetTypeNameForAttribute(string typeName)

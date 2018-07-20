@@ -248,6 +248,7 @@ namespace EditorServicesCommandSuite.Internal
             Refactors.RegisterProvider(new SurroundSelectedLinesRefactor(UI, Navigation));
             Refactors.RegisterProvider(new SuppressAnalyzerMessageRefactor(Diagnostics));
             Refactors.RegisterProvider(new AddModuleQualificationRefactor(Execution, UI, Workspace));
+            Refactors.RegisterProvider(new ExpandMemberExpressionRefactor(UI));
         }
     }
 }
