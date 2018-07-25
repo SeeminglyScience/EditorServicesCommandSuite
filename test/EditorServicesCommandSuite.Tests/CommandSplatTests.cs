@@ -38,17 +38,31 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync("Get-ChildItem -Path ./myPath$c"));
         }
 
+        [Fact]
+        public async void HandlesAllParameterParameter()
+        {
+            Assert.Equal(
+                // Formatting and ordering in this test is subject to change, depending on implementation goals. For now: order should be
+                // bound parameters first, then the other parameters in the current parameterset in order of how Get-Command returns them.
+                // List retrieved with: (Get-Command Get-ChildItem).ParameterSets.Where({$_.Parameters.Name -contains "Path"}).Parameters.Name
+                "$splat = @{\n\tPath = './myPath'\nFilter\nInclude\nExclude\nRecurse\nDepth\nForce\nName\nVerbose\nDebug\nErrorAction\nWarningAction\nInformationAction\nErrorVariable\nWarningVariable\nInformationVariable\nOutVariable\nOutBuffer\nPipelineVariable\nUseTransaction\nAttributes\nDirectory\nFile\nHidden\nReadOnly\nSystem}\nGet-ChildItem @splat",
+                await GetRefactoredTextAsync("Get-ChildItem -Path ./myPath",null,null,true));
+        }
+
         private async Task<string> GetRefactoredTextAsync(
             string testString,
             string variableName = "splat",
-            bool newLineAfterHashtable = false)
+            bool newLineAfterHashtable = false,
+            bool allParameters = false
+        )
         {
             return await MockContext.GetRefactoredTextAsync(
                 testString,
                 context => CommandSplatRefactor.GetEdits(
                     variableName,
                     context.Ast.FindParent<CommandAst>(),
-                    newLineAfterHashtable));
+                    newLineAfterHashtable,
+                    allParameters));
         }
     }
 }
