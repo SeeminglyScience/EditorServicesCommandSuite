@@ -35,9 +35,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             bool allParameters,
             IRefactorUI ui = null)
         {
-            if (allParameters) {
-                throw new System.NotImplementedException();
-            }
             var parentStatement = commandAst.FindParent<StatementAst>();
             var elements = commandAst.CommandElements.Skip(1);
 
@@ -94,6 +91,29 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                         CommandSplatStrings.CouldNotResolvePositionalArgument,
                         bindingException.Value.CommandElement.Extent.Text),
                     waitForResponse: false);
+            }
+
+            if (allParameters) {
+                var cmdName = commandAst.CommandElements[0].Extent.Text;
+                var cmdInfo = CommandSuite.Instance.ExecutionContext.InvokeCommand.GetCommand(cmdName, CommandTypes.All);
+
+                if (cmdInfo.ParameterSets.Count == 1) {
+                    var boundParameterNames = boundParameters.BoundParameters.Keys;
+                    var ParameterList = cmdInfo.Parameters.Keys.Where(p => !boundParameterNames.Contains(p));
+                }
+                else {
+                    /*pseudocode
+                    currentparameterset = ( determine current parameterset )
+                    ParameterList = currentparameterset.Parameters.where {$_ not in BoundParameters}
+                    */
+                    throw new System.NotImplementedException();
+                }
+
+                /* psuedo code
+                foreach (param in ParameterList) {
+                    splatwriter.   add param ;
+                }
+                 */
             }
 
             splatWriter.CloseHashtable();
