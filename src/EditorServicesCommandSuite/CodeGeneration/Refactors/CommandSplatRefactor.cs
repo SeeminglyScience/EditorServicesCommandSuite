@@ -32,8 +32,12 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             string variableName,
             CommandAst commandAst,
             bool newLineAfterHashtable,
+            bool allParameters,
             IRefactorUI ui = null)
         {
+            if (allParameters) {
+                throw new System.NotImplementedException();
+            }
             var parentStatement = commandAst.FindParent<StatementAst>();
             var elements = commandAst.CommandElements.Skip(1);
 
@@ -127,6 +131,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 splatVariable,
                 ast,
                 config.NewLineAfterHashtable.IsPresent,
+                config.AllParameters.IsPresent,
                 UI);
         }
 
