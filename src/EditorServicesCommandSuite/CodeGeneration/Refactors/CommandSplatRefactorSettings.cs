@@ -12,5 +12,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         [Parameter]
         [DefaultFromSettingAttribute("CommandSplatRefactor.NewLineAfterHashtable", Default = "$true")]
         public SwitchParameter NewLineAfterHashtable { get; set; }
+
+        [Parameter]
+        [DefaultFromSettingAttribute("CommandSplatRefactor.AllParameters", Default = "$false")]
+        public SwitchParameter AllParameters { get; set; }
     }
 }
