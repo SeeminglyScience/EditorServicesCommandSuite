@@ -17,6 +17,22 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private const string SplatVariableSuffix = "Splat";
 
+        // This is a lame hack because I cannot get System.Management.Automation.Internal.CommonParameters
+        // to work :-(
+        private static string[] CommonParameters = new string[] {
+            "Verbose",
+            "Debug",
+            "ErrorAction",
+            "WarningAction",
+            "InformationAction",
+            "ErrorVariable",
+            "WarningVariable",
+            "InformationVariable",
+            "OutVariable",
+            "OutBuffer",
+            "PipelineVariable"
+        };
+
         internal CommandSplatRefactor(IRefactorUI ui)
         {
             UI = ui;
@@ -103,6 +119,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 {
                     var boundParameterNames = boundParameters.BoundParameters.Keys;
                     ParameterList = cmdInfo.Parameters.Keys.Where(p => !boundParameterNames.Contains(p));
+                    ParameterList = ParameterList.Where(p => !CommonParameters.Contains(p));
                 }
                 else {
                     /*pseudocode
