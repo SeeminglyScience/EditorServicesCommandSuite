@@ -93,13 +93,16 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     waitForResponse: false);
             }
 
-            if (allParameters) {
+            if (allParameters)
+            {
                 var cmdName = commandAst.CommandElements[0].Extent.Text;
                 var cmdInfo = CommandSuite.Instance.ExecutionContext.InvokeCommand.GetCommand(cmdName, CommandTypes.All);
+                IEnumerable<string> ParameterList;
 
-                if (cmdInfo.ParameterSets.Count == 1) {
+                if (cmdInfo.ParameterSets.Count == 1)
+                {
                     var boundParameterNames = boundParameters.BoundParameters.Keys;
-                    var ParameterList = cmdInfo.Parameters.Keys.Where(p => !boundParameterNames.Contains(p));
+                    ParameterList = cmdInfo.Parameters.Keys.Where(p => !boundParameterNames.Contains(p));
                 }
                 else {
                     /*pseudocode
@@ -109,11 +112,19 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     throw new System.NotImplementedException();
                 }
 
-                /* psuedo code
-                foreach (param in ParameterList) {
-                    splatwriter.   add param ;
+                foreach (string param in ParameterList)
+                {
+                    if (first)
+                    {
+                        first = false;
+                    }
+                    else
+                    {
+                        splatWriter.WriteLine();
+                    }
+
+                    splatWriter.Write(param);
                 }
-                 */
             }
 
             splatWriter.CloseHashtable();
