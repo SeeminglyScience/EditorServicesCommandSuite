@@ -30,7 +30,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             "InformationVariable",
             "OutVariable",
             "OutBuffer",
-            "PipelineVariable"
+            "PipelineVariable",
+            // "WhatIf",
+            // "Confirm",
         };
 
         internal CommandSplatRefactor(IRefactorUI ui)
@@ -112,24 +114,25 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             if (allParameters)
             {
                 var cmdName = commandAst.CommandElements[0].Extent.Text;
-                var cmdInfo = CommandSuite.Instance.ExecutionContext.InvokeCommand.GetCommand(cmdName, CommandTypes.All);
-                IEnumerable<string> ParameterList;
+                var cmdInfo =
+                    CommandSuite
+                        .Instance
+                        .ExecutionContext
+                        .InvokeCommand
+                        .GetCommand(cmdName, CommandTypes.All);
 
-                if (cmdInfo.ParameterSets.Count == 1)
-                {
-                    var boundParameterNames = boundParameters.BoundParameters.Keys;
-                    ParameterList = cmdInfo.Parameters.Keys.Where(p => !boundParameterNames.Contains(p));
-                    ParameterList = ParameterList.Where(p => !CommonParameters.Contains(p));
-                }
-                else {
-                    /*pseudocode
-                    currentparameterset = ( determine current parameterset )
-                    ParameterList = currentparameterset.Parameters.where {$_ not in BoundParameters}
-                    */
-                    throw new System.NotImplementedException();
-                }
+                var parameterList = GetParametersInMatchedParameterSet(boundParameters, cmdInfo);
 
-                foreach (string param in ParameterList)
+                // TODO: implement 'Mandatory' only parameters here, using something like this:
+                // parameterList = parameterList.Where(p => p.ParameterSets.Values.IsMandatory); // broken!
+                //    Equivalent in PowerShell does work, because PowerShell is more flexible:
+                //    $parameterList = $parameterList.Where({$_.Parametersets.values.IsMandatory})
+
+
+                // omit parameters that were already bound.
+                parameterList = parameterList.Where(p => !boundParameters.BoundParameters.Keys.Contains(p.Name));
+
+                foreach (string param in parameterList.Select( p => p.Name ))
                 {
                     if (first)
                     {
@@ -158,6 +161,55 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return splatWriter.Edits.Concat(elementsWriter.Edits);
         }
 
+        private static IEnumerable<ParameterMetadata> GetParametersInMatchedParameterSet (
+            StaticBindingResult paramBinder,
+            CommandInfo cmdInfo
+        )
+        {
+            List<ParameterMetadata> result = new List<ParameterMetadata>();
+            // parameters that are specific to (a) certain parameterset(s)
+            var specificParams =
+                cmdInfo
+                    .Parameters
+                    .Values
+                    .Where(p => !(p.ParameterSets.Keys.Contains("__AllParameterSets")));
+
+            // try and match against one single parameterset (this wil return null if certain parameters are in more than one parameterset)
+            var matchedParameterSet =
+                specificParams
+                    .Where(p => paramBinder.BoundParameters.Keys.Contains(p.Name) && p.ParameterSets.Count == 1)
+                    .Select(p => p.ParameterSets.Keys);
+
+            // if matching a single parameterset failed, return all possible parametersets.
+            if (matchedParameterSet == null)
+            {
+                System.Diagnostics.Debug.WriteLine("More than one match");
+                matchedParameterSet =
+                    specificParams
+                        .Where(p => paramBinder.BoundParameters.Keys.Contains(p.Name))
+                        .Select(p => p.ParameterSets.Keys);
+            }
+            else
+            {
+                if (matchedParameterSet.Count() > 1)
+                {
+                    // TODO: this may be worth a PowerShell console warning? But is this ever hit?
+                    System.Diagnostics.Debug.WriteLine("Possible conflicting parameters.");
+                }
+            }
+
+            // return parameters from matched parameterset(s)
+            foreach (var matchedSet in matchedParameterSet)
+            {
+                result.AddRange(
+                    cmdInfo
+                        .Parameters
+                        .Values
+                        .Where(p => p.ParameterSets.Keys == matchedSet && p.ParameterSets.Keys.First() == "__AllParameterSets")   // omit parameters from other parametersets
+                        .Where(p => !System.Management.Automation.Cmdlet.CommonParameters.Contains(p.Name)));                     // remove commonparameters
+            }
+            return result as IEnumerable<ParameterMetadata>;
+        }
         internal override bool CanRefactorTarget(DocumentContextBase request, CommandAst ast)
         {
             return
