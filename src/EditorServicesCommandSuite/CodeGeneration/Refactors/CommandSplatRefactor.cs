@@ -95,6 +95,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             if (allParameters)
             {
+                IEnumerable<CommandParameterInfo> parameterList;
                 var cmdName = commandAst.CommandElements[0].Extent.Text;
                 var cmdInfo =
                     CommandSuite
@@ -103,7 +104,17 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                         .InvokeCommand
                         .GetCommand(cmdName, CommandTypes.All);
 
-                var parameterList = GetParametersInMatchedParameterSet(boundParameters, cmdInfo);
+                if (cmdInfo.ParameterSets.Count == 1)
+                {
+                    parameterList =
+                        cmdInfo
+                            .ParameterSets
+                            .SelectMany(p => p.Parameters);
+                }
+                else {
+                    parameterList =
+                        GetParametersInMatchedParameterSet(boundParameters, cmdInfo);
+                }
 
                 // TODO: implement 'Mandatory' only parameters here, using something like this:
                 // parameterList = parameterList.Where(p => p.ParameterSets.Values.IsMandatory); // broken!
@@ -114,7 +125,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 // omit parameters that were already bound.
                 parameterList = parameterList.Where(p => !boundParameters.BoundParameters.Keys.Contains(p.Name));
 
-                foreach (string param in parameterList.Select( p => p.Name ))
+                foreach (string param in parameterList.Select(p => p.Name))
                 {
                     if (first)
                     {
@@ -191,6 +202,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             }
             return result;
         }
+
         internal override bool CanRefactorTarget(DocumentContextBase request, CommandAst ast)
         {
             return
