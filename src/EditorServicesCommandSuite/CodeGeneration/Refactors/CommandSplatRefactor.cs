@@ -143,24 +143,24 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return splatWriter.Edits.Concat(elementsWriter.Edits);
         }
 
-        private static IEnumerable<ParameterMetadata> GetParametersInMatchedParameterSet (
+        private static IEnumerable<CommandParameterInfo> GetParametersInMatchedParameterSet(
             StaticBindingResult paramBinder,
-            CommandInfo cmdInfo
-        )
+            CommandInfo cmdInfo)
         {
-            List<ParameterMetadata> result = new List<ParameterMetadata>();
+            List<CommandParameterInfo> result = new List<CommandParameterInfo>();
+
             // parameters that are specific to (a) certain parameterset(s)
-            var specificParams =
+            IEnumerable<ParameterMetadata> specificParams =
                 cmdInfo
                     .Parameters
                     .Values
                     .Where(p => !(p.ParameterSets.Keys.Contains("__AllParameterSets")));
 
             // try and match against one single parameterset (this wil return null if certain parameters are in more than one parameterset)
-            var matchedParameterSet =
+            IEnumerable<string> matchedParameterSet =
                 specificParams
                     .Where(p => paramBinder.BoundParameters.Keys.Contains(p.Name) && p.ParameterSets.Count == 1)
-                    .Select(p => p.ParameterSets.Keys);
+                    .Select(p => p.ParameterSets.Keys.ToArray().First());
 
             // if matching a single parameterset failed, return all possible parametersets.
             if (matchedParameterSet == null)
@@ -169,7 +169,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 matchedParameterSet =
                     specificParams
                         .Where(p => paramBinder.BoundParameters.Keys.Contains(p.Name))
-                        .Select(p => p.ParameterSets.Keys);
+                        .SelectMany(p => p.ParameterSets.Keys.ToArray());
             }
             else
             {
@@ -185,12 +185,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             {
                 result.AddRange(
                     cmdInfo
-                        .Parameters
-                        .Values
-                        .Where(p => p.ParameterSets.Keys == matchedSet && p.ParameterSets.Keys.First() == "__AllParameterSets")   // omit parameters from other parametersets
-                        .Where(p => !System.Management.Automation.Cmdlet.CommonParameters.Contains(p.Name)));                     // remove commonparameters
+                        .ParameterSets
+                        .Where(p => p.Name == matchedSet)
+                        .SelectMany(p => p.Parameters));
             }
-            return result as IEnumerable<ParameterMetadata>;
+            return result;
         }
         internal override bool CanRefactorTarget(DocumentContextBase request, CommandAst ast)
         {
