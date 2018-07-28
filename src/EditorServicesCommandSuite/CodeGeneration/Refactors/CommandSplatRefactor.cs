@@ -121,6 +121,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 //    Equivalent in PowerShell does work, because PowerShell is more flexible:
                 //    $parameterList = $parameterList.Where({$_.Parametersets.values.IsMandatory})
 
+                // omit common parameters and optional common parameters
+                parameterList =
+                    parameterList
+                        .Where(p => !Cmdlet.CommonParameters.Contains(p.Name) && !Cmdlet.OptionalCommonParameters.Contains(p.Name));
 
                 // omit parameters that were already bound.
                 parameterList = parameterList.Where(p => !boundParameters.BoundParameters.Keys.Contains(p.Name));
