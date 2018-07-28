@@ -16,5 +16,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         [Parameter]
         [DefaultFromSettingAttribute("CommandSplatRefactor.AllParameters", Default = "$false")]
         public SwitchParameter AllParameters { get; set; }
+
+        [Parameter]
+        [DefaultFromSettingAttribute("CommandSplatRefactor.MandatoryParameters", Default = "$false")]
+        public SwitchParameter MandatoryParameters { get; set; }
     }
 }

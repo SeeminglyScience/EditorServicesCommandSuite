@@ -33,6 +33,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             CommandAst commandAst,
             bool newLineAfterHashtable,
             bool allParameters,
+            bool mandatoryParameters,
             IRefactorUI ui = null)
         {
             var parentStatement = commandAst.FindParent<StatementAst>();
@@ -93,7 +94,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     waitForResponse: false);
             }
 
-            if (allParameters)
+            if (allParameters || mandatoryParameters)
             {
                 IEnumerable<CommandParameterInfo> parameterList;
                 var cmdName = commandAst.CommandElements[0].Extent.Text;
@@ -116,10 +117,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                         GetParametersInMatchedParameterSet(boundParameters, cmdInfo);
                 }
 
-                // TODO: implement 'Mandatory' only parameters here, using something like this:
-                // parameterList = parameterList.Where(p => p.ParameterSets.Values.IsMandatory); // broken!
-                //    Equivalent in PowerShell does work, because PowerShell is more flexible:
-                //    $parameterList = $parameterList.Where({$_.Parametersets.values.IsMandatory})
+                if (mandatoryParameters)
+                {
+                    parameterList = parameterList.Where(p => p.IsMandatory);
+                }
 
                 // omit common parameters and optional common parameters
                 parameterList =
@@ -186,13 +187,17 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                         .Where(p => paramBinder.BoundParameters.Keys.Contains(p.Name))
                         .SelectMany(p => p.ParameterSets.Keys.ToArray());
             }
-            else
+            else if (matchedParameterSet.Count() > 1)
             {
-                if (matchedParameterSet.Count() > 1)
-                {
-                    // TODO: this may be worth a PowerShell console warning? But is this ever hit?
-                    System.Diagnostics.Debug.WriteLine("Possible conflicting parameters.");
-                }
+                // TODO: this may be worth a PowerShell console warning? But is this ever hit?
+                System.Diagnostics.Debug.WriteLine("Possible conflicting parameters.");
+            }
+
+            if (matchedParameterSet == null) {
+                // revert to Default parameterset
+                matchedParameterSet = cmdInfo.ParameterSets.Where(p => p.IsDefault).Select(n => n.Name);
+                System.Diagnostics.Debug.WriteLine("Reverted to default parameterset"+ matchedParameterSet);
+                // TODO: FIX bug here, for multi-paramset-cmdlets where no mandatory/paramset-matching param is used results in unavailable mandatory params
             }
 
             // return parameters from matched parameterset(s)
@@ -229,6 +234,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 ast,
                 config.NewLineAfterHashtable.IsPresent,
                 config.AllParameters.IsPresent,
+                config.MandatoryParameters.IsPresent,
                 UI);
         }
 
