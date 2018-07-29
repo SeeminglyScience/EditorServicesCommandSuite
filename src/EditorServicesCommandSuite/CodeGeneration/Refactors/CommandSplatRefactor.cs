@@ -163,23 +163,21 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             StaticBindingResult paramBinder,
             CommandInfo cmdInfo)
         {
-            List<CommandParameterInfo> result = new List<CommandParameterInfo>();
-
-            // parameters that are specific to (a) certain parameterset(s)
+            // Identify parameters that are specific to (a) certain parameterset(s)
             IEnumerable<ParameterMetadata> specificParams =
                 cmdInfo
                     .Parameters
                     .Values
                     .Where(p => !(p.ParameterSets.ContainsKey("__AllParameterSets")));
 
-            // try and match against one single parameterset (this wil return null if certain parameters are in more than one parameterset)
+            // Try and match against one single parameterset
+            // This wil return null if certain parameters are in more than one parameterset, or if none of the specificParams where bound.
             IEnumerable<string> matchedParameterSet =
                 specificParams
                     .Where(p => paramBinder.BoundParameters.ContainsKey(p.Name) && p.ParameterSets.Count == 1)
                     .Select(p => p.ParameterSets.Keys.ToArray().First());
 
-            // if matching a single parameterset failed, return all possible parametersets.
-            if (matchedParameterSet == null)
+            // If matching a single parameterset failed, return only default parameterset
             {
                 matchedParameterSet = cmdInfo.ParameterSets.Where(p => p.IsDefault).Select(n => n.Name);
             }
