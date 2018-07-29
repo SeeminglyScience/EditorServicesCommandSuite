@@ -170,46 +170,29 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 cmdInfo
                     .Parameters
                     .Values
-                    .Where(p => !(p.ParameterSets.Keys.Contains("__AllParameterSets")));
+                    .Where(p => !(p.ParameterSets.ContainsKey("__AllParameterSets")));
 
             // try and match against one single parameterset (this wil return null if certain parameters are in more than one parameterset)
             IEnumerable<string> matchedParameterSet =
                 specificParams
-                    .Where(p => paramBinder.BoundParameters.Keys.Contains(p.Name) && p.ParameterSets.Count == 1)
+                    .Where(p => paramBinder.BoundParameters.ContainsKey(p.Name) && p.ParameterSets.Count == 1)
                     .Select(p => p.ParameterSets.Keys.ToArray().First());
 
             // if matching a single parameterset failed, return all possible parametersets.
             if (matchedParameterSet == null)
             {
-                System.Diagnostics.Debug.WriteLine("More than one match");
-                matchedParameterSet =
-                    specificParams
-                        .Where(p => paramBinder.BoundParameters.Keys.Contains(p.Name))
-                        .SelectMany(p => p.ParameterSets.Keys.ToArray());
+                matchedParameterSet = cmdInfo.ParameterSets.Where(p => p.IsDefault).Select(n => n.Name);
             }
             else if (matchedParameterSet.Count() > 1)
             {
-                // TODO: this may be worth a PowerShell console warning? But is this ever hit?
-                System.Diagnostics.Debug.WriteLine("Possible conflicting parameters.");
-            }
-
-            if (matchedParameterSet == null) {
-                // revert to Default parameterset
-                matchedParameterSet = cmdInfo.ParameterSets.Where(p => p.IsDefault).Select(n => n.Name);
-                System.Diagnostics.Debug.WriteLine("Reverted to default parameterset"+ matchedParameterSet);
-                // TODO: FIX bug here, for multi-paramset-cmdlets where no mandatory/paramset-matching param is used results in unavailable mandatory params
+                // TODO: Possible invalid parameter combination. This may be worth a PowerShell console warning. But is this ever hit?
             }
 
             // return parameters from matched parameterset(s)
-            foreach (var matchedSet in matchedParameterSet)
-            {
-                result.AddRange(
-                    cmdInfo
+            return cmdInfo
                         .ParameterSets
-                        .Where(p => p.Name == matchedSet)
-                        .SelectMany(p => p.Parameters));
-            }
-            return result;
+                        .Where(p => matchedParameterSet.Contains(p.Name))   // parameters from __AllParameterSets are implicitly included here.
+                        .SelectMany(p => p.Parameters);
         }
 
         internal override bool CanRefactorTarget(DocumentContextBase request, CommandAst ast)
