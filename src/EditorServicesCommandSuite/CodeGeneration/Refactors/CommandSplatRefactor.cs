@@ -41,7 +41,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             var elementsExtent = elements.JoinExtents();
             var boundParameters = StaticParameterBinder.BindCommand(commandAst, true);
-            if (!boundParameters.BoundParameters.Any())
+            if (!boundParameters.BoundParameters.Any() && !(allParameters || mandatoryParameters))
             {
                 return Enumerable.Empty<DocumentEdit>();
             }
@@ -178,6 +178,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     .Select(p => p.ParameterSets.Keys.ToArray().First());
 
             // If matching a single parameterset failed, return only default parameterset
+            if (matchedParameterSet.Count() == 0)
             {
                 matchedParameterSet = cmdInfo.ParameterSets.Where(p => p.IsDefault).Select(n => n.Name);
             }
