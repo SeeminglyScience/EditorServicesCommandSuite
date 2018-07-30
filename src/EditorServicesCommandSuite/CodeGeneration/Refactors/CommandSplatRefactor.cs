@@ -53,7 +53,13 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 () => splatWriter.OpenHashtable());
 
             var elementsWriter = new PowerShellScriptWriter(commandAst);
-            elementsWriter.SetPosition(elementsExtent);
+            if (elementsExtent is EmptyExtent) {
+                elementsWriter.SetPosition(parentStatement, true);
+                elementsWriter.Write(Symbols.Space);
+            }
+            else {
+                elementsWriter.SetPosition(elementsExtent);
+            }
             elementsWriter.WriteVariable(variableName, isSplat: true);
 
             var first = true;
