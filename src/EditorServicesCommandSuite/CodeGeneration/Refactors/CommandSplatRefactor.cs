@@ -41,6 +41,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             var elementsExtent = elements.JoinExtents();
             var boundParameters = StaticParameterBinder.BindCommand(commandAst, true);
+            if (boundParameters.BindingExceptions.Count() > 0 && boundParameters.BindingExceptions.ToArray().First().Value.BindingException.ErrorId == "AmbiguousParameterSet")
+            {
+                throw boundParameters.BindingExceptions.ToArray().First().Value.BindingException;
+            }
             if (!boundParameters.BoundParameters.Any() && !(allParameters || mandatoryParameters))
             {
                 return Enumerable.Empty<DocumentEdit>();
