@@ -41,11 +41,25 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             var elementsExtent = elements.JoinExtents();
             var boundParameters = StaticParameterBinder.BindCommand(commandAst, true);
-            if (boundParameters.BindingExceptions.Count() > 0 && boundParameters.BindingExceptions.ToArray().First().Value.BindingException.ErrorId == "AmbiguousParameterSet")
+            if (
+                boundParameters.BindingExceptions.Count() > 0 &&
+                boundParameters.BindingExceptions
+                    .ToArray()
+                    .First()
+                    .Value
+                    .BindingException
+                    .ErrorId == "AmbiguousParameterSet")
             {
-                throw boundParameters.BindingExceptions.ToArray().First().Value.BindingException;
+                throw boundParameters.BindingExceptions
+                    .ToArray()
+                    .First()
+                    .Value
+                    .BindingException;
             }
-            if (!boundParameters.BoundParameters.Any() && !(allParameters || mandatoryParameters))
+
+            if (
+                !boundParameters.BoundParameters.Any() &&
+                !(allParameters || mandatoryParameters))
             {
                 return Enumerable.Empty<DocumentEdit>();
             }
@@ -57,14 +71,71 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 () => splatWriter.OpenHashtable());
 
             var elementsWriter = new PowerShellScriptWriter(commandAst);
-            if (elementsExtent is EmptyExtent) {
+
+            int? equalSignAligner = null;
+            if (elementsExtent is EmptyExtent)
+            {
                 elementsWriter.SetPosition(parentStatement, true);
                 elementsWriter.Write(Symbols.Space);
             }
-            else {
+            else
+            {
                 elementsWriter.SetPosition(elementsExtent);
+                if (boundParameters.BoundParameters.Count() == 0)
+                {
+                    equalSignAligner = 0;
+                }
+                else
+                {
+                    equalSignAligner = boundParameters.BoundParameters.Keys.Select(a => a.Length).Max();
+                }
             }
+
             elementsWriter.WriteVariable(variableName, isSplat: true);
+
+            IEnumerable<CommandParameterInfo> parameterList = new List<CommandParameterInfo>();
+            if (allParameters || mandatoryParameters)
+            {
+                var cmdName = commandAst.CommandElements[0].Extent.Text;
+                var cmdInfo =
+                    CommandSuite
+                        .Instance
+                        .ExecutionContext
+                        .InvokeCommand
+                        .GetCommand(cmdName, CommandTypes.All);
+
+                if (cmdInfo.ParameterSets.Count == 1)
+                {
+                    parameterList =
+                        cmdInfo
+                            .ParameterSets
+                            .SelectMany(p => p.Parameters);
+                }
+                else
+                {
+                    parameterList =
+                        GetParametersInMatchedParameterSet(boundParameters, cmdInfo);
+                }
+
+                if (mandatoryParameters)
+                {
+                    parameterList = parameterList.Where(p => p.IsMandatory);
+                }
+
+                // omit common parameters and optional common parameters
+                parameterList =
+                    parameterList
+                        .Where(p => !Cmdlet.CommonParameters.Contains(p.Name) && !Cmdlet.OptionalCommonParameters.Contains(p.Name));
+
+                // omit parameters that were already bound.
+                parameterList = parameterList.Where(p => !boundParameters.BoundParameters.Keys.Contains(p.Name));
+
+                var equalSignAlignerFromParamList = parameterList.Select(p => p.Name?.Length)?.Max();
+                if (equalSignAligner == null || equalSignAligner < equalSignAlignerFromParamList)
+                {
+                    equalSignAligner = equalSignAlignerFromParamList;
+                }
+            }
 
             var first = true;
             foreach (var param in boundParameters.BoundParameters)
@@ -87,7 +158,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 }
 
                 splatWriter.WriteHashtableEntry(
-                    param.Key,
+                    AlignParamKey(param.Key, equalSignAligner),
                     () => Write.AsExpressionValue(splatWriter, param.Value));
             }
 
@@ -106,41 +177,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             if (allParameters || mandatoryParameters)
             {
-                IEnumerable<CommandParameterInfo> parameterList;
-                var cmdName = commandAst.CommandElements[0].Extent.Text;
-                var cmdInfo =
-                    CommandSuite
-                        .Instance
-                        .ExecutionContext
-                        .InvokeCommand
-                        .GetCommand(cmdName, CommandTypes.All);
+                // TODO: implement showHints switchparameter
+                bool showHints = true;
 
-                if (cmdInfo.ParameterSets.Count == 1)
-                {
-                    parameterList =
-                        cmdInfo
-                            .ParameterSets
-                            .SelectMany(p => p.Parameters);
-                }
-                else {
-                    parameterList =
-                        GetParametersInMatchedParameterSet(boundParameters, cmdInfo);
-                }
-
-                if (mandatoryParameters)
-                {
-                    parameterList = parameterList.Where(p => p.IsMandatory);
-                }
-
-                // omit common parameters and optional common parameters
-                parameterList =
-                    parameterList
-                        .Where(p => !Cmdlet.CommonParameters.Contains(p.Name) && !Cmdlet.OptionalCommonParameters.Contains(p.Name));
-
-                // omit parameters that were already bound.
-                parameterList = parameterList.Where(p => !boundParameters.BoundParameters.Keys.Contains(p.Name));
-
-                foreach (string param in parameterList.Select(p => p.Name))
+                foreach (CommandParameterInfo param in parameterList)
                 {
                     if (first)
                     {
@@ -151,7 +191,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                         splatWriter.WriteLine();
                     }
 
-                    splatWriter.Write(param);
+                    splatWriter.Write(
+                        AlignParamKey(param, equalSignAligner, showHints));
                 }
             }
 
@@ -169,7 +210,65 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return splatWriter.Edits.Concat(elementsWriter.Edits);
         }
 
-        private static IEnumerable<CommandParameterInfo> GetParametersInMatchedParameterSet(
+        internal static string AlignParamKey(
+            string key,
+            int? equalSignAligner)
+        {
+            string alignedParamKey = key;
+            for (int i = key.Length; i <= equalSignAligner; i++)
+            {
+                alignedParamKey = alignedParamKey +
+                " ";
+            }
+
+            return alignedParamKey;
+        }
+
+        internal static string AlignParamKey(
+            CommandParameterInfo param,
+            int? equalSignAligner,
+            bool showHints)
+        {
+            string alignedParam = AlignParamKey(param.Name, equalSignAligner);
+            char mandatoryMarkerOrSpace;
+            string paramType;
+
+            if (param.IsMandatory)
+            {
+                mandatoryMarkerOrSpace = '*';
+            }
+            else
+            {
+                mandatoryMarkerOrSpace = Symbols.Space;
+            }
+
+            paramType = param.ParameterType.Name;
+
+            alignedParam =
+                alignedParam
+                + Symbols.Space
+                + Symbols.Equal
+                + Symbols.Space;
+
+            if (showHints)
+            {
+                alignedParam =
+                    alignedParam
+                    + Symbols.Space
+                    + Symbols.Space
+                    + Symbols.NumberSign
+                    + Symbols.Space
+                    + mandatoryMarkerOrSpace
+                    + Symbols.Space
+                    + Symbols.SquareOpen
+                    + paramType
+                    + Symbols.SquareClose;
+            }
+
+            return alignedParam;
+        }
+
+        internal static IEnumerable<CommandParameterInfo> GetParametersInMatchedParameterSet(
             StaticBindingResult paramBinder,
             CommandInfo cmdInfo)
         {
@@ -178,7 +277,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 cmdInfo
                     .Parameters
                     .Values
-                    .Where(p => !(p.ParameterSets.ContainsKey("__AllParameterSets")));
+                    .Where(p => !p.ParameterSets.ContainsKey("__AllParameterSets"));
 
             // Try and match against one single parameterset
             // This wil return null if certain parameters are in more than one parameterset, or if none of the specificParams where bound.
@@ -200,7 +299,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             // return parameters from matched parameterset(s)
             return cmdInfo
                         .ParameterSets
-                        .Where(p => matchedParameterSet.Contains(p.Name))   // parameters from __AllParameterSets are implicitly included here.
+                        .Where(p => matchedParameterSet.Contains(p.Name)) // parameters from __AllParameterSets are implicitly included here.
                         .SelectMany(p => p.Parameters);
         }
 
