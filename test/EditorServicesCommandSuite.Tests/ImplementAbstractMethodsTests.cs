@@ -63,7 +63,7 @@ namespace EditorServicesCommandSuite.Tests
             return await MockContext.GetRefactoredTextAsync(
                 testString,
                 context => Task.FromResult(
-                    ImplementAbstractMethodsRefactorProvider.GetEdits(
+                    ImplementAbstractMethodsRefactor.GetEdits(
                         context.Ast.FindParent<TypeDefinitionAst>(),
                         context.Ast.FindParent<TypeConstraintAst>(),
                         context.Token,
@@ -100,6 +100,12 @@ namespace EditorServicesCommandSuite.Tests
             internal static MemberOfType Property()
             {
                 return new MemberOfType() { _memberType = MemberTypes.Property };
+            }
+
+            internal MemberOfType Static()
+            {
+                _isStatic = true;
+                return this;
             }
 
             internal MemberOfType Named(string name)

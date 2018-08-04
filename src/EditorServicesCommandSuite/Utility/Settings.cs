@@ -103,11 +103,22 @@ namespace EditorServicesCommandSuite.Utility
                         "EditorServicesCommandSuite",
                         "ESCSSettings.psd1");
                 case SettingsScope.Workspace:
-                    return string.IsNullOrWhiteSpace(CommandSuite.Instance?.DocumentContext?.Workspace)
-                        ? string.Empty
-                        : Path.Combine(
-                            CommandSuite.Instance.DocumentContext.Workspace,
-                            "ESCSSettings.psd1");
+                {
+                    CommandSuite commandSuite;
+                    if (!CommandSuite.TryGetInstance(out commandSuite))
+                    {
+                        return string.Empty;
+                    }
+
+                    if (commandSuite.Workspace.IsUntitledWorkspace())
+                    {
+                        return string.Empty;
+                    }
+
+                    return Path.Combine(
+                        commandSuite.Workspace.GetWorkspacePath(),
+                        "ESCSSettings.psd1");
+                }
             }
 
             return string.Empty;

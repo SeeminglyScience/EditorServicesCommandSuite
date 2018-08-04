@@ -6,28 +6,19 @@
     <Configurations>Debug;Release;Test</Configurations>
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <LangVersion>7.2</LangVersion>
+    <TargetFrameworks>netstandard2.0;netcoreapp2.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
     <AdditionalFiles Include="..\EditorServicesCommandSuite\stylecop.json" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004" PrivateAssets="All" />
   </ItemGroup>
-  <Choose>
-    <When Condition=" '$(Configuration)' != 'Test' ">
-      <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
-      </PropertyGroup>
-      <ItemGroup>
-        <PackageReference Include="PowerShellStandard.Library" Version="5.1.0-preview-04" PrivateAssets="All" />
-      </ItemGroup>
-    </When>
-    <When Condition=" '$(Configuration)' == 'Test' ">
-      <PropertyGroup>
-        <DefineConstants>TEST</DefineConstants>
-        <TargetFramework>netcoreapp2.0</TargetFramework>
-      </PropertyGroup>
-      <ItemGroup>
-        <PackageReference Include="Microsoft.PowerShell.SDK" Version="6.0.2" PrivateAssets="All" />
-      </ItemGroup>
-    </When>
-  </Choose>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.0-preview-04" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="6.0.2" PrivateAssets="All" />
+  </ItemGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Test' ">
+    <DefineConstants>TEST</DefineConstants>
+  </PropertyGroup>
 </Project>

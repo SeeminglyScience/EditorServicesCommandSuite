@@ -2,7 +2,9 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')]
-    [string] $Configuration = 'Debug'
+    [string] $Configuration = 'Debug',
+
+    [version] $TestRuntimeVersion
 )
 
 $moduleName = 'EditorServicesCommandSuite'
@@ -27,6 +29,7 @@ $script:Folders  = @{
 $script:Discovery = @{
     HasDocs       = Test-Path ('{0}\{1}\*.md' -f $Folders.Docs, $PSCulture)
     HasTests      = Test-Path ('{0}\*.Test.ps1' -f $Folders.Test)
+    IsUnix        = $PSEdition -eq 'Core' -and -not $IsWindows
 }
 
 task Clean {
@@ -34,9 +37,9 @@ task Clean {
     if (Test-Path $releaseFolder) {
         Remove-Item $releaseFolder -Recurse
     }
+
     New-Item -ItemType Directory $releaseFolder | Out-Null
     New-Item -ItemType Directory $releaseFolder/RefactorCmdlets | Out-Null
-
 }
 
 task BuildDocs -If { $Discovery.HasDocs } {
@@ -83,7 +86,7 @@ task ResGenImpl {
 }
 
 task BuildManaged {
-    $script:dotnet = $dotnet = & $PSScriptRoot\tools\GetDotNet.ps1 -Unix:$Discover.IsUnix
+    $script:dotnet = $dotnet = & $PSScriptRoot\tools\GetDotNet.ps1 -Unix:$Discovery.IsUnix
 
     & $dotnet publish --framework netstandard2.0 --configuration $Configuration --verbosity q -nologo
 }
@@ -128,8 +131,32 @@ task Analyze -If { $Settings.ShouldAnalyze } {
     Invoke-ScriptAnalyzer -Path $Folders.Release -Settings $PSScriptRoot\ScriptAnalyzerSettings.psd1 -Recurse
 }
 
-task Test -If { $Discovery.HasTests -and $Settings.ShouldTest } {
-    Invoke-Pester -PesterOption @{ IncludeVSCodeMarker = $true }
+task DoTest {
+    Push-Location $PSScriptRoot\test\EditorServicesCommandSuite.Tests
+    try {
+        if (-not $TestRuntimeVersion) {
+            if ($Discovery.IsUnix) {
+                throw 'Unable to automatically determine installed runtime version on Unix, please supply your installed runtime version and try again.'
+            }
+
+            if ([string]::IsNullOrEmpty($dotnet.Source)) {
+                throw 'Unable to automatically determine installed runtime version, please supply your installed runtime version and try again.'
+            }
+
+            $dotnetFolder = Split-Path $dotnet.Source
+            $runtimes = Resolve-Path ('{0}/shared/Microsoft.NETCore.App' -f $dotnetFolder) -ErrorAction Stop
+            $TestRuntimeVersion = Get-ChildItem $runtimes.Path -Directory |
+                Select-Object -First 1 -ExpandProperty Name
+        }
+
+        & $dotnet xunit `
+            -framework netcoreapp2.0 `
+            -configuration Test `
+            -fxversion $TestRuntimeVersion `
+            -nologo
+    } finally {
+        Pop-Location
+    }
 }
 
 task DoInstall {
@@ -157,11 +184,11 @@ task ResGen -Jobs AssertPSResGen, ResGenImpl
 
 task Build -Jobs Clean, AssertDependencies, ResGen, BuildManaged, BuildRefactorModule, CopyToRelease, BuildDocs
 
-task PreRelease -Jobs Build, Analyze, Test
+task Test -Jobs Build, DoTest
 
-task Install -Jobs PreRelease, DoInstall
+task Install -Jobs Test, DoInstall
 
-task Publish -Jobs PreRelease, DoPublish
+task Publish -Jobs Test, DoPublish
 
 task . Build
 

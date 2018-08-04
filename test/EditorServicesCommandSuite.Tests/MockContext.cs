@@ -18,7 +18,7 @@ namespace EditorServicesCommandSuite.Tests
             string testString,
             Func<DocumentContextBase, Task<IEnumerable<DocumentEdit>>> editFactory)
         {
-            Settings.SetSetting("NewLineCharacter", "\n");
+            Settings.SetSetting("NewLine", "\n");
             Settings.SetSetting("TabString", "\t");
             var context = GetContext(testString);
             var sb = new StringBuilder(context.RootAst.Extent.Text);
