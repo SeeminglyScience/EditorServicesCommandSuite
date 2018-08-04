@@ -74,6 +74,12 @@ namespace EditorServicesCommandSuite.Internal
             }
         }
 
+        internal static bool TryGetInstance(out CommandSuite instance)
+        {
+            instance = s_instance;
+            return s_instance != null;
+        }
+
         /// <summary>
         /// Gets the diagnostics provider.
         /// </summary>

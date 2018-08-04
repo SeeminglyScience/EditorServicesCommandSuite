@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EditorServicesCommandSuite.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EditorServicesCommandSuite.PSReadLine", "src\EditorServicesCommandSuite.PSReadLine\EditorServicesCommandSuite.PSReadLine.csproj", "{BC09FB7E-60AD-4D14-82B3-32751A88C5AE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EditorServicesCommandSuite.Tests", "src\EditorServicesCommandSuite.Tests\EditorServicesCommandSuite.Tests.csproj", "{79A27D11-3604-4123-81D8-100F96A206C7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EditorServicesCommandSuite.Tests", "test\EditorServicesCommandSuite.Tests\EditorServicesCommandSuite.Tests.csproj", "{79A27D11-3604-4123-81D8-100F96A206C7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
