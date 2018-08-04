@@ -86,6 +86,11 @@ namespace EditorServicesCommandSuite.Internal
         public const char Backtick = '`';
 
         /// <summary>
+        /// The character: "*"
+        /// </summary>
+        public const char Asterisk = '*';
+
+        /// <summary>
         /// The character: "."
         /// </summary>
         public const char Dot = '.';
