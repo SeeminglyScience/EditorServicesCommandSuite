@@ -13,6 +13,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
     [RefactorConfiguration(typeof(CommandSplatRefactorSettings))]
     internal class CommandSplatRefactor : AstRefactorProvider<CommandAst>
     {
+        /// <summary>
+        /// The automatic name of the parameter set when no other sets are defined: "__AllParameterSets".
+        /// Also the set in which mutual parameters fall when more than one set is defined.
+        /// </summary>
+        private const string AutomaticSingleParameterSetName = "__AllParameterSets";
         private const string DefaultSplatVariable = "splat";
 
         private const string SplatVariableSuffix = "Splat";
@@ -36,6 +41,26 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             bool mandatoryParameters,
             IRefactorUI ui = null)
         {
+            /*
+            High level design
+                1. Get parameters from Ast, resolve (positional, partial) parameters with StaticParameterBinder.
+                2. Resolve parameterset, [to be able to determine if a param is mandatory]
+                3. Gather relevant parameter data: name, value, isMandatory, type
+                    3a. (optional) add other parameters from CommandInfo + parameter set name. name, value, isMandatory, type
+                    3b. (optional) filter out non-mandatory params
+                4. Get longest parametername [to be able to format all '=' signs]
+                5. Sort // do we want a certain order?
+                6. Write parameters, values (if present), and (optional) type hint
+                    //  --> Parameter class moet iets van een ToWriteAssignment ofzo krijgen zie class Write, en class PowerShellScriptWriter.
+                    // naast 'internal void WriteHashtableEntry(string key, Action valueWriter)' moet er ook een komen met uitgelijnde '='.
+                7. Display parameter binding errors
+
+            */
+
+            // TODO: implement showHints switchparameter, with a logical default setting.
+            bool showHints = true;
+
+            // 1. Get parameters from Ast, resolve (positional, partial) parameters with StaticParameterBinder.
             var parentStatement = commandAst.FindParent<StatementAst>();
             var elements = commandAst.CommandElements.Skip(1);
 
@@ -64,15 +89,115 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return Enumerable.Empty<DocumentEdit>();
             }
 
+            // 2. Resolve parameterset, [to be able to determine if a param is mandatory]
+            var cmdName = commandAst.CommandElements[0].Extent.Text;
+
+            var cmdInfo =
+                CommandSuite
+                    .Instance
+                    .ExecutionContext
+                    .InvokeCommand
+                    .GetCommand(cmdName, CommandTypes.All);
+
+            var parameterSetName = ResolveParameterSet(boundParameters, cmdInfo);
+
+            // 3. Gather relevant parameter data: name, value, isMandatory, type
+            var parameterInfo = cmdInfo
+                .ParameterSets
+                .Where(p => parameterSetName == p.Name)
+                .SelectMany(p => p.Parameters);
+
+            List<Parameter> pList = new List<Parameter>();
+
+            foreach (var param in parameterInfo)
+            {
+                // 3a. (optional) add other parameters from CommandInfo + parameter set name. name, value, isMandatory, type
+                // 3b. (optional) filter out non-mandatory params
+                var add = false;
+                ParameterBindingResult boundParameterValue = null;
+
+                if (allParameters)
+                {
+                    add = true;
+                }
+
+                if (mandatoryParameters && param.IsMandatory)
+                {
+                    add = true;
+                }
+
+                // Omit common parameters and optional common parameters
+                if (Cmdlet.CommonParameters.Contains(param.Name) || Cmdlet.OptionalCommonParameters.Contains(param.Name))
+                {
+                    add = false;
+                }
+
+                if (boundParameters.BoundParameters.ContainsKey(param.Name))
+                {
+                    boundParameterValue =
+                        boundParameters
+                            .BoundParameters
+                            .Where(p => param.Name == p.Key)
+                            .FirstOrDefault()
+                            .Value;
+                }
+
+                // Always add parameter if it was bound.
+                if (boundParameterValue != null || add)
+                {
+                    pList.Add(
+                        new Parameter(
+                            param.Name,
+                            boundParameterValue,
+                            param.IsMandatory,
+                            param.ParameterType));
+                }
+            }
+
+            // 4. Get longest parametername [to be able to format all '=' signs]
+            var equalSignAligner =
+                pList
+                    .Select(p => p.Name.Length)
+                    .Max();
+
+            // 5. Sort
+            IEnumerable<Parameter> sorted;
+            /*
+            Do we want a certain order?
+            No additional sorting will have params appear in the order provided by CommandInfo. The previous implementation had all bound
+            parameters first, in order as typed, and, if (allParameters || matchedParameters), the rest of them in order of appearance in CommandInfo.
+            These are thought experiments on what kind of sorting could be usefull, the 'sorted' variable is dereferenced and never used.
+            */
+
+            // Bound parameters first, rest in order of appearance
+            sorted =
+                from element in pList
+                orderby element.Value != null
+                select element;
+
+            // Alphabetical:
+            sorted =
+                from element in pList
+                orderby element.Name
+                select element;
+
+            // Alphabetical, with Mandatory parameters first:
+            sorted =
+                from element in pList
+                orderby element.IsMandatory, element.Name
+                select element;
+
+            sorted = null;
+
+            // 6. Write parameters, values (if present), and (optional) type hint
             var splatWriter = new PowerShellScriptWriter(commandAst);
+            var elementsWriter = new PowerShellScriptWriter(commandAst);
+
             splatWriter.SetPosition(parentStatement);
             splatWriter.WriteAssignment(
                 () => splatWriter.WriteVariable(variableName),
                 () => splatWriter.OpenHashtable());
 
-            var elementsWriter = new PowerShellScriptWriter(commandAst);
-
-            int? equalSignAligner = null;
             if (elementsExtent is EmptyExtent)
             {
                 elementsWriter.SetPosition(parentStatement, true);
@@ -81,66 +206,14 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             else
             {
                 elementsWriter.SetPosition(elementsExtent);
-                if (boundParameters.BoundParameters.Count() == 0)
-                {
-                    equalSignAligner = 0;
-                }
-                else
-                {
-                    equalSignAligner = boundParameters.BoundParameters.Keys.Select(a => a.Length).Max();
-                }
             }
 
             elementsWriter.WriteVariable(variableName, isSplat: true);
 
-            IEnumerable<CommandParameterInfo> parameterList = new List<CommandParameterInfo>();
-            if (allParameters || mandatoryParameters)
-            {
-                var cmdName = commandAst.CommandElements[0].Extent.Text;
-                var cmdInfo =
-                    CommandSuite
-                        .Instance
-                        .ExecutionContext
-                        .InvokeCommand
-                        .GetCommand(cmdName, CommandTypes.All);
-
-                if (cmdInfo.ParameterSets.Count == 1)
-                {
-                    parameterList =
-                        cmdInfo
-                            .ParameterSets
-                            .SelectMany(p => p.Parameters);
-                }
-                else
-                {
-                    parameterList =
-                        GetParametersInMatchedParameterSet(boundParameters, cmdInfo);
-                }
-
-                if (mandatoryParameters)
-                {
-                    parameterList = parameterList.Where(p => p.IsMandatory);
-                }
-
-                // omit common parameters and optional common parameters
-                parameterList =
-                    parameterList
-                        .Where(p => !Cmdlet.CommonParameters.Contains(p.Name) && !Cmdlet.OptionalCommonParameters.Contains(p.Name));
-
-                // omit parameters that were already bound.
-                parameterList = parameterList.Where(p => !boundParameters.BoundParameters.Keys.Contains(p.Name));
-
-                var equalSignAlignerFromParamList = parameterList.Select(p => p.Name?.Length)?.Max();
-                if (equalSignAligner == null || equalSignAligner < equalSignAlignerFromParamList)
-                {
-                    equalSignAligner = equalSignAlignerFromParamList;
-                }
-            }
-
             var first = true;
-            foreach (var param in boundParameters.BoundParameters)
+            foreach (var param in pList)
             {
-                if (param.Key.All(c => char.IsDigit(c)))
+                if (param.Name.All(c => char.IsDigit(c)))
                 {
                     elementsWriter.Write(
                         Symbols.Space
@@ -158,10 +231,17 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 }
 
                 splatWriter.WriteHashtableEntry(
-                    AlignParamKey(param.Key, equalSignAligner),
-                    () => Write.AsExpressionValue(splatWriter, param.Value));
+                    param.Name,
+                    () => Write.AsExpressionValue(splatWriter, param.Value),
+                    equalSignAligner);
+
+                if (showHints)
+                {
+                    splatWriter.Write(param.Hint);
+                }
             }
 
+            // 7. Display parameter binding errors
             foreach (var bindingException in boundParameters.BindingExceptions)
             {
                 elementsWriter.Write(Symbols.Space);
@@ -173,27 +253,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                         CommandSplatStrings.CouldNotResolvePositionalArgument,
                         bindingException.Value.CommandElement.Extent.Text),
                     waitForResponse: false);
-            }
-
-            if (allParameters || mandatoryParameters)
-            {
-                // TODO: implement showHints switchparameter
-                bool showHints = true;
-
-                foreach (CommandParameterInfo param in parameterList)
-                {
-                    if (first)
-                    {
-                        first = false;
-                    }
-                    else
-                    {
-                        splatWriter.WriteLine();
-                    }
-
-                    splatWriter.Write(
-                        AlignParamKey(param, equalSignAligner, showHints));
-                }
             }
 
             splatWriter.CloseHashtable();
@@ -210,97 +269,39 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return splatWriter.Edits.Concat(elementsWriter.Edits);
         }
 
-        internal static string AlignParamKey(
-            string key,
-            int? equalSignAligner)
-        {
-            string alignedParamKey = key;
-            for (int i = key.Length; i <= equalSignAligner; i++)
-            {
-                alignedParamKey = alignedParamKey +
-                " ";
-            }
-
-            return alignedParamKey;
-        }
-
-        internal static string AlignParamKey(
-            CommandParameterInfo param,
-            int? equalSignAligner,
-            bool showHints)
-        {
-            string alignedParam = AlignParamKey(param.Name, equalSignAligner);
-            char mandatoryMarkerOrSpace;
-            string paramType;
-
-            if (param.IsMandatory)
-            {
-                mandatoryMarkerOrSpace = '*';
-            }
-            else
-            {
-                mandatoryMarkerOrSpace = Symbols.Space;
-            }
-
-            paramType = param.ParameterType.Name;
-
-            alignedParam =
-                alignedParam
-                + Symbols.Space
-                + Symbols.Equal
-                + Symbols.Space;
-
-            if (showHints)
-            {
-                alignedParam =
-                    alignedParam
-                    + Symbols.Space
-                    + Symbols.Space
-                    + Symbols.NumberSign
-                    + Symbols.Space
-                    + mandatoryMarkerOrSpace
-                    + Symbols.Space
-                    + Symbols.SquareOpen
-                    + paramType
-                    + Symbols.SquareClose;
-            }
-
-            return alignedParam;
-        }
-
-        internal static IEnumerable<CommandParameterInfo> GetParametersInMatchedParameterSet(
+        internal static string ResolveParameterSet(
             StaticBindingResult paramBinder,
-            CommandInfo cmdInfo)
+            CommandInfo commandInfo)
         {
-            // Identify parameters that are specific to (a) certain parameterset(s)
-            IEnumerable<ParameterMetadata> specificParams =
-                cmdInfo
-                    .Parameters
-                    .Values
-                    .Where(p => !p.ParameterSets.ContainsKey("__AllParameterSets"));
-
-            // Try and match against one single parameterset
-            // This wil return null if certain parameters are in more than one parameterset, or if none of the specificParams where bound.
-            IEnumerable<string> matchedParameterSet =
-                specificParams
-                    .Where(p => paramBinder.BoundParameters.ContainsKey(p.Name) && p.ParameterSets.Count == 1)
-                    .Select(p => p.ParameterSets.Keys.ToArray().First());
-
-            // If matching a single parameterset failed, return only default parameterset
-            if (matchedParameterSet.Count() == 0)
+            IEnumerable<string> matchedParameterSet = new List<string>()
             {
-                matchedParameterSet = cmdInfo.ParameterSets.Where(p => p.IsDefault).Select(n => n.Name);
-            }
-            else if (matchedParameterSet.Count() > 1)
+                AutomaticSingleParameterSetName,
+            };
+
+            if (commandInfo.ParameterSets.Count > 1)
             {
-                // TODO: Possible invalid parameter combination. This may be worth a PowerShell console warning. But is this ever hit?
+                // Identify parameters that are specific to (a) certain parameterset(s)
+                IEnumerable<ParameterMetadata> specificParams =
+                    commandInfo
+                        .Parameters
+                        .Values
+                        .Where(p => !p.ParameterSets.ContainsKey(AutomaticSingleParameterSetName));
+
+                // Try and match against one single parameterset
+                // This wil return null if certain parameters are in more than one parameterset, or if none of the specificParams where bound.
+                matchedParameterSet =
+                    specificParams
+                        .Where(p => paramBinder.BoundParameters.ContainsKey(p.Name) && p.ParameterSets.Count == 1)
+                        .Select(p => p.ParameterSets.Keys.ToArray().First());
+
+                // If matching a single parameterset failed, return only default parameterset
+                if (matchedParameterSet.Count() == 0)
+                {
+                    matchedParameterSet = commandInfo.ParameterSets.Where(p => p.IsDefault).Select(n => n.Name);
+                }
             }
 
-            // return parameters from matched parameterset(s)
-            return cmdInfo
-                        .ParameterSets
-                        .Where(p => matchedParameterSet.Contains(p.Name)) // parameters from __AllParameterSets are implicitly included here.
-                        .SelectMany(p => p.Parameters);
+            return matchedParameterSet.FirstOrDefault();
         }
 
         internal override bool CanRefactorTarget(DocumentContextBase request, CommandAst ast)
