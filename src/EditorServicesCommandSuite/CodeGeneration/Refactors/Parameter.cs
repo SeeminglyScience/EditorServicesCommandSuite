@@ -8,6 +8,16 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     internal class Parameter
     {
+        private string _name;
+
+        private ParameterBindingResult _value;
+
+        private bool _isMandatory;
+
+        private string _parameterType;
+
+        private string _hint;
+
         internal Parameter(
             string name,
             ParameterBindingResult value,
@@ -15,14 +25,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             Type parameterType)
         {
             this._name = name;
-
             this._value = value;
-
             this._isMandatory = isMandatory;
-
             this._parameterType = parameterType.Name;
-
             char mandatoryMarkerOrSpace;
+            var sb = new StringBuilder();
 
             if (this.IsMandatory)
             {
@@ -33,18 +40,17 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 mandatoryMarkerOrSpace = Symbols.Space;
             }
 
-            StringBuilder builder = new StringBuilder();
-                builder
-                    .Append(Symbols.Space, 2)
-                    .Append(Symbols.NumberSign)
-                    .Append(Symbols.Space)
-                    .Append(mandatoryMarkerOrSpace)
-                    .Append(Symbols.Space)
-                    .Append(Symbols.SquareOpen)
-                    .Append(this._parameterType)
-                    .Append(Symbols.SquareClose);
+            sb
+                .Append(Symbols.Space, 2)
+                .Append(Symbols.NumberSign)
+                .Append(Symbols.Space)
+                .Append(mandatoryMarkerOrSpace)
+                .Append(Symbols.Space)
+                .Append(Symbols.SquareOpen)
+                .Append(this._parameterType)
+                .Append(Symbols.SquareClose);
 
-            this._hint = builder.ToString();
+            this._hint = sb.ToString();
         }
 
         public string Name
@@ -78,15 +84,5 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return _hint;
             }
         }
-
-        private string _name;
-
-        private ParameterBindingResult _value;
-
-        private bool _isMandatory;
-
-        private string _parameterType;
-
-        private string _hint;
     }
 }
