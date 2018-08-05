@@ -8,6 +8,11 @@ namespace EditorServicesCommandSuite.CodeGeneration
     {
         internal static void AsExpressionValue(PowerShellScriptWriter writer, ParameterBindingResult element)
         {
+            if (element == null)
+            {
+                return;
+            }
+
             if (element.ConstantValue is bool boolean)
             {
                 writer.Write(Symbols.Dollar + boolean.ToString().ToLower());
