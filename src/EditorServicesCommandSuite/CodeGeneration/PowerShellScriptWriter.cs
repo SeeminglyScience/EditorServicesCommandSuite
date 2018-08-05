@@ -4,6 +4,8 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Reflection;
+using System.Text;
+using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Language;
 using EditorServicesCommandSuite.Reflection;
@@ -466,6 +468,17 @@ namespace EditorServicesCommandSuite.CodeGeneration
             Write(key);
             Write(new[] { Space, Equal, Space });
             valueWriter();
+        }
+
+        internal void WriteHashtableEntry(string key, Action valueWriter, int aligner)
+        {
+            var sb = new StringBuilder(key);
+            sb.Append(
+                Symbols.Space,
+                aligner - key.Length);
+            this.WriteHashtableEntry(
+                sb.ToString(),
+                valueWriter);
         }
 
         internal void WriteStringExpression(StringConstantType type, string value)
