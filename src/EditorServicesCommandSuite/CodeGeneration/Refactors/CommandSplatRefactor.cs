@@ -39,6 +39,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             bool newLineAfterHashtable,
             bool allParameters,
             bool mandatoryParameters,
+            bool noHints,
             IRefactorUI ui = null)
         {
             /*
@@ -56,9 +57,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 7. Display parameter binding errors
 
             */
-
-            // TODO: implement showHints switchparameter, with a logical default setting.
-            bool showHints = true;
 
             // 1. Get parameters from Ast, resolve (positional, partial) parameters with StaticParameterBinder.
             var parentStatement = commandAst.FindParent<StatementAst>();
@@ -235,7 +233,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     () => Write.AsExpressionValue(splatWriter, param.Value),
                     equalSignAligner);
 
-                if (showHints)
+                if (!noHints)
                 {
                     splatWriter.Write(param.Hint);
                 }
@@ -327,6 +325,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 config.NewLineAfterHashtable.IsPresent,
                 config.AllParameters.IsPresent,
                 config.MandatoryParameters.IsPresent,
+                config.NoHints.IsPresent,
                 UI);
         }
 

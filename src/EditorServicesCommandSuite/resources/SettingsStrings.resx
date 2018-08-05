@@ -150,6 +150,9 @@
   <data name="CommandSplatRefactor_MandatoryParametersDescription" xml:space="preserve">
     <value>Specifies whether all (remaining) mandatory parameters should be retrieved and added to the splat expression. The default behavior is to only convert currently bound parameters to a splat expression. Setting this to $null will enforce the default behavior.</value>
   </data>
+  <data name="CommandSplatRefactor_NoHintsDescription" xml:space="preserve">
+    <value>Specifies whether hints (mandatoryness, type) about parameters should be retrieved and added to the splat expression. The default behavior is to show hints. Setting this to $null will enforce the default behavior.</value>
+  </data>
   <data name="UsingStatements_SeparateGroupsWithNewLineDescription" xml:space="preserve">
     <value>Specifies whether groups of using statement types should be separated with a new line character.</value>
   </data>
