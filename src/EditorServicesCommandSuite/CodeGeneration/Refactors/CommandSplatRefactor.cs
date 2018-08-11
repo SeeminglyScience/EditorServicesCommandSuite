@@ -152,7 +152,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             // 4. Get longest parametername [to be able to format all '=' signs]
             var equalSignAligner =
-                pList
+                pList.Select(p => p.Name.Length).Count() == 0
+                    ? 0
+                    : pList
                     .Select(p => p.Name.Length)
                     .Max();
 
