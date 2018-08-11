@@ -155,8 +155,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 pList.Select(p => p.Name.Length).Count() == 0
                     ? 0
                     : pList
-                    .Select(p => p.Name.Length)
-                    .Max();
+                        .Select(p => p.Name.Length)
+                        .Max();
 
             // 5. Sort
             IEnumerable<Parameter> sorted;
@@ -248,12 +248,12 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 if (ui != null)
                 {
                     await ui.ShowWarningMessageAsync(
-                    string.Format(
-                        CultureInfo.CurrentCulture,
-                        CommandSplatStrings.CouldNotResolvePositionalArgument,
-                        bindingException.Value.CommandElement.Extent.Text),
-                    waitForResponse: false);
-            }
+                        string.Format(
+                            CultureInfo.CurrentCulture,
+                            CommandSplatStrings.CouldNotResolvePositionalArgument,
+                            bindingException.Value.CommandElement.Extent.Text),
+                        waitForResponse: false);
+                }
                 else
                 {
                     // Write console warning?
