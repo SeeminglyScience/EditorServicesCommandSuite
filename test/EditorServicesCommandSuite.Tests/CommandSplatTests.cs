@@ -292,10 +292,18 @@ namespace EditorServicesCommandSuite.Tests
         [Fact]
         public async void AllParameters_HandlesNoParameters_GivenUnresolvableParameter()
         {
-            // Test single parameterset CmdLet, with no parameters other than the Common parameters, with an invalid parameter. Should do ... what?
+            // Test single parameterset CmdLet, with no parameters other than the Common parameters, with an invalid parameter.
+            var sb = new StringBuilder();
+            sb
+                .Append("$splat = @{\n")
+                .Append("\n")
+                .Append("}\n")
+                .Append("Get-Host @splat -ThisIsAnInvalidParameter");
+
+            sb.Replace("\n    ","\n\t");
 
             Assert.Equal(
-                "Get-Host -ThisIsAnInvalidParameter",
+                sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Get-Host -ThisIsAnInvalidParameter 'somevalue'",
                     "splat",
