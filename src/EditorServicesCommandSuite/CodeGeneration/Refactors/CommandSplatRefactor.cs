@@ -243,12 +243,19 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 elementsWriter.Write(Symbols.Space);
                 elementsWriter.Write(bindingException.Value.CommandElement.Extent.Text);
 
-                await ui?.ShowWarningMessageAsync(
+                if (ui != null)
+                {
+                    await ui.ShowWarningMessageAsync(
                     string.Format(
                         CultureInfo.CurrentCulture,
                         CommandSplatStrings.CouldNotResolvePositionalArgument,
                         bindingException.Value.CommandElement.Extent.Text),
                     waitForResponse: false);
+            }
+                else
+                {
+                    // Write console warning?
+                }
             }
 
             splatWriter.CloseHashtable();
