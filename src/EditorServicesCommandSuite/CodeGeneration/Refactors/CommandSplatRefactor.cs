@@ -40,6 +40,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             bool allParameters,
             bool mandatoryParameters,
             bool noHints,
+            EngineIntrinsics executionContext,
             IRefactorUI ui = null)
         {
             /*
@@ -90,10 +91,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             // 2. Resolve parameterset, [to be able to determine if a param is mandatory]
             var cmdName = commandAst.CommandElements[0].Extent.Text;
 
-            var cmdInfo =
-                CommandSuite
-                    .Instance
-                    .ExecutionContext
+            var cmdInfo = executionContext
                     .InvokeCommand
                     .GetCommand(cmdName, CommandTypes.All);
 
@@ -318,6 +316,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             var splatVariable = string.IsNullOrWhiteSpace(config.VariableName)
                 ? GetSplatVariableName(ast.CommandElements.First())
                 : config.VariableName;
+            var executionContext =
+                CommandSuite
+                    .Instance
+                    .ExecutionContext;
 
             return await GetEdits(
                 splatVariable,
@@ -326,6 +328,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 config.AllParameters.IsPresent,
                 config.MandatoryParameters.IsPresent,
                 config.NoHints.IsPresent,
+                executionContext,
                 UI);
         }
 
