@@ -103,7 +103,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 .Where(p => parameterSetName == p.Name)
                 .SelectMany(p => p.Parameters);
 
-            List<Parameter> pList = new List<Parameter>();
+            List<Parameter> parameterList = new List<Parameter>();
 
             foreach (var param in parameterInfo)
             {
@@ -141,7 +141,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 // Always add parameter if it was bound.
                 if (boundParameterValue != null || add)
                 {
-                    pList.Add(
+                    parameterList.Add(
                         new Parameter(
                             param.Name,
                             boundParameterValue,
@@ -152,9 +152,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             // 4. Get longest parametername [to be able to format all '=' signs]
             var equalSignAligner =
-                pList.Select(p => p.Name.Length).Count() == 0
+                parameterList.Select(p => p.Name.Length).Count() == 0
                     ? 0
-                    : pList
+                    : parameterList
                         .Select(p => p.Name.Length)
                         .Max();
 
@@ -169,19 +169,19 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             // Bound parameters first, rest in order of appearance
             sorted =
-                from element in pList
+                from element in parameterList
                 orderby element.Value != null
                 select element;
 
             // Alphabetical:
             sorted =
-                from element in pList
+                from element in parameterList
                 orderby element.Name
                 select element;
 
             // Alphabetical, with Mandatory parameters first:
             sorted =
-                from element in pList
+                from element in parameterList
                 orderby element.IsMandatory, element.Name
                 select element;
 
@@ -209,7 +209,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             elementsWriter.WriteVariable(variableName, isSplat: true);
 
             var first = true;
-            foreach (var param in pList)
+            foreach (var param in parameterList)
             {
                 if (param.Name.All(c => char.IsDigit(c)))
                 {
