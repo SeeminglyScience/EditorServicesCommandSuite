@@ -97,12 +97,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
                 if (boundParameters.BoundParameters.ContainsKey(param.Name))
                 {
-                    boundParameterValue =
-                        boundParameters
-                            .BoundParameters
-                            .Where(p => param.Name == p.Key)
-                            .FirstOrDefault()
-                            .Value;
+                    boundParameters.BoundParameters.TryGetValue(
+                        param.Name,
+                        out boundParameterValue);
                 }
 
                 if (boundParameterValue != null || shouldAdd)
