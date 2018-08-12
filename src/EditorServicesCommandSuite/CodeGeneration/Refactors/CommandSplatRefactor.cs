@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -202,7 +203,36 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return splatWriter.Edits.Concat(elementsWriter.Edits);
         }
 
-        internal static string ResolveParameterSet(
+        internal override bool CanRefactorTarget(DocumentContextBase request, CommandAst ast)
+        {
+            return
+                ast.CommandElements.Count > 1 &&
+                !ast.CommandElements.Any(
+                    element =>
+                        element is VariableExpressionAst variable
+                        && variable.Splatted);
+        }
+
+        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request, CommandAst ast)
+        {
+            var config = request.GetConfiguration<CommandSplatRefactorSettings>();
+            var splatVariable = string.IsNullOrWhiteSpace(config.VariableName)
+                ? GetSplatVariableName(ast.CommandElements.First())
+                : config.VariableName;
+            var executionContext = CommandSuite.Instance.ExecutionContext;
+
+            return await GetEdits(
+                splatVariable,
+                ast,
+                config.NewLineAfterHashtable.IsPresent,
+                config.AllParameters.IsPresent,
+                config.MandatoryParameters.IsPresent,
+                config.NoHints.IsPresent,
+                executionContext,
+                UI);
+        }
+
+        private static string ResolveParameterSet(
             StaticBindingResult paramBinder,
             CommandInfo commandInfo)
         {
@@ -235,38 +265,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             }
 
             return matchedParameterSet.FirstOrDefault();
-        }
-
-        internal override bool CanRefactorTarget(DocumentContextBase request, CommandAst ast)
-        {
-            return
-                ast.CommandElements.Count > 1 &&
-                !ast.CommandElements.Any(
-                    element =>
-                        element is VariableExpressionAst variable
-                        && variable.Splatted);
-        }
-
-        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request, CommandAst ast)
-        {
-            var config = request.GetConfiguration<CommandSplatRefactorSettings>();
-            var splatVariable = string.IsNullOrWhiteSpace(config.VariableName)
-                ? GetSplatVariableName(ast.CommandElements.First())
-                : config.VariableName;
-            var executionContext =
-                CommandSuite
-                    .Instance
-                    .ExecutionContext;
-
-            return await GetEdits(
-                splatVariable,
-                ast,
-                config.NewLineAfterHashtable.IsPresent,
-                config.AllParameters.IsPresent,
-                config.MandatoryParameters.IsPresent,
-                config.NoHints.IsPresent,
-                executionContext,
-                UI);
         }
 
         private string GetSplatVariableName(CommandElementAst element)

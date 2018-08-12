@@ -102,10 +102,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Send-MailMessage",
                     "splat",
-                    false,
-                    true,
-                    false,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: true,
+                    mandatoryParameters: false,
+                    noHints: false));
         }
 
         [Fact]
@@ -140,10 +140,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Send-MailMessage -From 'someone@someplace.com'",
                     "splat",
-                    false,
-                    true,
-                    false,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: true,
+                    mandatoryParameters: false,
+                    noHints: false));
         }
 
         [Fact]
@@ -165,10 +165,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Get-FileHash",
                     "splat",
-                    false,
-                    true,
-                    false,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: true,
+                    mandatoryParameters: false,
+                    noHints: false));
         }
 
         [Fact]
@@ -196,10 +196,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Get-ChildItem -Name",
                     "splat",
-                    false,
-                    true,
-                    false,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: true,
+                    mandatoryParameters: false,
+                    noHints: false));
         }
 
         [Fact]
@@ -223,10 +223,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "mkdir -Path 'c:\\test\\test'",
                     "splat",
-                    false,
-                    true,
-                    false,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: true,
+                    mandatoryParameters: false,
+                    noHints: false));
         }
 
         [Fact]
@@ -251,10 +251,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "mkdir -Name 'somename'",
                     "splat",
-                    false,
-                    true,
-                    false,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: true,
+                    mandatoryParameters: false,
+                    noHints: false));
         }
 
 
@@ -277,16 +277,12 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Measure-Command -ThisIsAnInvalidParameter 'somevalue'",
                     "splat",
-                    false,
-                    true,
-                    false,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: true,
+                    mandatoryParameters: false,
+                    noHints: false));
 
-            /*
-             A warning should also be displayed. This is harder to test.
-             TODO: find out how this works: http://www.blackwasp.co.uk/MoqTimes.aspx
-             Mock<IRefactorUI> ui;
-            */
+            // A warning should also be displayed. This is not tested here.
         }
 
         [Fact]
@@ -307,25 +303,25 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Get-Host -ThisIsAnInvalidParameter 'somevalue'",
                     "splat",
-                    false,
-                    true,
-                    false,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: true,
+                    mandatoryParameters: false,
+                    noHints: false));
         }
 
         [Fact]
         public async void AllParameters_HandlesParameterSet_AmbiguousParameterSet()
         {
             // Multi-parameterset-Cmdlet, given parameters from two seperate sets, should result in an ambigous parameterset exception.
-            await Assert.ThrowsAsync<ParameterBindingException>(
+            await Assert.ThrowsAsync<PSInvalidOperationException>(
                 () =>
                     GetRefactoredTextAsync(
                         "Get-FileHash -LiteralPath 'c:\\test\\test' -Path 'c:\\test\\test'",
                         "splat",
-                        false,
-                        true,
-                        false,
-                        false));
+                        newLineAfterHashtable: false,
+                        allParameters: true,
+                        mandatoryParameters: false,
+                        noHints: false));
         }
 
         #endregion // AllParameters
@@ -352,10 +348,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Send-MailMessage",
                     "splat",
-                    false,
-                    false,
-                    true,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: false,
+                    mandatoryParameters: true,
+                    noHints: false));
         }
 
         [Fact]
@@ -378,10 +374,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Send-MailMessage -From 'someone@someplace.com'",
                     "splat",
-                    false,
-                    false,
-                    true,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: false,
+                    mandatoryParameters: true,
+                    noHints: false));
         }
 
         [Fact]
@@ -402,10 +398,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Get-FileHash",
                     "splat",
-                    false,
-                    false,
-                    true,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: false,
+                    mandatoryParameters: true,
+                    noHints: false));
         }
 
         [Fact]
@@ -426,10 +422,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Get-ChildItem -Name",
                     "splat",
-                    false,
-                    false,
-                    true,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: false,
+                    mandatoryParameters: true,
+                    noHints: false));
         }
 
         [Fact]
@@ -450,10 +446,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "mkdir -Path 'c:\\test\\test'",
                     "splat",
-                    false,
-                    false,
-                    true,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: false,
+                    mandatoryParameters: true,
+                    noHints: false));
         }
 
         [Fact]
@@ -474,10 +470,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "mkdir -Name 'somename'",
                     "splat",
-                    false,
-                    false,
-                    true,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: false,
+                    mandatoryParameters: true,
+                    noHints: false));
         }
 
 
@@ -499,10 +495,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Measure-Command -ThisIsAnInvalidParameter 'somevalue'",
                     "splat",
-                    false,
-                    false,
-                    true,
-                    false));
+                    newLineAfterHashtable: false,
+                    allParameters: false,
+                    mandatoryParameters: true,
+                    noHints: false));
 
             /*
              A warning should also be displayed. This is harder to test.
@@ -515,15 +511,16 @@ namespace EditorServicesCommandSuite.Tests
 
         #region NoHints
 
+        [Fact]
         public async void NoHints_HandlesParameterSet_OneParamSet()
         {
             // Single parameteterset-CmdLet.
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    From                       = \n")
-                .Append("    Subject                    = \n")
-                .Append("    To                         = \n")
+                .Append("    From    = \n")
+                .Append("    Subject = \n")
+                .Append("    To      = \n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -534,10 +531,10 @@ namespace EditorServicesCommandSuite.Tests
                 await GetRefactoredTextAsync(
                     "Send-MailMessage",
                     "splat",
-                    false,
-                    true,
-                    false,
-                    true));
+                    newLineAfterHashtable: false,
+                    allParameters: false,
+                    mandatoryParameters: true,
+                    noHints: true));
         }
 
         #endregion //NoHints

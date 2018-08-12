@@ -24,7 +24,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 .Append(mandatoryMarkerOrSpace)
                 .Append(Symbols.Space)
                 .Append(Symbols.SquareOpen)
-                .Append(parameterType)
+                .Append(parameterType.Name)
                 .Append(Symbols.SquareClose);
 
             Hint = sb.ToString();
@@ -33,12 +33,12 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             IsMandatory = isMandatory;
         }
 
-        public string Name {get;}
+        public string Name { get; }
 
-        public ParameterBindingResult Value {get;}
+        public ParameterBindingResult Value { get; }
 
-        public bool IsMandatory {get;}
+        public bool IsMandatory { get; }
 
-        public string Hint {get;}
+        public string Hint { get; }
     }
 }
