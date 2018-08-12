@@ -43,62 +43,37 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             EngineIntrinsics executionContext,
             IRefactorUI ui = null)
         {
-            /*
-            High level design
-                1. Get parameters from Ast, resolve (positional, partial) parameters with StaticParameterBinder.
-                2. Resolve parameterset, [to be able to determine if a param is mandatory]
-                3. Gather relevant parameter data: name, value, isMandatory, type
-                    3a. (optional) add other parameters from CommandInfo + parameter set name. name, value, isMandatory, type
-                    3b. (optional) filter out non-mandatory params
-                4. Get longest parametername [to be able to format all '=' signs]
-                5. Sort // do we want a certain order?
-                6. Write parameters, values (if present), and (optional) type hint
-                    //  --> Parameter class moet iets van een ToWriteAssignment ofzo krijgen zie class Write, en class PowerShellScriptWriter.
-                    // naast 'internal void WriteHashtableEntry(string key, Action valueWriter)' moet er ook een komen met uitgelijnde '='.
-                7. Display parameter binding errors
-
-            */
-
-            // 1. Get parameters from Ast, resolve (positional, partial) parameters with StaticParameterBinder.
             var parentStatement = commandAst.FindParent<StatementAst>();
+            var commandName = commandAst.GetCommandName();
             var elements = commandAst.CommandElements.Skip(1);
-
             var elementsExtent = elements.JoinExtents();
-            var boundParameters = StaticParameterBinder.BindCommand(commandAst, true);
-            if (
-                boundParameters.BindingExceptions.Count() > 0 &&
-                boundParameters.BindingExceptions
-                    .ToArray()
-                    .First()
-                    .Value
-                    .BindingException
-                    .ErrorId == "AmbiguousParameterSet")
+            var boundParameters = StaticParameterBinder.BindCommand(commandAst, resolve: true);
+
+            if (boundParameters.BindingExceptions.TryGetValue(commandName, out StaticBindingError globalError) &&
+                globalError.BindingException.ErrorId.Equals("AmbiguousParameterSet", StringComparison.Ordinal))
             {
-                throw boundParameters.BindingExceptions
-                    .ToArray()
-                    .First()
-                    .Value
-                    .BindingException;
+                if (ui != null)
+                {
+                    await ui.ShowErrorMessageAsync(globalError.BindingException.Message);
+                    return Enumerable.Empty<DocumentEdit>();
+                }
+
+                throw new PSInvalidOperationException(globalError.BindingException.Message, globalError.BindingException);
             }
 
-            if (
-                !boundParameters.BoundParameters.Any() &&
+            if (boundParameters.BoundParameters.Count == 0 &&
                 !(allParameters || mandatoryParameters))
             {
                 return Enumerable.Empty<DocumentEdit>();
             }
 
-            // 2. Resolve parameterset, [to be able to determine if a param is mandatory]
-            var cmdName = commandAst.CommandElements[0].Extent.Text;
-
-            var cmdInfo = executionContext
+            var commandInfo = executionContext
                     .InvokeCommand
-                    .GetCommand(cmdName, CommandTypes.All);
+                    .GetCommand(commandName, CommandTypes.All);
 
-            var parameterSetName = ResolveParameterSet(boundParameters, cmdInfo);
+            var parameterSetName = ResolveParameterSet(boundParameters, commandInfo);
 
-            // 3. Gather relevant parameter data: name, value, isMandatory, type
-            var parameterInfo = cmdInfo
+            var parameterInfo = commandInfo
                 .ParameterSets
                 .Where(p => parameterSetName == p.Name)
                 .SelectMany(p => p.Parameters);
@@ -107,25 +82,22 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             foreach (var param in parameterInfo)
             {
-                // 3a. (optional) add other parameters from CommandInfo + parameter set name. name, value, isMandatory, type
-                // 3b. (optional) filter out non-mandatory params
-                var add = false;
+                var shouldAdd = false;
                 ParameterBindingResult boundParameterValue = null;
 
                 if (allParameters)
                 {
-                    add = true;
+                    shouldAdd = true;
                 }
 
                 if (mandatoryParameters && param.IsMandatory)
                 {
-                    add = true;
+                    shouldAdd = true;
                 }
 
-                // Omit common parameters and optional common parameters
                 if (Cmdlet.CommonParameters.Contains(param.Name) || Cmdlet.OptionalCommonParameters.Contains(param.Name))
                 {
-                    add = false;
+                    shouldAdd = false;
                 }
 
                 if (boundParameters.BoundParameters.ContainsKey(param.Name))
@@ -138,8 +110,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                             .Value;
                 }
 
-                // Always add parameter if it was bound.
-                if (boundParameterValue != null || add)
+                if (boundParameterValue != null || shouldAdd)
                 {
                     parameterList.Add(
                         new Parameter(
@@ -150,7 +121,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 }
             }
 
-            // 4. Get longest parametername [to be able to format all '=' signs]
             var equalSignAligner =
                 parameterList.Select(p => p.Name.Length).Count() == 0
                     ? 0
@@ -158,36 +128,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                         .Select(p => p.Name.Length)
                         .Max();
 
-            // 5. Sort
-            IEnumerable<Parameter> sorted;
-            /*
-            Do we want a certain order?
-            No additional sorting will have params appear in the order provided by CommandInfo. The previous implementation had all bound
-            parameters first, in order as typed, and, if (allParameters || matchedParameters), the rest of them in order of appearance in CommandInfo.
-            These are thought experiments on what kind of sorting could be usefull, the 'sorted' variable is dereferenced and never used.
-            */
-
-            // Bound parameters first, rest in order of appearance
-            sorted =
-                from element in parameterList
-                orderby element.Value != null
-                select element;
-
-            // Alphabetical:
-            sorted =
-                from element in parameterList
-                orderby element.Name
-                select element;
-
-            // Alphabetical, with Mandatory parameters first:
-            sorted =
-                from element in parameterList
-                orderby element.IsMandatory, element.Name
-                select element;
-
-            sorted = null;
-
-            // 6. Write parameters, values (if present), and (optional) type hint
             var splatWriter = new PowerShellScriptWriter(commandAst);
             var elementsWriter = new PowerShellScriptWriter(commandAst);
 
@@ -198,7 +138,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             if (elementsExtent is EmptyExtent)
             {
-                elementsWriter.SetPosition(parentStatement, true);
+                elementsWriter.SetPosition(parentStatement, atEnd: true);
                 elementsWriter.Write(Symbols.Space);
             }
             else
@@ -239,12 +179,12 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 }
             }
 
-            // 7. Display parameter binding errors
             foreach (var bindingException in boundParameters.BindingExceptions)
             {
                 elementsWriter.Write(Symbols.Space);
                 elementsWriter.Write(bindingException.Value.CommandElement.Extent.Text);
 
+                // The ui?.ShowWarningMessageAsync() pattern does not work during testing. Await does not seem to like null.
                 if (ui != null)
                 {
                     await ui.ShowWarningMessageAsync(
@@ -253,10 +193,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                             CommandSplatStrings.CouldNotResolvePositionalArgument,
                             bindingException.Value.CommandElement.Extent.Text),
                         waitForResponse: false);
-                }
-                else
-                {
-                    // Write console warning?
                 }
             }
 
