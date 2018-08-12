@@ -13,11 +13,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
     [RefactorConfiguration(typeof(CommandSplatRefactorSettings))]
     internal class CommandSplatRefactor : AstRefactorProvider<CommandAst>
     {
-        /// <summary>
-        /// The automatic name of the parameter set when no other sets are defined: "__AllParameterSets".
-        /// Also the set in which mutual parameters fall when more than one set is defined.
-        /// </summary>
-        private const string AutomaticSingleParameterSetName = "__AllParameterSets";
         private const string DefaultSplatVariable = "splat";
 
         private const string SplatVariableSuffix = "Splat";
@@ -216,7 +211,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         {
             IEnumerable<string> matchedParameterSet = new List<string>()
             {
-                AutomaticSingleParameterSetName,
+                ParameterAttribute.AllParameterSets,
             };
 
             if (commandInfo.ParameterSets.Count > 1)
@@ -226,7 +221,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     commandInfo
                         .Parameters
                         .Values
-                        .Where(p => !p.ParameterSets.ContainsKey(AutomaticSingleParameterSetName));
+                        .Where(p => !p.ParameterSets.ContainsKey(ParameterAttribute.AllParameterSets));
 
                 // Try and match against one single parameterset
                 // This wil return null if certain parameters are in more than one parameterset, or if none of the specificParams where bound.
