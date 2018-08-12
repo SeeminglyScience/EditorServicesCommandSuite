@@ -557,18 +557,18 @@ namespace EditorServicesCommandSuite.Tests
                 var oldRunspace = Runspace.DefaultRunspace;
                 Runspace.DefaultRunspace = runspace;
                 try
-        {
+                {
                     EngineIntrinsics executionContext =
                         (EngineIntrinsics)runspace
                             .SessionStateProxy
                             .GetVariable("ExecutionContext");
 
-            return await MockContext.GetRefactoredTextAsync(
-                testString,
-                context => CommandSplatRefactor.GetEdits(
-                    variableName,
-                    context.Ast.FindParent<CommandAst>(),
-                    newLineAfterHashtable,
+                    return await MockContext.GetRefactoredTextAsync(
+                        testString,
+                        context => CommandSplatRefactor.GetEdits(
+                            variableName,
+                            context.Ast.FindParent<CommandAst>(),
+                            newLineAfterHashtable,
                             allParameters,
                             mandatoryParameters,
                             noHints,
