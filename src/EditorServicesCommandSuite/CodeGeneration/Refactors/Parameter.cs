@@ -8,37 +8,14 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     internal class Parameter
     {
-        private string _name;
-
-        private ParameterBindingResult _value;
-
-        private bool _isMandatory;
-
-        private string _parameterType;
-
-        private string _hint;
-
         internal Parameter(
             string name,
             ParameterBindingResult value,
             bool isMandatory,
             Type parameterType)
         {
-            this._name = name;
-            this._value = value;
-            this._isMandatory = isMandatory;
-            this._parameterType = parameterType.Name;
-            char mandatoryMarkerOrSpace;
+            char mandatoryMarkerOrSpace = isMandatory ? Symbols.Asterisk : Symbols.Space;
             var sb = new StringBuilder();
-
-            if (this.IsMandatory)
-            {
-                mandatoryMarkerOrSpace = Symbols.Asterisk;
-            }
-            else
-            {
-                mandatoryMarkerOrSpace = Symbols.Space;
-            }
 
             sb
                 .Append(Symbols.Space, 2)
@@ -47,42 +24,21 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 .Append(mandatoryMarkerOrSpace)
                 .Append(Symbols.Space)
                 .Append(Symbols.SquareOpen)
-                .Append(this._parameterType)
+                .Append(parameterType)
                 .Append(Symbols.SquareClose);
 
-            this._hint = sb.ToString();
+            Hint = sb.ToString();
+            Name = name;
+            Value = value;
+            IsMandatory = isMandatory;
         }
 
-        public string Name
-        {
-            get
-            {
-                return _name;
-            }
-        }
+        public string Name {get;}
 
-        public ParameterBindingResult Value
-        {
-            get
-            {
-                return _value;
-            }
-        }
+        public ParameterBindingResult Value {get;}
 
-        public bool IsMandatory
-        {
-            get
-            {
-                return _isMandatory;
-            }
-        }
+        public bool IsMandatory {get;}
 
-        public string Hint
-        {
-            get
-            {
-                return _hint;
-            }
-        }
+        public string Hint {get;}
     }
 }
