@@ -69,10 +69,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             var parameterSetName = ResolveParameterSet(boundParameters, commandInfo);
 
-            var parameterInfo = commandInfo
-                .ParameterSets
-                .Where(p => parameterSetName == p.Name)
-                .SelectMany(p => p.Parameters);
+            var parameterInfo = commandInfo.ParameterSets
+                .FirstOrDefault(set => set.Name.Equals(parameterSetName, StringComparison.Ordinal))
+                ?.Parameters;
 
             List<Parameter> parameterList = new List<Parameter>();
 
