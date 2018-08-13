@@ -236,35 +236,31 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             StaticBindingResult paramBinder,
             CommandInfo commandInfo)
         {
-            IEnumerable<string> matchedParameterSet = new List<string>()
+            if (commandInfo.ParameterSets.Count == 1)
             {
-                ParameterAttribute.AllParameterSets,
-            };
+                return commandInfo.ParameterSets[0].Name;
+            }
 
-            if (commandInfo.ParameterSets.Count > 1)
+            foreach (CommandParameterSetInfo parameterSet in commandInfo.ParameterSets)
             {
-                // Identify parameters that are specific to (a) certain parameterset(s)
-                IEnumerable<ParameterMetadata> specificParams =
-                    commandInfo
-                        .Parameters
-                        .Values
-                        .Where(p => !p.ParameterSets.ContainsKey(ParameterAttribute.AllParameterSets));
-
-                // Try and match against one single parameterset
-                // This wil return null if certain parameters are in more than one parameterset, or if none of the specificParams where bound.
-                matchedParameterSet =
-                    specificParams
-                        .Where(p => paramBinder.BoundParameters.ContainsKey(p.Name) && p.ParameterSets.Count == 1)
-                        .Select(p => p.ParameterSets.Keys.ToArray().First());
-
-                // If matching a single parameterset failed, return only default parameterset
-                if (matchedParameterSet.Count() == 0)
+                var currentSetParameterNames = new HashSet<string>(parameterSet.Parameters.Select(p => p.Name));
+                var isMatch = true;
+                foreach (string parameterName in paramBinder.BoundParameters.Keys)
                 {
-                    matchedParameterSet = commandInfo.ParameterSets.Where(p => p.IsDefault).Select(n => n.Name);
+                    if (!currentSetParameterNames.Contains(parameterName))
+                    {
+                        isMatch = false;
+                        break;
+                    }
+                }
+
+                if (isMatch)
+                {
+                    return parameterSet.Name;
                 }
             }
 
-            return matchedParameterSet.FirstOrDefault();
+            return ParameterAttribute.AllParameterSets;
         }
 
         private string GetSplatVariableName(CommandElementAst element)
