@@ -77,21 +77,21 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Attachments                =   #   [String[]]\n")
-                .Append("    Bcc                        =   #   [String[]]\n")
-                .Append("    Body                       =   #   [String]\n")
-                .Append("    BodyAsHtml                 =   #   [SwitchParameter]\n")
-                .Append("    Encoding                   =   #   [Encoding]\n")
-                .Append("    Cc                         =   #   [String[]]\n")
+                .Append("    Attachments =   #   [String[]]\n")
+                .Append("    Bcc =   #   [String[]]\n")
+                .Append("    Body =   #   [String]\n")
+                .Append("    BodyAsHtml =   #   [SwitchParameter]\n")
+                .Append("    Encoding =   #   [Encoding]\n")
+                .Append("    Cc =   #   [String[]]\n")
                 .Append("    DeliveryNotificationOption =   #   [DeliveryNotificationOptions]\n")
-                .Append("    From                       =   # * [String]\n")
-                .Append("    SmtpServer                 =   #   [String]\n")
-                .Append("    Priority                   =   #   [MailPriority]\n")
-                .Append("    Subject                    =   # * [String]\n")
-                .Append("    To                         =   # * [String[]]\n")
-                .Append("    Credential                 =   #   [PSCredential]\n")
-                .Append("    UseSsl                     =   #   [SwitchParameter]\n")
-                .Append("    Port                       =   #   [Int32]\n")
+                .Append("    From =   # * [String]\n")
+                .Append("    SmtpServer =   #   [String]\n")
+                .Append("    Priority =   #   [MailPriority]\n")
+                .Append("    Subject =   # * [String]\n")
+                .Append("    To =   # * [String[]]\n")
+                .Append("    Credential =   #   [PSCredential]\n")
+                .Append("    UseSsl =   #   [SwitchParameter]\n")
+                .Append("    Port =   #   [Int32]\n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -115,21 +115,21 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Attachments                =   #   [String[]]\n")
-                .Append("    Bcc                        =   #   [String[]]\n")
-                .Append("    Body                       =   #   [String]\n")
-                .Append("    BodyAsHtml                 =   #   [SwitchParameter]\n")
-                .Append("    Encoding                   =   #   [Encoding]\n")
-                .Append("    Cc                         =   #   [String[]]\n")
+                .Append("    Attachments =   #   [String[]]\n")
+                .Append("    Bcc =   #   [String[]]\n")
+                .Append("    Body =   #   [String]\n")
+                .Append("    BodyAsHtml =   #   [SwitchParameter]\n")
+                .Append("    Encoding =   #   [Encoding]\n")
+                .Append("    Cc =   #   [String[]]\n")
                 .Append("    DeliveryNotificationOption =   #   [DeliveryNotificationOptions]\n")
-                .Append("    From                       = 'someone@someplace.com'  # * [String]\n")
-                .Append("    SmtpServer                 =   #   [String]\n")
-                .Append("    Priority                   =   #   [MailPriority]\n")
-                .Append("    Subject                    =   # * [String]\n")
-                .Append("    To                         =   # * [String[]]\n")
-                .Append("    Credential                 =   #   [PSCredential]\n")
-                .Append("    UseSsl                     =   #   [SwitchParameter]\n")
-                .Append("    Port                       =   #   [Int32]\n")
+                .Append("    From = 'someone@someplace.com'  # * [String]\n")
+                .Append("    SmtpServer =   #   [String]\n")
+                .Append("    Priority =   #   [MailPriority]\n")
+                .Append("    Subject =   # * [String]\n")
+                .Append("    To =   # * [String[]]\n")
+                .Append("    Credential =   #   [PSCredential]\n")
+                .Append("    UseSsl =   #   [SwitchParameter]\n")
+                .Append("    Port =   #   [Int32]\n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -153,7 +153,7 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path      =   # * [String[]]\n")
+                .Append("    Path =   # * [String[]]\n")
                 .Append("    Algorithm =   #   [String]\n")
                 .Append("}\n")
                 .Append("Get-FileHash @splat");
@@ -178,14 +178,14 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path    =   #   [String[]]\n")
-                .Append("    Filter  =   #   [String]\n")
+                .Append("    Path =   #   [String[]]\n")
+                .Append("    Filter =   #   [String]\n")
                 .Append("    Include =   #   [String[]]\n")
                 .Append("    Exclude =   #   [String[]]\n")
                 .Append("    Recurse =   #   [SwitchParameter]\n")
-                .Append("    Depth   =   #   [UInt32]\n")
-                .Append("    Force   =   #   [SwitchParameter]\n")
-                .Append("    Name    = $true  #   [SwitchParameter]\n")
+                .Append("    Depth =   #   [UInt32]\n")
+                .Append("    Force =   #   [SwitchParameter]\n")
+                .Append("    Name = $true  #   [SwitchParameter]\n")
                 .Append("}\n")
                 .Append("Get-ChildItem @splat");
 
@@ -209,9 +209,9 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path       = 'c:\\test\\test'  # * [String[]]\n")
-                .Append("    Value      =   #   [Object]\n")
-                .Append("    Force      =   #   [SwitchParameter]\n")
+                .Append("    Path = 'c:\\test\\test'  # * [String[]]\n")
+                .Append("    Value =   #   [Object]\n")
+                .Append("    Force =   #   [SwitchParameter]\n")
                 .Append("    Credential =   #   [PSCredential]\n")
                 .Append("}\n")
                 .Append("mkdir @splat");
@@ -236,10 +236,10 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path       =   #   [String[]]\n")
-                .Append("    Name       = 'somename'  # * [String]\n")
-                .Append("    Value      =   #   [Object]\n")
-                .Append("    Force      =   #   [SwitchParameter]\n")
+                .Append("    Path =   #   [String[]]\n")
+                .Append("    Name = 'somename'  # * [String]\n")
+                .Append("    Value =   #   [Object]\n")
+                .Append("    Force =   #   [SwitchParameter]\n")
                 .Append("    Credential =   #   [PSCredential]\n")
                 .Append("}\n")
                 .Append("mkdir @splat");
@@ -266,7 +266,7 @@ namespace EditorServicesCommandSuite.Tests
             sb
                 .Append("$splat = @{\n")
                 .Append("    InputObject =   #   [PSObject]\n")
-                .Append("    Expression  =   # * [ScriptBlock]\n")
+                .Append("    Expression =   # * [ScriptBlock]\n")
                 .Append("}\n")
                 .Append("Measure-Command @splat -ThisIsAnInvalidParameter");
 
@@ -335,9 +335,9 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    From    =   # * [String]\n")
+                .Append("    From =   # * [String]\n")
                 .Append("    Subject =   # * [String]\n")
-                .Append("    To      =   # * [String[]]\n")
+                .Append("    To =   # * [String[]]\n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -361,9 +361,9 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    From    = 'someone@someplace.com'  # * [String]\n")
+                .Append("    From = 'someone@someplace.com'  # * [String]\n")
                 .Append("    Subject =   # * [String]\n")
-                .Append("    To      =   # * [String[]]\n")
+                .Append("    To =   # * [String[]]\n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -518,9 +518,9 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    From    = \n")
+                .Append("    From = \n")
                 .Append("    Subject = \n")
-                .Append("    To      = \n")
+                .Append("    To = \n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 

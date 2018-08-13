@@ -470,17 +470,6 @@ namespace EditorServicesCommandSuite.CodeGeneration
             valueWriter();
         }
 
-        internal void WriteHashtableEntry(string key, Action valueWriter, int aligner)
-        {
-            var sb = new StringBuilder(key);
-            sb.Append(
-                Symbols.Space,
-                aligner - key.Length);
-            this.WriteHashtableEntry(
-                sb.ToString(),
-                valueWriter);
-        }
-
         internal void WriteStringExpression(StringConstantType type, string value)
         {
             char quoteChar;

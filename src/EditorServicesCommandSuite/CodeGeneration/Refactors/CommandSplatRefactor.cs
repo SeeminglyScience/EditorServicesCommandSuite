@@ -114,13 +114,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 }
             }
 
-            var equalSignAligner =
-                parameterList.Select(p => p.Name.Length).Count() == 0
-                    ? 0
-                    : parameterList
-                        .Select(p => p.Name.Length)
-                        .Max();
-
             var splatWriter = new PowerShellScriptWriter(commandAst);
             var elementsWriter = new PowerShellScriptWriter(commandAst);
 
@@ -163,8 +156,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
                 splatWriter.WriteHashtableEntry(
                     param.Name,
-                    () => Write.AsExpressionValue(splatWriter, param.Value),
-                    equalSignAligner);
+                    () => Write.AsExpressionValue(splatWriter, param.Value));
 
                 if (!noHints)
                 {
