@@ -23,7 +23,7 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Recurse = $true  #   [SwitchParameter]\n")
+                .Append("    Recurse = $true\n")
                 .Append("}\n")
                 .Append("Get-ChildItem @splat");
 
@@ -40,7 +40,7 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path = './myPath'  #   [String[]]\n")
+                .Append("    Path = './myPath'\n")
                 .Append("}\n")
                 .Append("Get-ChildItem @splat");
 
@@ -57,7 +57,7 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path = \"./myPath$c\"  #   [String[]]\n")
+                .Append("    Path = \"./myPath$c\"\n")
                 .Append("}\n")
                 .Append("Get-ChildItem @splat");
 
@@ -77,21 +77,21 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Attachments =   #   [String[]]\n")
-                .Append("    Bcc =   #   [String[]]\n")
-                .Append("    Body =   #   [String]\n")
-                .Append("    BodyAsHtml =   #   [SwitchParameter]\n")
-                .Append("    Encoding =   #   [Encoding]\n")
-                .Append("    Cc =   #   [String[]]\n")
-                .Append("    DeliveryNotificationOption =   #   [DeliveryNotificationOptions]\n")
-                .Append("    From =   # * [String]\n")
-                .Append("    SmtpServer =   #   [String]\n")
-                .Append("    Priority =   #   [MailPriority]\n")
-                .Append("    Subject =   # * [String]\n")
-                .Append("    To =   # * [String[]]\n")
-                .Append("    Credential =   #   [PSCredential]\n")
-                .Append("    UseSsl =   #   [SwitchParameter]\n")
-                .Append("    Port =   #   [Int32]\n")
+                .Append("    Attachments = $stringArrayAttachments\n")
+                .Append("    Bcc = $stringArrayBcc\n")
+                .Append("    Body = $stringBody\n")
+                .Append("    BodyAsHtml = $switchParameterBodyAsHtml\n")
+                .Append("    Encoding = $encodingEncoding\n")
+                .Append("    Cc = $stringArrayCc\n")
+                .Append("    DeliveryNotificationOption = $deliveryNotificationOptionsDeliveryNotificationOption\n")
+                .Append("    From = $mandatoryStringFrom\n")
+                .Append("    SmtpServer = $stringSmtpServer\n")
+                .Append("    Priority = $mailPriorityPriority\n")
+                .Append("    Subject = $mandatoryStringSubject\n")
+                .Append("    To = $mandatoryStringArrayTo\n")
+                .Append("    Credential = $pSCredentialCredential\n")
+                .Append("    UseSsl = $switchParameterUseSsl\n")
+                .Append("    Port = $int32Port\n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -101,11 +101,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: true,
-                    mandatoryParameters: false,
-                    noHints: false));
+                    allParameters: true));
         }
 
         [Fact]
@@ -115,21 +111,21 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Attachments =   #   [String[]]\n")
-                .Append("    Bcc =   #   [String[]]\n")
-                .Append("    Body =   #   [String]\n")
-                .Append("    BodyAsHtml =   #   [SwitchParameter]\n")
-                .Append("    Encoding =   #   [Encoding]\n")
-                .Append("    Cc =   #   [String[]]\n")
-                .Append("    DeliveryNotificationOption =   #   [DeliveryNotificationOptions]\n")
-                .Append("    From = 'someone@someplace.com'  # * [String]\n")
-                .Append("    SmtpServer =   #   [String]\n")
-                .Append("    Priority =   #   [MailPriority]\n")
-                .Append("    Subject =   # * [String]\n")
-                .Append("    To =   # * [String[]]\n")
-                .Append("    Credential =   #   [PSCredential]\n")
-                .Append("    UseSsl =   #   [SwitchParameter]\n")
-                .Append("    Port =   #   [Int32]\n")
+                .Append("    Attachments = $stringArrayAttachments\n")
+                .Append("    Bcc = $stringArrayBcc\n")
+                .Append("    Body = $stringBody\n")
+                .Append("    BodyAsHtml = $switchParameterBodyAsHtml\n")
+                .Append("    Encoding = $encodingEncoding\n")
+                .Append("    Cc = $stringArrayCc\n")
+                .Append("    DeliveryNotificationOption = $deliveryNotificationOptionsDeliveryNotificationOption\n")
+                .Append("    From = 'someone@someplace.com'\n")
+                .Append("    SmtpServer = $stringSmtpServer\n")
+                .Append("    Priority = $mailPriorityPriority\n")
+                .Append("    Subject = $mandatoryStringSubject\n")
+                .Append("    To = $mandatoryStringArrayTo\n")
+                .Append("    Credential = $pSCredentialCredential\n")
+                .Append("    UseSsl = $switchParameterUseSsl\n")
+                .Append("    Port = $int32Port\n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -139,11 +135,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage -From 'someone@someplace.com'",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: true,
-                    mandatoryParameters: false,
-                    noHints: false));
+                    allParameters: true));
         }
 
         [Fact]
@@ -153,8 +145,8 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path =   # * [String[]]\n")
-                .Append("    Algorithm =   #   [String]\n")
+                .Append("    Path = $mandatoryStringArrayPath\n")
+                .Append("    Algorithm = $stringAlgorithm\n")
                 .Append("}\n")
                 .Append("Get-FileHash @splat");
 
@@ -164,11 +156,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Get-FileHash",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: true,
-                    mandatoryParameters: false,
-                    noHints: false));
+                    allParameters: true));
         }
 
         [Fact]
@@ -178,14 +166,14 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path =   #   [String[]]\n")
-                .Append("    Filter =   #   [String]\n")
-                .Append("    Include =   #   [String[]]\n")
-                .Append("    Exclude =   #   [String[]]\n")
-                .Append("    Recurse =   #   [SwitchParameter]\n")
-                .Append("    Depth =   #   [UInt32]\n")
-                .Append("    Force =   #   [SwitchParameter]\n")
-                .Append("    Name = $true  #   [SwitchParameter]\n")
+                .Append("    Path = $stringArrayPath\n")
+                .Append("    Filter = $stringFilter\n")
+                .Append("    Include = $stringArrayInclude\n")
+                .Append("    Exclude = $stringArrayExclude\n")
+                .Append("    Recurse = $switchParameterRecurse\n")
+                .Append("    Depth = $uInt32Depth\n")
+                .Append("    Force = $switchParameterForce\n")
+                .Append("    Name = $true\n")
                 .Append("}\n")
                 .Append("Get-ChildItem @splat");
 
@@ -195,11 +183,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Get-ChildItem -Name",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: true,
-                    mandatoryParameters: false,
-                    noHints: false));
+                    allParameters: true));
         }
 
         [Fact]
@@ -209,10 +193,10 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path = 'c:\\test\\test'  # * [String[]]\n")
-                .Append("    Value =   #   [Object]\n")
-                .Append("    Force =   #   [SwitchParameter]\n")
-                .Append("    Credential =   #   [PSCredential]\n")
+                .Append("    Path = 'c:\\test\\test'\n")
+                .Append("    Value = $objectValue\n")
+                .Append("    Force = $switchParameterForce\n")
+                .Append("    Credential = $pSCredentialCredential\n")
                 .Append("}\n")
                 .Append("mkdir @splat");
 
@@ -222,11 +206,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "mkdir -Path 'c:\\test\\test'",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: true,
-                    mandatoryParameters: false,
-                    noHints: false));
+                    allParameters: true));
         }
 
         [Fact]
@@ -236,11 +216,11 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path =   #   [String[]]\n")
-                .Append("    Name = 'somename'  # * [String]\n")
-                .Append("    Value =   #   [Object]\n")
-                .Append("    Force =   #   [SwitchParameter]\n")
-                .Append("    Credential =   #   [PSCredential]\n")
+                .Append("    Path = $stringArrayPath\n")
+                .Append("    Name = 'somename'\n")
+                .Append("    Value = $objectValue\n")
+                .Append("    Force = $switchParameterForce\n")
+                .Append("    Credential = $pSCredentialCredential\n")
                 .Append("}\n")
                 .Append("mkdir @splat");
 
@@ -250,11 +230,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "mkdir -Name 'somename'",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: true,
-                    mandatoryParameters: false,
-                    noHints: false));
+                    allParameters: true));
         }
 
 
@@ -265,8 +241,8 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    InputObject =   #   [PSObject]\n")
-                .Append("    Expression =   # * [ScriptBlock]\n")
+                .Append("    InputObject = $pSObjectInputObject\n")
+                .Append("    Expression = $mandatoryScriptBlockExpression\n")
                 .Append("}\n")
                 .Append("Measure-Command @splat -ThisIsAnInvalidParameter");
 
@@ -276,11 +252,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Measure-Command -ThisIsAnInvalidParameter 'somevalue'",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: true,
-                    mandatoryParameters: false,
-                    noHints: false));
+                    allParameters: true));
 
             // A warning should also be displayed. This is not tested here.
         }
@@ -302,11 +274,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Get-Host -ThisIsAnInvalidParameter 'somevalue'",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: true,
-                    mandatoryParameters: false,
-                    noHints: false));
+                    allParameters: true));
         }
 
         [Fact]
@@ -317,11 +285,7 @@ namespace EditorServicesCommandSuite.Tests
                 () =>
                     GetRefactoredTextAsync(
                         "Get-FileHash -LiteralPath 'c:\\test\\test' -Path 'c:\\test\\test'",
-                        "splat",
-                        newLineAfterHashtable: false,
-                        allParameters: true,
-                        mandatoryParameters: false,
-                        noHints: false));
+                        allParameters: true));
         }
 
         #endregion // AllParameters
@@ -335,9 +299,9 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    From =   # * [String]\n")
-                .Append("    Subject =   # * [String]\n")
-                .Append("    To =   # * [String[]]\n")
+                .Append("    From = $mandatoryStringFrom\n")
+                .Append("    Subject = $mandatoryStringSubject\n")
+                .Append("    To = $mandatoryStringArrayTo\n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -347,11 +311,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: false,
-                    mandatoryParameters: true,
-                    noHints: false));
+                    mandatoryParameters: true));
         }
 
         [Fact]
@@ -361,9 +321,9 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    From = 'someone@someplace.com'  # * [String]\n")
-                .Append("    Subject =   # * [String]\n")
-                .Append("    To =   # * [String[]]\n")
+                .Append("    From = 'someone@someplace.com'\n")
+                .Append("    Subject = $mandatoryStringSubject\n")
+                .Append("    To = $mandatoryStringArrayTo\n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -373,11 +333,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage -From 'someone@someplace.com'",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: false,
-                    mandatoryParameters: true,
-                    noHints: false));
+                    mandatoryParameters: true));
         }
 
         [Fact]
@@ -387,7 +343,7 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path =   # * [String[]]\n")
+                .Append("    Path = $mandatoryStringArrayPath\n")
                 .Append("}\n")
                 .Append("Get-FileHash @splat");
 
@@ -397,11 +353,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Get-FileHash",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: false,
-                    mandatoryParameters: true,
-                    noHints: false));
+                    mandatoryParameters: true));
         }
 
         [Fact]
@@ -411,7 +363,7 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Name = $true  #   [SwitchParameter]\n")
+                .Append("    Name = $true\n")
                 .Append("}\n")
                 .Append("Get-ChildItem @splat");
 
@@ -421,11 +373,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Get-ChildItem -Name",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: false,
-                    mandatoryParameters: true,
-                    noHints: false));
+                    mandatoryParameters: true));
         }
 
         [Fact]
@@ -435,7 +383,7 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Path = 'c:\\test\\test'  # * [String[]]\n")
+                .Append("    Path = 'c:\\test\\test'\n")
                 .Append("}\n")
                 .Append("mkdir @splat");
 
@@ -445,11 +393,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "mkdir -Path 'c:\\test\\test'",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: false,
-                    mandatoryParameters: true,
-                    noHints: false));
+                    mandatoryParameters: true));
         }
 
         [Fact]
@@ -459,7 +403,7 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Name = 'somename'  # * [String]\n")
+                .Append("    Name = 'somename'\n")
                 .Append("}\n")
                 .Append("mkdir @splat");
 
@@ -469,11 +413,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "mkdir -Name 'somename'",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: false,
-                    mandatoryParameters: true,
-                    noHints: false));
+                    mandatoryParameters: true));
         }
 
 
@@ -484,7 +424,7 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    Expression =   # * [ScriptBlock]\n")
+                .Append("    Expression = $mandatoryScriptBlockExpression\n")
                 .Append("}\n")
                 .Append("Measure-Command @splat -ThisIsAnInvalidParameter");
 
@@ -494,11 +434,7 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Measure-Command -ThisIsAnInvalidParameter 'somevalue'",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: false,
-                    mandatoryParameters: true,
-                    noHints: false));
+                    mandatoryParameters: true));
 
             /*
              A warning should also be displayed. This is harder to test.
@@ -518,9 +454,9 @@ namespace EditorServicesCommandSuite.Tests
             var sb = new StringBuilder();
             sb
                 .Append("$splat = @{\n")
-                .Append("    From = \n")
-                .Append("    Subject = \n")
-                .Append("    To = \n")
+                .Append("    From = $from\n")
+                .Append("    Subject = $subject\n")
+                .Append("    To = $to\n")
                 .Append("}\n")
                 .Append("Send-MailMessage @splat");
 
@@ -530,9 +466,6 @@ namespace EditorServicesCommandSuite.Tests
                 sb.ToString(),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage",
-                    "splat",
-                    newLineAfterHashtable: false,
-                    allParameters: false,
                     mandatoryParameters: true,
                     noHints: true));
         }
