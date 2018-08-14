@@ -155,12 +155,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
                 splatWriter.WriteHashtableEntry(
                     param.Name,
-                    () => Write.AsExpressionValue(splatWriter, param.Value));
-
-                if (!noHints)
-                {
-                    splatWriter.Write(param.Hint);
-                }
+                    () => splatWriter.WriteAsExpressionValue(param, noHints));
             }
 
             foreach (var bindingException in boundParameters.BindingExceptions)

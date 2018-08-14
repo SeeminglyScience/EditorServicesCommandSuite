@@ -590,6 +590,72 @@ namespace EditorServicesCommandSuite.CodeGeneration
             Write(ParenClose);
         }
 
+        internal void WriteAsExpressionValue(Parameter param, bool shouldNotWriteHints)
+        {
+            if (param.Value == null)
+            {
+                if (shouldNotWriteHints)
+                {
+                    WriteVariable(param.Name, shouldFirstCharBeLowerCase: true);
+                }
+                else
+                {
+                    Write(Dollar);
+
+                    if (param.IsMandatory)
+                    {
+                        Write("mandatory");
+                        Write(param.Type.Name.Replace("[]", "Array"));
+                    }
+                    else
+                    {
+                        WriteFirstCharLowerCase(param.Type.Name.Replace("[]", "Array"));
+                    }
+
+                    Write(param.Name);
+                }
+
+                return;
+            }
+
+            if (param.Value.ConstantValue is bool boolean)
+            {
+                Write(Dollar + boolean.ToString().ToLower());
+                return;
+            }
+
+            if (param.Value.Value is StringConstantExpressionAst ||
+                param.Value.Value is ExpandableStringExpressionAst)
+            {
+                dynamic stringExpression = param.Value.Value;
+                if (stringExpression.StringConstantType != StringConstantType.BareWord)
+                {
+                    Write(param.Value.Value.Extent.Text);
+                    return;
+                }
+
+                if (param.Value.Value is StringConstantExpressionAst constant)
+                {
+                    WriteStringExpression(
+                        StringConstantType.SingleQuoted,
+                        constant.Value);
+                    return;
+                }
+
+                WriteStringExpression(
+                    StringConstantType.DoubleQuoted,
+                    param.Value.Value.Extent.Text);
+                return;
+            }
+
+            WriteEachWithSeparator(
+                param.Value.Value.Extent.Text.Split(
+                    new[] { this.NewLine },
+                    StringSplitOptions.None),
+                line => Write(line),
+                () => WriteLine());
+        }
+
         internal void WriteAttributeStatement(PSTypeName typeName)
         {
             OpenAttributeStatement(typeName);
