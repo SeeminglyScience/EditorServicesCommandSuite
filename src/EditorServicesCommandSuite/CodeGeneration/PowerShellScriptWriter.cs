@@ -154,6 +154,13 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         public override void Write(params char[] buffer) => base.Write(buffer);
 
+        public void WriteFirstCharLowerCase(string value)
+        {
+            var chars = value.ToCharArray();
+            Write(char.ToLower(chars[0]));
+            Write(chars, 1, chars.Count() - 1);
+        }
+
         public override void StartWriting(int startOffset, int endOffset)
         {
             SetPosition(startOffset);
@@ -279,7 +286,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             lhs();
         }
 
-        internal void WriteVariable(string variableName, bool isSplat = false)
+        internal void WriteVariable(string variableName, bool isSplat = false, bool shouldFirstCharBeLowerCase = false)
         {
             if (isSplat)
             {
@@ -296,7 +303,14 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 Write(CurlyOpen);
             }
 
-            Write(variableName);
+            if (shouldFirstCharBeLowerCase)
+            {
+                WriteFirstCharLowerCase(variableName);
+            }
+            else
+            {
+                Write(variableName);
+            }
 
             if (shouldEscape)
             {

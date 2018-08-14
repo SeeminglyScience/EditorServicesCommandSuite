@@ -14,23 +14,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             bool isMandatory,
             Type parameterType)
         {
-            char mandatoryMarkerOrSpace = isMandatory ? Symbols.Asterisk : Symbols.Space;
-            var sb = new StringBuilder();
-
-            sb
-                .Append(Symbols.Space, 2)
-                .Append(Symbols.NumberSign)
-                .Append(Symbols.Space)
-                .Append(mandatoryMarkerOrSpace)
-                .Append(Symbols.Space)
-                .Append(Symbols.SquareOpen)
-                .Append(parameterType.Name)
-                .Append(Symbols.SquareClose);
-
-            Hint = sb.ToString();
             Name = name;
             Value = value;
             IsMandatory = isMandatory;
+            Type = parameterType;
         }
 
         public string Name { get; }
@@ -39,6 +26,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         public bool IsMandatory { get; }
 
-        public string Hint { get; }
+        public Type Type { get; }
     }
 }
