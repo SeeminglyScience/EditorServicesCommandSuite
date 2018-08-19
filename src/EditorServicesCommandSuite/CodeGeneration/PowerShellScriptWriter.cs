@@ -4,6 +4,8 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Reflection;
+using System.Text;
+using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Language;
 using EditorServicesCommandSuite.Reflection;
@@ -152,6 +154,13 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         public override void Write(params char[] buffer) => base.Write(buffer);
 
+        public void WriteFirstCharLowerCase(string value)
+        {
+            var chars = value.ToCharArray();
+            Write(char.ToLower(chars[0]));
+            Write(chars, 1, chars.Count() - 1);
+        }
+
         public override void StartWriting(int startOffset, int endOffset)
         {
             SetPosition(startOffset);
@@ -277,7 +286,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             lhs();
         }
 
-        internal void WriteVariable(string variableName, bool isSplat = false)
+        internal void WriteVariable(string variableName, bool isSplat = false, bool shouldFirstCharBeLowerCase = false)
         {
             if (isSplat)
             {
@@ -294,7 +303,14 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 Write(CurlyOpen);
             }
 
-            Write(variableName);
+            if (shouldFirstCharBeLowerCase)
+            {
+                WriteFirstCharLowerCase(variableName);
+            }
+            else
+            {
+                Write(variableName);
+            }
 
             if (shouldEscape)
             {
@@ -586,6 +602,72 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 t => WriteTypeExpression(new PSTypeName(t), allowNonPublic: true),
                 () => WriteChars(Comma, Dot));
             Write(ParenClose);
+        }
+
+        internal void WriteAsExpressionValue(Parameter param, bool shouldNotWriteHints)
+        {
+            if (param.Value == null)
+            {
+                if (shouldNotWriteHints)
+                {
+                    WriteVariable(param.Name, shouldFirstCharBeLowerCase: true);
+                }
+                else
+                {
+                    Write(Dollar);
+
+                    if (param.IsMandatory)
+                    {
+                        Write("mandatory");
+                        Write(param.Type.Name.Replace("[]", "Array"));
+                    }
+                    else
+                    {
+                        WriteFirstCharLowerCase(param.Type.Name.Replace("[]", "Array"));
+                    }
+
+                    Write(param.Name);
+                }
+
+                return;
+            }
+
+            if (param.Value.ConstantValue is bool boolean)
+            {
+                Write(Dollar + boolean.ToString().ToLower());
+                return;
+            }
+
+            if (param.Value.Value is StringConstantExpressionAst ||
+                param.Value.Value is ExpandableStringExpressionAst)
+            {
+                dynamic stringExpression = param.Value.Value;
+                if (stringExpression.StringConstantType != StringConstantType.BareWord)
+                {
+                    Write(param.Value.Value.Extent.Text);
+                    return;
+                }
+
+                if (param.Value.Value is StringConstantExpressionAst constant)
+                {
+                    WriteStringExpression(
+                        StringConstantType.SingleQuoted,
+                        constant.Value);
+                    return;
+                }
+
+                WriteStringExpression(
+                    StringConstantType.DoubleQuoted,
+                    param.Value.Value.Extent.Text);
+                return;
+            }
+
+            WriteEachWithSeparator(
+                param.Value.Value.Extent.Text.Split(
+                    new[] { this.NewLine },
+                    StringSplitOptions.None),
+                line => Write(line),
+                () => WriteLine());
         }
 
         internal void WriteAttributeStatement(PSTypeName typeName)

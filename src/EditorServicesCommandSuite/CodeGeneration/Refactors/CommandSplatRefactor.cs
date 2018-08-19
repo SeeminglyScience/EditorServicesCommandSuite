@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -32,32 +33,110 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             string variableName,
             CommandAst commandAst,
             bool newLineAfterHashtable,
+            bool allParameters,
+            bool mandatoryParameters,
+            bool noHints,
+            EngineIntrinsics executionContext,
             IRefactorUI ui = null)
         {
             var parentStatement = commandAst.FindParent<StatementAst>();
+            var commandName = commandAst.GetCommandName();
             var elements = commandAst.CommandElements.Skip(1);
-
             var elementsExtent = elements.JoinExtents();
-            var boundParameters = StaticParameterBinder.BindCommand(commandAst, true);
-            if (!boundParameters.BoundParameters.Any())
+            var boundParameters = StaticParameterBinder.BindCommand(commandAst, resolve: true);
+
+            if (boundParameters.BindingExceptions.TryGetValue(commandName, out StaticBindingError globalError) &&
+                globalError.BindingException.ErrorId.Equals("AmbiguousParameterSet", StringComparison.Ordinal))
+            {
+                if (ui != null)
+                {
+                    await ui.ShowErrorMessageAsync(globalError.BindingException.Message);
+                    return Enumerable.Empty<DocumentEdit>();
+                }
+
+                throw new PSInvalidOperationException(globalError.BindingException.Message, globalError.BindingException);
+            }
+
+            if (boundParameters.BoundParameters.Count == 0 &&
+                !(allParameters || mandatoryParameters))
             {
                 return Enumerable.Empty<DocumentEdit>();
             }
 
+            var commandInfo = executionContext
+                    .InvokeCommand
+                    .GetCommand(commandName, CommandTypes.All);
+
+            var parameterSetName = ResolveParameterSet(boundParameters, commandInfo);
+
+            var parameterInfo = commandInfo.ParameterSets
+                .FirstOrDefault(set => set.Name.Equals(parameterSetName, StringComparison.Ordinal))
+                ?.Parameters;
+
+            List<Parameter> parameterList = new List<Parameter>();
+
+            foreach (var param in parameterInfo)
+            {
+                var shouldAdd = false;
+                ParameterBindingResult boundParameterValue = null;
+
+                if (allParameters)
+                {
+                    shouldAdd = true;
+                }
+
+                if (mandatoryParameters && param.IsMandatory)
+                {
+                    shouldAdd = true;
+                }
+
+                if (Cmdlet.CommonParameters.Contains(param.Name) || Cmdlet.OptionalCommonParameters.Contains(param.Name))
+                {
+                    shouldAdd = false;
+                }
+
+                if (boundParameters.BoundParameters.ContainsKey(param.Name))
+                {
+                    boundParameters.BoundParameters.TryGetValue(
+                        param.Name,
+                        out boundParameterValue);
+                }
+
+                if (boundParameterValue != null || shouldAdd)
+                {
+                    parameterList.Add(
+                        new Parameter(
+                            param.Name,
+                            boundParameterValue,
+                            param.IsMandatory,
+                            param.ParameterType));
+                }
+            }
+
             var splatWriter = new PowerShellScriptWriter(commandAst);
+            var elementsWriter = new PowerShellScriptWriter(commandAst);
+
             splatWriter.SetPosition(parentStatement);
             splatWriter.WriteAssignment(
                 () => splatWriter.WriteVariable(variableName),
                 () => splatWriter.OpenHashtable());
 
-            var elementsWriter = new PowerShellScriptWriter(commandAst);
-            elementsWriter.SetPosition(elementsExtent);
+            if (elementsExtent is EmptyExtent)
+            {
+                elementsWriter.SetPosition(parentStatement, atEnd: true);
+                elementsWriter.Write(Symbols.Space);
+            }
+            else
+            {
+                elementsWriter.SetPosition(elementsExtent);
+            }
+
             elementsWriter.WriteVariable(variableName, isSplat: true);
 
             var first = true;
-            foreach (var param in boundParameters.BoundParameters)
+            foreach (var param in parameterList)
             {
-                if (param.Key.All(c => char.IsDigit(c)))
+                if (param.Name.All(c => char.IsDigit(c)))
                 {
                     elementsWriter.Write(
                         Symbols.Space
@@ -75,8 +154,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 }
 
                 splatWriter.WriteHashtableEntry(
-                    param.Key,
-                    () => Write.AsExpressionValue(splatWriter, param.Value));
+                    param.Name,
+                    () => splatWriter.WriteAsExpressionValue(param, noHints));
             }
 
             foreach (var bindingException in boundParameters.BindingExceptions)
@@ -84,12 +163,16 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 elementsWriter.Write(Symbols.Space);
                 elementsWriter.Write(bindingException.Value.CommandElement.Extent.Text);
 
-                await ui?.ShowWarningMessageAsync(
-                    string.Format(
-                        CultureInfo.CurrentCulture,
-                        CommandSplatStrings.CouldNotResolvePositionalArgument,
-                        bindingException.Value.CommandElement.Extent.Text),
-                    waitForResponse: false);
+                // The ui?.ShowWarningMessageAsync() pattern does not work during testing. Await does not seem to like null.
+                if (ui != null)
+                {
+                    await ui.ShowWarningMessageAsync(
+                        string.Format(
+                            CultureInfo.CurrentCulture,
+                            CommandSplatStrings.CouldNotResolvePositionalArgument,
+                            bindingException.Value.CommandElement.Extent.Text),
+                        waitForResponse: false);
+                }
             }
 
             splatWriter.CloseHashtable();
@@ -122,12 +205,48 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             var splatVariable = string.IsNullOrWhiteSpace(config.VariableName)
                 ? GetSplatVariableName(ast.CommandElements.First())
                 : config.VariableName;
+            var executionContext = CommandSuite.Instance.ExecutionContext;
 
             return await GetEdits(
                 splatVariable,
                 ast,
                 config.NewLineAfterHashtable.IsPresent,
+                config.AllParameters.IsPresent,
+                config.MandatoryParameters.IsPresent,
+                config.NoHints.IsPresent,
+                executionContext,
                 UI);
+        }
+
+        private static string ResolveParameterSet(
+            StaticBindingResult paramBinder,
+            CommandInfo commandInfo)
+        {
+            if (commandInfo.ParameterSets.Count == 1)
+            {
+                return commandInfo.ParameterSets[0].Name;
+            }
+
+            foreach (CommandParameterSetInfo parameterSet in commandInfo.ParameterSets)
+            {
+                var currentSetParameterNames = new HashSet<string>(parameterSet.Parameters.Select(p => p.Name));
+                var isMatch = true;
+                foreach (string parameterName in paramBinder.BoundParameters.Keys)
+                {
+                    if (!currentSetParameterNames.Contains(parameterName))
+                    {
+                        isMatch = false;
+                        break;
+                    }
+                }
+
+                if (isMatch)
+                {
+                    return parameterSet.Name;
+                }
+            }
+
+            return ParameterAttribute.AllParameterSets;
         }
 
         private string GetSplatVariableName(CommandElementAst element)
