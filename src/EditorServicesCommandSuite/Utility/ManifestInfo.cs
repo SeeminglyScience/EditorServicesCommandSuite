@@ -79,8 +79,8 @@ namespace EditorServicesCommandSuite.Utility
                 return false;
             }
 
-            workspace.TryResolveRelativePath(sourcePath, out string manifestPath);
-            if (string.IsNullOrEmpty(manifestPath))
+            workspace.TryResolveRelativePath(sourcePath, out bool doesExist, out string manifestPath);
+            if (!doesExist)
             {
                 manifestInfo = null;
                 return false;
@@ -130,7 +130,7 @@ namespace EditorServicesCommandSuite.Utility
 
             if (statements.Count == 0)
             {
-                return Empty.Array<TResult>();
+                return Array.Empty<TResult>();
             }
 
             if (statements.Count == 1)
@@ -263,7 +263,7 @@ namespace EditorServicesCommandSuite.Utility
             ExpressionAst expression;
             if (!_values.TryGetValue(fieldName, out expression))
             {
-                return Empty.Array<TResult>();
+                return Array.Empty<TResult>();
             }
 
             return UnwrapArrayExpression<TResult>(expression);

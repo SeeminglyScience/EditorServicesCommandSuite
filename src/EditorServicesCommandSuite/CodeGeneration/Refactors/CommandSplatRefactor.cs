@@ -7,6 +7,7 @@ using System.Management.Automation.Language;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Language;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
@@ -121,7 +122,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 () => splatWriter.WriteVariable(variableName),
                 () => splatWriter.OpenHashtable());
 
-            if (elementsExtent is EmptyExtent)
+            if (elementsExtent is Empty.Extent)
             {
                 elementsWriter.SetPosition(parentStatement, atEnd: true);
                 elementsWriter.Write(Symbols.Space);

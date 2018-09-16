@@ -1,8 +1,5 @@
 using System;
-using System.Management.Automation;
 using System.Management.Automation.Language;
-using System.Text;
-using EditorServicesCommandSuite.Internal;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {

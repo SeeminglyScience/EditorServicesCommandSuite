@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
+using System.Text;
 using System.Xml.Linq;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Reflection;
@@ -104,6 +105,39 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 new XElement(ns + "Type",
                     new XAttribute("PSType", property.PropertyType.ToString())),
                 metadataNode);
+        }
+
+        private static string EscapedTypeName(Type type)
+        {
+            string defaultName = type.ToString();
+            if (defaultName.IndexOf('`') == -1)
+            {
+                return defaultName;
+            }
+
+            StringBuilder newName = new StringBuilder(defaultName);
+            int lastBracket = -1;
+            for (var i = defaultName.Length - 1; i <= 0; i--)
+            {
+                if (i == '[')
+                {
+                    lastBracket = i;
+                    continue;
+                }
+
+                if (i == '`')
+                {
+                    if (lastBracket == -1)
+                    {
+                        continue;
+                    }
+
+                    newName.Remove(i, i - lastBracket);
+                    lastBracket = -1;
+                }
+            }
+
+            return newName.ToString();
         }
 
         private static IEnumerable<Type> GetRefactorProviders()

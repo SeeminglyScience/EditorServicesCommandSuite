@@ -17,6 +17,11 @@ namespace EditorServicesCommandSuite.PSReadLine
             }
         }
 
+        internal static InputPromptMenu InputPrompt(string caption, string message)
+        {
+            return new InputPromptMenu(caption, message);
+        }
+
         internal static SelectItemMenu<TItem> ItemSelect<TItem>(
             string caption,
             string message,

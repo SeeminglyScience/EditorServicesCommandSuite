@@ -4,7 +4,6 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Reflection;
-using System.Text;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Language;
@@ -24,18 +23,6 @@ namespace EditorServicesCommandSuite.CodeGeneration
             '\r', '\n',
         };
 
-        private static readonly ScriptBlockAst s_emptyAst = new ScriptBlockAst(
-            Empty.Extent,
-            new ParamBlockAst(
-                Empty.Extent,
-                Enumerable.Empty<AttributeAst>(),
-                Enumerable.Empty<ParameterAst>()),
-            new StatementBlockAst(
-                Empty.Extent,
-                Enumerable.Empty<StatementAst>(),
-                Enumerable.Empty<TrapStatementAst>()),
-            isFilter: false);
-
         private readonly HashSet<string> _pendingUsingWrites = new HashSet<string>();
 
         private ScriptBlockAst _ast;
@@ -47,15 +34,20 @@ namespace EditorServicesCommandSuite.CodeGeneration
         public PowerShellScriptWriter()
             : base()
         {
-            _ast = s_emptyAst;
+            _ast = Empty.ScriptAst.Untitled;
         }
 
         public PowerShellScriptWriter(string initialValue)
-            : base(initialValue)
+            : this(initialValue, string.Empty)
+        {
+        }
+
+        public PowerShellScriptWriter(string initialValue, string fileName)
+            : base(initialValue, fileName)
         {
             if (string.IsNullOrEmpty(initialValue))
             {
-                _ast = s_emptyAst;
+                _ast = Empty.ScriptAst.Untitled;
                 return;
             }
 
@@ -63,13 +55,23 @@ namespace EditorServicesCommandSuite.CodeGeneration
         }
 
         public PowerShellScriptWriter(Ast ast)
-            : base(GetDocumentText(ast.FindRootAst()))
+            : this(ast, string.Empty)
+        {
+        }
+
+        public PowerShellScriptWriter(Ast ast, string fileName)
+            : base(GetDocumentText(ast.FindRootAst()), fileName)
         {
             _ast = ast.FindRootAst();
         }
 
         public PowerShellScriptWriter(DocumentContextBase context)
-            : base(GetDocumentText(context.RootAst))
+            : this(context, string.Empty)
+        {
+        }
+
+        public PowerShellScriptWriter(DocumentContextBase context, string fileName)
+            : base(GetDocumentText(context.RootAst), fileName)
         {
             _context = context;
             _ast = context.RootAst;
@@ -150,15 +152,6 @@ namespace EditorServicesCommandSuite.CodeGeneration
             }
 
             return true;
-        }
-
-        public override void Write(params char[] buffer) => base.Write(buffer);
-
-        public void WriteFirstCharLowerCase(string value)
-        {
-            var chars = value.ToCharArray();
-            Write(char.ToLower(chars[0]));
-            Write(chars, 1, chars.Count() - 1);
         }
 
         public override void StartWriting(int startOffset, int endOffset)
@@ -252,6 +245,33 @@ namespace EditorServicesCommandSuite.CodeGeneration
             }
         }
 
+        internal void OpenFunctionDefinition(string name)
+        {
+            Write(Function);
+            Write(Space);
+            Write(name);
+            Write(Space);
+            OpenScriptBlock();
+        }
+
+        internal void CloseFunctionDefinition() => CloseScriptBlock();
+
+        internal void OpenNamedBlock(TokenKind blockKind)
+        {
+            switch (blockKind)
+            {
+                case TokenKind.End: Write(Symbols.End); break;
+                case TokenKind.Begin: Write(Symbols.Begin); break;
+                case TokenKind.Process: Write(Symbols.Process); break;
+                default: throw new ArgumentException(blockKind.ToString(), nameof(blockKind));
+            }
+
+            Write(Symbols.Space);
+            OpenScriptBlock();
+        }
+
+        internal void CloseNamedBlock() => CloseScriptBlock();
+
         internal void WriteEnum<TEnum>(TEnum value)
             where TEnum : struct
         {
@@ -286,7 +306,12 @@ namespace EditorServicesCommandSuite.CodeGeneration
             lhs();
         }
 
-        internal void WriteVariable(string variableName, bool isSplat = false, bool shouldFirstCharBeLowerCase = false)
+        internal void WriteVariable(string variableName, CaseType? caseType = null, bool isSplat = false)
+        {
+            WriteVariable(variableName.AsSpan(), caseType, isSplat);
+        }
+
+        internal void WriteVariable(ReadOnlySpan<char> variableName, CaseType? caseType = null, bool isSplat = false)
         {
             if (isSplat)
             {
@@ -303,9 +328,9 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 Write(CurlyOpen);
             }
 
-            if (shouldFirstCharBeLowerCase)
+            if (caseType != null)
             {
-                WriteFirstCharLowerCase(variableName);
+                WriteCasedString(variableName, caseType.Value);
             }
             else
             {
@@ -316,6 +341,25 @@ namespace EditorServicesCommandSuite.CodeGeneration
             {
                 Write(CurlyClose);
             }
+        }
+
+        internal void WriteCasedString(ReadOnlySpan<char> value, CaseType caseType)
+        {
+            if (caseType == CaseType.CamelCase)
+            {
+                Write(char.ToLowerInvariant(value[0]));
+            }
+            else
+            {
+                Write(char.ToUpperInvariant(value[0]));
+            }
+
+            if (value.Length == 1)
+            {
+                return;
+            }
+
+            Write(value.Slice(1));
         }
 
         internal void WriteComment(string text, int maxLineLength)
@@ -365,7 +409,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             }
 
             Write('(');
-            WriteEachWithSeparator(
+            this.WriteEachWithSeparator(
                 member.Parameters.ToArray(),
                 parameter =>
                 {
@@ -526,12 +570,44 @@ namespace EditorServicesCommandSuite.CodeGeneration
             bool writeBrackets = true,
             bool forAttribute = false,
             bool allowNonPublic = false,
-            bool skipGenericArgs = false)
+            bool skipGenericArgs = false,
+            bool strictTypes = false)
         {
-            if (type.Type != null && !MemberUtil.IsTypeExpressible(type.Type) && allowNonPublic)
+            Type reflectionType = type.Type ?? typeof(object);
+            if (!MemberUtil.IsTypeExpressible(reflectionType))
             {
-                WriteReflectionTypeExpression(type.Type);
-                return;
+                if (allowNonPublic)
+                {
+                    WriteReflectionTypeExpression(reflectionType);
+                    return;
+                }
+
+                if (strictTypes)
+                {
+                    throw new PSArgumentException(nameof(type));
+                }
+
+                // If the type is public but not expressible, then it's probably a generic type
+                // with non-public type arguments. We can't roll back non-public type arguments
+                // without affecting anything, so just call it an Object.
+                if (reflectionType.IsPublic)
+                {
+                    reflectionType = typeof(object);
+                }
+                else
+                {
+                    do
+                    {
+                        if (reflectionType.BaseType == null)
+                        {
+                            reflectionType = typeof(object);
+                            break;
+                        }
+
+                        reflectionType = reflectionType.BaseType;
+                    }
+                    while (!MemberUtil.IsTypeExpressible(reflectionType));
+                }
             }
 
             if (writeBrackets)
@@ -543,7 +619,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             {
                 Write(
                     MemberUtil.GetTypeNameForLiteral(
-                        type.Type,
+                        reflectionType,
                         dropNamespaces: ShouldDropNamespaces,
                         out string[] droppedNamespaces,
                         forAttribute,
@@ -610,20 +686,43 @@ namespace EditorServicesCommandSuite.CodeGeneration
             {
                 if (shouldNotWriteHints)
                 {
-                    WriteVariable(param.Name, shouldFirstCharBeLowerCase: true);
+                    WriteVariable(param.Name, CaseType.CamelCase);
                 }
                 else
                 {
                     Write(Dollar);
 
+                    CaseType caseType;
                     if (param.IsMandatory)
                     {
                         Write("mandatory");
-                        Write(param.Type.Name.Replace("[]", "Array"));
+                        caseType = CaseType.PascalCase;
                     }
                     else
                     {
-                        WriteFirstCharLowerCase(param.Type.Name.Replace("[]", "Array"));
+                        caseType = CaseType.CamelCase;
+                    }
+
+                    Type parameterType = param.Type ?? typeof(object);
+
+                    // Unwrap array, byref, and pointer types. The latter two are pretty unlikely
+                    // for a command parameter, but we already need to take care of arrays anyway.
+                    while (parameterType.HasElementType)
+                    {
+                        parameterType = parameterType.GetElementType();
+                    }
+
+                    ReadOnlySpan<char> typeName = parameterType.Name.AsSpan();
+                    int backTickIndex = typeName.IndexOf(Symbols.Backtick);
+                    if (backTickIndex != -1)
+                    {
+                        typeName = typeName.Slice(0, backTickIndex);
+                    }
+
+                    WriteCasedString(typeName, caseType);
+                    if (param.Type.IsArray)
+                    {
+                        Write("Array");
                     }
 
                     Write(param.Name);

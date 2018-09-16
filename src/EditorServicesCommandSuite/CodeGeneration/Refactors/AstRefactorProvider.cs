@@ -17,6 +17,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         public RefactorKind Kind => RefactorKind.Ast;
 
+        public virtual int ParentSearchDepth => 3;
+
         bool IDocumentRefactorProvider.CanRefactorTarget(DocumentContextBase request)
         {
             return request.Ast is TAst targetAst && CanRefactorTarget(request, targetAst);
@@ -29,7 +31,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return await RequestEdits(request, targetAst);
             }
 
-            if (request.Ast.TryFindParent<TAst>(out TAst targetParent))
+            if (request.Ast.TryFindParent<TAst>(maxDepth: ParentSearchDepth, out TAst targetParent))
             {
                 return await RequestEdits(request, targetParent);
             }
@@ -42,7 +44,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             info = null;
             return
                 request.Ast is Ast ast
-                    && ast.TryFindParent(out TAst targetAst)
+                    && ast.TryFindParent(maxDepth: ParentSearchDepth, out TAst targetAst)
                     && TryGetRefactorInfo(request, targetAst, out info);
         }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
@@ -12,11 +13,13 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Provides context for the current state of editor host.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public abstract class DocumentContextProvider
     {
         /// <summary>
         /// Gets the path to the current workspace.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract string Workspace { get; }
 
         /// <summary>
@@ -26,6 +29,7 @@ namespace EditorServicesCommandSuite.Internal
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the requested context.
         /// </returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract Task<DocumentContextBase> GetDocumentContextAsync();
 
         /// <summary>
@@ -36,6 +40,7 @@ namespace EditorServicesCommandSuite.Internal
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the requested context.
         /// </returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract Task<DocumentContextBase> GetDocumentContextAsync(PSCmdlet cmdlet);
 
         /// <summary>
@@ -48,6 +53,7 @@ namespace EditorServicesCommandSuite.Internal
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the requested context.
         /// </returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract Task<DocumentContextBase> GetDocumentContextAsync(CancellationToken cancellationToken);
 
         /// <summary>
@@ -61,6 +67,7 @@ namespace EditorServicesCommandSuite.Internal
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the requested context.
         /// </returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract Task<DocumentContextBase> GetDocumentContextAsync(PSCmdlet cmdlet, CancellationToken cancellationToken);
 
         /// <summary>
@@ -68,6 +75,7 @@ namespace EditorServicesCommandSuite.Internal
         /// </summary>
         /// <param name="scriptText">The full text of the current document.</param>
         /// <returns>The helper object.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected DocumentContextBuilder GetContextBuilder(string scriptText)
         {
             return new DocumentContextBuilder(scriptText);
@@ -79,6 +87,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="ast">The AST of the current document.</param>
         /// <param name="tokens">The tokens for the current document.</param>
         /// <returns>The helper object.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected DocumentContextBuilder GetContextBuilder(Ast ast, Token[] tokens)
         {
             return new DocumentContextBuilder(ast, tokens);
@@ -87,6 +96,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <summary>
         /// Provides a more fluid way to build context for a refactor request.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected class DocumentContextBuilder
         {
             private IScriptExtent _selectionExtent;
@@ -119,7 +129,7 @@ namespace EditorServicesCommandSuite.Internal
                 {
                     if (_selectionExtent == null)
                     {
-                        return Empty.Extent;
+                        return Empty.Extent.Untitled;
                     }
 
                     return _selectionExtent;
@@ -132,7 +142,7 @@ namespace EditorServicesCommandSuite.Internal
                 {
                     if (_cursorPosition == null)
                     {
-                        return Empty.Position;
+                        return Empty.Position.Untitled;
                     }
 
                     return _cursorPosition;
@@ -156,12 +166,13 @@ namespace EditorServicesCommandSuite.Internal
             /// Converts the builder into a usable <see cref="DocumentContextBase" /> object.
             /// </summary>
             /// <param name="builder">The builder to convert.</param>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public static implicit operator DocumentContextBase(DocumentContextBuilder builder)
             {
                 return new DocumentContext(
                     builder.Ast.FindRootAst(),
                     builder.Ast.FindAstAt(builder.CursorPosition),
-                    new LinkedList<Token>(builder.Tokens).First.At(builder.CursorPosition),
+                    new LinkedList<Token>(builder.Tokens).First.AtOrBefore(builder.CursorPosition),
                     builder.SelectionExtent,
                     builder._cmdlet,
                     builder._cancellationToken ?? CancellationToken.None);
@@ -174,6 +185,7 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCmdlet(PSCmdlet cmdlet)
             {
                 _cmdlet = cmdlet;
@@ -187,6 +199,7 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCancellationToken(CancellationToken cancellationToken)
             {
                 _cancellationToken = cancellationToken;
@@ -200,6 +213,7 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCursorPosition(int offset)
             {
                 _cursorPosition = Ast.Extent.StartScriptPosition.CloneWithNewOffset(offset);
@@ -214,6 +228,7 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCursorPosition(int line, int column)
             {
                 _cursorPosition = Ast.Extent.StartScriptPosition.CloneWithNewOffset(
@@ -230,6 +245,7 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCursorPosition(IScriptPosition position)
             {
                 _cursorPosition = position;
@@ -244,6 +260,7 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddSelectionRange(int startOffset, int endOffset)
             {
                 _selectionExtent = PositionUtilities.NewScriptExtent(
@@ -263,6 +280,7 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddSelectionRange(int startLine, int startColumn, int endLine, int endColumn)
             {
                 var lineMap = PositionUtilities.GetLineMap(Ast.Extent.Text);
@@ -291,6 +309,7 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddSelectionRange(IScriptPosition startPosition, IScriptPosition endPosition)
             {
                 _selectionExtent = PositionUtilities.NewScriptExtent(
@@ -309,6 +328,7 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
+            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddSelectionRange(IScriptExtent extent)
             {
                 _selectionExtent = extent;

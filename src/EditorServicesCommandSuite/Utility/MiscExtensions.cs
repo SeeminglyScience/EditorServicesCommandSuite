@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Management.Automation;
 using System.Management.Automation.Internal;
@@ -91,6 +93,16 @@ namespace EditorServicesCommandSuite.Utility
                 CultureInfo.CurrentCulture,
                 format,
                 args);
+        }
+
+        internal static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
+        {
+            Validate.IsNotNull(nameof(source), source);
+            Validate.IsNotNull(nameof(action), action);
+            foreach (T item in source)
+            {
+                action(item);
+            }
         }
     }
 }

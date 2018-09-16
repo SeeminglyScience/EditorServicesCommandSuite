@@ -39,7 +39,6 @@ task Clean {
     }
 
     New-Item -ItemType Directory $releaseFolder | Out-Null
-    New-Item -ItemType Directory $releaseFolder/RefactorCmdlets | Out-Null
 }
 
 task BuildDocs -If { $Discovery.HasDocs } {
@@ -93,12 +92,12 @@ task BuildManaged {
 
 task BuildRefactorModule {
     $releaseFolder = $Folders.Release
-    $dllToImport = "$PSScriptRoot/src/EditorServicesCommandSuite/bin/$Configuration/netstandard2.0/EditorServicesCommandSuite.dll"
+    $dllToImport = "$PSScriptRoot/src/EditorServicesCommandSuite/bin/$Configuration/netstandard2.0/publish/EditorServicesCommandSuite.dll"
 
     $script = {
         Add-Type -Path '{0}'
         [EditorServicesCommandSuite.Internal.CommandSuite]::WriteRefactorModule('{1}')
-    }.ToString() -f $dllToImport, "$releaseFolder\RefactorCmdlets\RefactorCmdlets.cdxml"
+    }.ToString() -f $dllToImport, "$releaseFolder\EditorServicesCommandSuite.RefactorCmdlets.cdxml"
 
     $encodedScript = [convert]::ToBase64String(
         [System.Text.Encoding]::Unicode.GetBytes($script))
@@ -125,6 +124,9 @@ task CopyToRelease  {
     Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.EditorServices/bin/$Configuration/netstandard2.0/publish/EditorServicesCommandSuite.* -Destination $releaseFolder
     Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/EditorServicesCommandSuite.* -Destination $releaseFolder
     Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/System.Buffers.dll -Destination $releaseFolder
+    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/System.Memory.dll -Destination $releaseFolder
+    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/System.Numerics.Vectors.dll -Destination $releaseFolder
+    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/System.Runtime.CompilerServices.Unsafe.dll -Destination $releaseFolder
 }
 
 task Analyze -If { $Settings.ShouldAnalyze } {

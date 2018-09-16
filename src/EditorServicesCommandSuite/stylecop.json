@@ -1,31 +1,31 @@
 {
   "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
   "settings": {
-      "indentation": {
-        "indentationSize": 4,
-        "tabSize": 4,
-        "useTabs": false
-      },
-      "orderingRules": {
-        "elementOrder": [
-            "kind",
-            "accessibility",
-            "constant",
-            "static",
-            "readonly"
-        ],
-        "systemUsingDirectivesFirst": true,
-        "usingDirectivesPlacement": "outsideNamespace",
-        "blankLinesBetweenUsingGroups": "allow"
-      },
-      "layoutRules": {
-          "newlineAtEndOfFile": "require"
-      },
-      "documentationRules": {
-          "xmlHeader": false,
-          "documentationCulture": "en-US",
-          "documentExposedElements": true,
-          "documentInternalElements": false
-      }
+    "indentation": {
+      "indentationSize": 4,
+      "tabSize": 4,
+      "useTabs": false
+    },
+    "orderingRules": {
+      "elementOrder": [
+        "kind",
+        "accessibility",
+        "constant",
+        "static",
+        "readonly"
+      ],
+      "systemUsingDirectivesFirst": true,
+      "usingDirectivesPlacement": "outsideNamespace",
+      "blankLinesBetweenUsingGroups": "allow"
+    },
+    "layoutRules": {
+      "newlineAtEndOfFile": "require"
+    },
+    "documentationRules": {
+      "xmlHeader": false,
+      "documentationCulture": "en-US",
+      "documentExposedElements": true,
+      "documentInternalElements": false
+    }
   }
 }

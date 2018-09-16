@@ -40,6 +40,29 @@ namespace EditorServicesCommandSuite.EditorServices
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
 
+        public async Task<string> ShowInputPromptAsync(
+            string caption,
+            string message,
+            bool waitForResponse)
+        {
+            ShowInputPromptResponse response = await _messages.Sender.SendRequest(
+                ShowInputPromptRequest.Type,
+                new ShowInputPromptRequest()
+                {
+                    Name = caption,
+                    Label = message,
+                },
+                waitForResponse)
+                .ConfigureAwait(continueOnCapturedContext: false);
+
+            if (response == null || response.PromptCancelled)
+            {
+                throw new OperationCanceledException();
+            }
+
+            return response.ResponseText;
+        }
+
         public async Task<TItem> ShowChoicePromptAsync<TItem>(
             string caption,
             string message,

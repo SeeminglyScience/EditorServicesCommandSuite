@@ -1,5 +1,5 @@
 Import-Module $PSScriptRoot/EditorServicesCommandSuite.dll
-Import-Module $PSScriptRoot/RefactorCmdlets/RefactorCmdlets.cdxml
+Import-Module $PSScriptRoot/EditorServicesCommandSuite.RefactorCmdlets.cdxml
 
 if (-not $CommandSuite -or $CommandSuite -isnot [EditorServicesCommandSuite.Internal.CommandSuite]) {
     $IsMainRunspace = $true

@@ -78,6 +78,7 @@ namespace EditorServicesCommandSuite.PSReadLine
                         expandableToken.Extent.EndOffset - lastEndOffset);
                     return;
                 }
+
                 case StringToken stringToken:
                 {
                     if (stringToken.TokenFlags.HasFlag(TokenFlags.CommandName))
@@ -89,6 +90,7 @@ namespace EditorServicesCommandSuite.PSReadLine
                     sb.Append(Ansi.Colors.String);
                     break;
                 }
+
                 case NumberToken numberToken: sb.Append(Ansi.Colors.Number); break;
                 case ParameterToken parameterToken: sb.Append(Ansi.Colors.Parameter); break;
                 case VariableToken variableToken: sb.Append(Ansi.Colors.Variable); break;

@@ -1,3 +1,6 @@
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Management.Automation;
 using System.Management.Automation.Host;
 using EditorServicesCommandSuite.Internal;
@@ -11,6 +14,7 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
     /// Provides a central entry point for interacting with a Editor Services based command
     /// suite session.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never), DebuggerStepThrough]
     public class CommandSuite : EditorServicesCommandSuite.Internal.CommandSuite
     {
         private const string EditorOperationsFieldName = "editorOperations";
@@ -106,6 +110,7 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
         /// <returns>
         /// The command suite instance for the process.
         /// </returns>
+        [Obsolete("do not use this method", error: true), EditorBrowsable(EditorBrowsableState.Never)]
         public static CommandSuite GetCommandSuite(
             EditorObject psEditor,
             EngineIntrinsics engine,

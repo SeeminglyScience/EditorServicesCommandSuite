@@ -11,6 +11,11 @@ namespace EditorServicesCommandSuite.Inference
 {
     internal static class InferenceExtensions
     {
+        public static bool EqualsOrdinalIgnoreCase(this string s, string t)
+        {
+            return string.Equals(s, t, StringComparison.OrdinalIgnoreCase);
+        }
+
         internal static IEnumerable<MemberInfo> GetInferredMembers(
             this MemberExpressionAst ast,
             CommandSuite commandSuite,
@@ -118,11 +123,6 @@ namespace EditorServicesCommandSuite.Inference
                 .FirstOrDefault(t => t.Name.EqualsOrdinalIgnoreCase(typeName.Name));
 
             return resolvedType == null ? null : new PSTypeName(resolvedType);
-        }
-
-        public static bool EqualsOrdinalIgnoreCase(this string s, string t)
-        {
-            return string.Equals(s, t, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

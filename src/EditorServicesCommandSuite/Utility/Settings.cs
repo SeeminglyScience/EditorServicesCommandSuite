@@ -15,6 +15,12 @@ namespace EditorServicesCommandSuite.Utility
 
         internal const string SettingFileExtension = ".psd1";
 
+        private static string[] s_defaultFunctionPaths =
+        {
+            @".\module\Public",
+            @".\module\Private",
+        };
+
         private static Lazy<Settings> s_instance = new Lazy<Settings>(CreateDefault);
 
         private Settings(
@@ -51,6 +57,10 @@ namespace EditorServicesCommandSuite.Utility
         [Setting(nameof(MarkdownDocsPath), Default = @"'.\docs'")]
         internal static string MarkdownDocsPath =>
             GetSetting(nameof(MarkdownDocsPath), @".\docs");
+
+        [Setting(nameof(FunctionPaths), Default = @"'.\module\Public', '.\module\Private'")]
+        internal static string[] FunctionPaths =>
+            GetSetting(nameof(FunctionPaths), s_defaultFunctionPaths);
 
         [Setting(nameof(NewLine), Default = "[Environment]::NewLine")]
         internal static string NewLine =>
@@ -103,22 +113,7 @@ namespace EditorServicesCommandSuite.Utility
                         "EditorServicesCommandSuite",
                         "ESCSSettings.psd1");
                 case SettingsScope.Workspace:
-                {
-                    CommandSuite commandSuite;
-                    if (!CommandSuite.TryGetInstance(out commandSuite))
-                    {
-                        return string.Empty;
-                    }
-
-                    if (commandSuite.Workspace.IsUntitledWorkspace())
-                    {
-                        return string.Empty;
-                    }
-
-                    return Path.Combine(
-                        commandSuite.Workspace.GetWorkspacePath(),
-                        "ESCSSettings.psd1");
-                }
+                    return GetWorkspaceSettingsPath();
             }
 
             return string.Empty;
@@ -205,6 +200,24 @@ namespace EditorServicesCommandSuite.Utility
                         setting.Attribute.Key,
                         setting.Type,
                         setting.Attribute.Default));
+        }
+
+        private static string GetWorkspaceSettingsPath()
+        {
+            CommandSuite commandSuite;
+            if (!CommandSuite.TryGetInstance(out commandSuite))
+            {
+                return string.Empty;
+            }
+
+            if (commandSuite.Workspace.IsUntitledWorkspace())
+            {
+                return string.Empty;
+            }
+
+            return Path.Combine(
+                commandSuite.Workspace.GetWorkspacePath(),
+                "ESCSSettings.psd1");
         }
 
         private bool TryGetRawValue(string key, out object value)

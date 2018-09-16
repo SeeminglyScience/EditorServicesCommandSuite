@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Concurrent;
-using System.Globalization;
 using System.Management.Automation;
-using System.Management.Automation.Language;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
 using Microsoft.PowerShell;
@@ -20,6 +18,11 @@ namespace EditorServicesCommandSuite.PSReadLine
             Warning,
 
             Error,
+        }
+
+        public Task<string> ShowInputPromptAsync(string caption, string message, bool waitForResponse)
+        {
+            return Task.FromResult(ShowInputPromptImpl(caption, message));
         }
 
         public Task<TItem> ShowChoicePromptAsync<TItem>(string caption, string message, TItem[] items)
@@ -84,6 +87,31 @@ namespace EditorServicesCommandSuite.PSReadLine
             Console.WriteLine(content);
         }
 
+        private TResult GetMenuResult<TResult>(ConsoleBufferMenu<TResult> menu)
+        {
+            PSConsoleReadLine.GetBufferState(out string input, out int cursor);
+            menu.CompletionData =
+                CommandCompletion.MapStringInputToParsedInput(
+                    input,
+                    cursor);
+
+            TResult result = menu.Bind();
+            while (s_messages.TryDequeue(out Message queuedMessage))
+            {
+                WriteMessageImpl(queuedMessage);
+            }
+
+            return result;
+        }
+
+        private string ShowInputPromptImpl(string caption, string message)
+        {
+            using (InputPromptMenu inputPrompt = Menus.InputPrompt(caption, message))
+            {
+                return GetMenuResult(inputPrompt);
+            }
+        }
+
         private TItem ShowChoicePromptImpl<TItem>(
             string caption,
             string message,
@@ -91,9 +119,6 @@ namespace EditorServicesCommandSuite.PSReadLine
             Func<TItem, string> labelSelector = null,
             Func<TItem, string> helpMessageSelector = null)
         {
-            PSConsoleReadLine.GetBufferState(out string input, out int cursor);
-
-            TItem result;
             using (SelectItemMenu<TItem> itemSelect = Menus.ItemSelect(caption, message, items))
             {
                 if (labelSelector != null)
@@ -106,20 +131,8 @@ namespace EditorServicesCommandSuite.PSReadLine
                     itemSelect.RenderItemDescription((index, item) => helpMessageSelector(item));
                 }
 
-                itemSelect.CompletionData =
-                    CommandCompletion.MapStringInputToParsedInput(
-                        input,
-                        cursor);
-
-                result = itemSelect.Bind();
+                return GetMenuResult(itemSelect);
             }
-
-            while (s_messages.TryDequeue(out Message queuedMessage))
-            {
-                WriteMessageImpl(queuedMessage);
-            }
-
-            return result;
         }
 
         private struct Message

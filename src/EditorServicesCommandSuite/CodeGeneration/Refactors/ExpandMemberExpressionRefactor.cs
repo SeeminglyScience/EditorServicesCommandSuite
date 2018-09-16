@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
@@ -139,7 +140,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 await _ui?.ShowErrorMessageAsync(
                     ExpandMemberExpressionStrings.CannotInferMember.FormatCulture(ast.Member),
                     waitForResponse: false);
-                return Empty.Array<DocumentEdit>();
+                return Array.Empty<DocumentEdit>();
             }
 
             MemberInfo chosenMember = await _ui.ShowChoicePromptAsync(

@@ -2,11 +2,8 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Management.Automation.Language;
-using System.Text;
 using System.Text.RegularExpressions;
 using EditorServicesCommandSuite.Internal;
 
@@ -16,27 +13,15 @@ namespace EditorServicesCommandSuite.PSReadLine
 
     internal delegate bool SelectItemMatcher<TItem>(int index, TItem item, string input);
 
-    internal class SelectItemMenu<TItem> : IDisposable
+    internal class SelectItemMenu<TItem> : ConsoleBufferMenu<TItem>
     {
         private static readonly MatchCollection s_emptyMatchCollection = Regex.Matches(string.Empty, "z");
-
-        private readonly TextWriter _out;
-
-        private readonly StringBuilder _input = new StringBuilder(Console.WindowWidth - 1);
 
         private readonly Dictionary<TItem, string> _renderCache = new Dictionary<TItem, string>();
 
         private readonly Dictionary<TItem, string> _descriptionCache = new Dictionary<TItem, string>();
 
-        private string _renderedScript;
-
-        private bool _isDisposed = false;
-
         private RenderedItem[] _renderedItems;
-
-        private int _lastWindowWidth = Console.WindowWidth;
-
-        private int _lastWindowHeight = Console.WindowHeight;
 
         private int _renderedItemsLength;
 
@@ -46,15 +31,7 @@ namespace EditorServicesCommandSuite.PSReadLine
 
         private SelectItemRenderer<TItem> _renderer;
 
-        private bool _isInputAccepted;
-
-        private bool _isHeaderWritten;
-
-        private int _inputLine;
-
         private int _resultsStartLine;
-
-        private int _cursorX;
 
         private int _lastItemsStartingLine;
 
@@ -67,19 +44,11 @@ namespace EditorServicesCommandSuite.PSReadLine
         private TItem _selectedItem;
 
         internal SelectItemMenu(string caption, string message, TItem[] items)
+            : base(caption, message)
         {
-            Caption = caption;
-            Message = message;
             Items = items.Distinct().ToArray();
-            _out = Console.Out;
             _renderedItems = ArrayPool<RenderedItem>.Shared.Rent(Items.Length);
         }
-
-        internal Tuple<Ast, Token[], IScriptPosition> CompletionData { get; set; }
-
-        internal string Caption { get; }
-
-        internal string Message { get; }
 
         internal TItem[] Items { get; }
 
@@ -121,11 +90,6 @@ namespace EditorServicesCommandSuite.PSReadLine
 
         private SelectItemRenderer<TItem> ItemDescriptionRenderer { get; set; }
 
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-
         internal SelectItemMenu<TItem> RenderItem(SelectItemRenderer<TItem> renderer)
         {
             ThrowIfDisposed();
@@ -147,39 +111,73 @@ namespace EditorServicesCommandSuite.PSReadLine
             return this;
         }
 
-        internal TItem Bind()
+        protected override void DisposeImpl()
         {
-            ThrowIfDisposed();
-            using (Menus.NewAlternateBuffer())
-            {
-                return ReadChoice();
-            }
+            ArrayPool<RenderedItem>.Shared.Return(_renderedItems);
+            _renderedItems = null;
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected override TItem GetResult()
         {
-            if (!_isDisposed)
+            return _selectedItem;
+        }
+
+        protected override void AfterInputRender()
+        {
+            _out.Write(Ansi.Modification.InsertLines, 2);
+            _out.Write(Ansi.Colors.Reset);
+            _resultsStartLine = Console.CursorTop;
+        }
+
+        protected override void RenderBody(bool isForSelectionChange)
+        {
+            RenderItems(skipMatchRebuild: isForSelectionChange);
+            SetCursorY(_inputLine);
+            SetCursorX(_cursorX);
+        }
+
+        protected override void MoveSelectionDown(
+            ConsoleKeyInfo key,
+            ConsoleModifiers requiredModifiers = (ConsoleModifiers)0)
+        {
+            if (!key.Modifiers.HasFlag(requiredModifiers))
             {
+                SelfInsert(key);
                 return;
             }
 
-            if (disposing)
+            if (_selectionIndex >= _renderedItemsLength - 1)
             {
-                ArrayPool<RenderedItem>.Shared.Return(_renderedItems);
-                _renderedItems = null;
+                _selectionIndex = 0;
+            }
+            else
+            {
+                _selectionIndex++;
             }
 
-            _isDisposed = true;
+            Render(isForSelectionChange: true);
         }
 
-        private void ThrowIfDisposed()
+        protected override void MoveSelectionUp(
+            ConsoleKeyInfo key,
+            ConsoleModifiers requiredModifiers = (ConsoleModifiers)0)
         {
-            if (!_isDisposed)
+            if (!key.Modifiers.HasFlag(requiredModifiers))
             {
+                SelfInsert(key);
                 return;
             }
 
-            throw new InvalidOperationException();
+            if (_selectionIndex == 0)
+            {
+                _selectionIndex = _renderedItemsLength - 1;
+            }
+            else
+            {
+                _selectionIndex--;
+            }
+
+            Render(isForSelectionChange: true);
         }
 
         private static string DefaultItemRenderer(int index, TItem item)
@@ -219,397 +217,6 @@ namespace EditorServicesCommandSuite.PSReadLine
                 $"\\b({string.Join("|", parts)})");
 
             return _wordBoundryPatternCache.Item2;
-        }
-
-        private TItem ReadChoice()
-        {
-            Render();
-            _isInputAccepted = false;
-            while (!_isInputAccepted)
-            {
-                ConsoleKeyInfo key;
-                var oldControlAsInput = Console.TreatControlCAsInput;
-                Console.TreatControlCAsInput = true;
-                try
-                {
-                    key = Console.ReadKey(intercept: true);
-                }
-                finally
-                {
-                    Console.TreatControlCAsInput = oldControlAsInput;
-                }
-
-                switch (key.Key)
-                {
-                    case ConsoleKey.Backspace:
-                        DeleteBackwardWord(key, ConsoleModifiers.Control, DeleteBackward);
-                        break;
-                    case ConsoleKey.Escape: Clear(); break;
-                    case ConsoleKey.Delete: DeleteForwardWord(key, ConsoleModifiers.Control, DeleteForward); break;
-                    case ConsoleKey.Enter: Accept(); break;
-                    case ConsoleKey.UpArrow: MoveSelectionUp(key); break;
-                    case ConsoleKey.DownArrow: MoveSelectionDown(key); break;
-                    case ConsoleKey.RightArrow: MoveRight(key); break;
-                    case ConsoleKey.LeftArrow: MoveLeft(key); break;
-                    case ConsoleKey.P: MoveSelectionUp(key, ConsoleModifiers.Alt); break;
-                    case ConsoleKey.N: MoveSelectionDown(key, ConsoleModifiers.Alt); break;
-                    case ConsoleKey.C: Break(key, ConsoleModifiers.Control); break;
-                    case ConsoleKey.W: DeleteBackwardWord(key, ConsoleModifiers.Control); break;
-                    case ConsoleKey.Home: StartOfLine(); break;
-                    case ConsoleKey.End: EndOfLine(); break;
-                    default: SelfInsert(key); break;
-                }
-            }
-
-            return _selectedItem;
-        }
-
-        private void MoveLeft(ConsoleKeyInfo key)
-        {
-            if (key.Modifiers.HasFlag(ConsoleModifiers.Shift))
-            {
-                _cursorX = GetBackwardWordOffset();
-                SetCursorX(_cursorX);
-                return;
-            }
-
-            if (_cursorX == 0)
-            {
-                return;
-            }
-
-            _cursorX--;
-            _out.Write(Ansi.Movement.CursorLeft);
-        }
-
-        private void MoveRight(ConsoleKeyInfo key)
-        {
-            if (key.Modifiers.HasFlag(ConsoleModifiers.Shift))
-            {
-                _cursorX = GetForwardWordOffset();
-                SetCursorX(_cursorX);
-                return;
-            }
-
-            if (_cursorX >= _input.Length - 1)
-            {
-                return;
-            }
-
-            _cursorX++;
-            _out.Write(Ansi.Movement.CursorRight);
-        }
-
-        private void Break(
-            ConsoleKeyInfo key,
-            ConsoleModifiers requiredModifiers = default(ConsoleModifiers))
-        {
-            if (!key.Modifiers.HasFlag(requiredModifiers))
-            {
-                SelfInsert(key);
-                return;
-            }
-
-            throw new OperationCanceledException();
-        }
-
-        private void StartOfLine()
-        {
-            _cursorX = 0;
-            SetCursorX(0);
-        }
-
-        private void EndOfLine()
-        {
-            _cursorX = _input.Length - 1;
-            SetCursorX(_cursorX);
-        }
-
-        private void Clear()
-        {
-            _input.Clear();
-            _cursorX = 0;
-            Render();
-        }
-
-        private void Accept()
-        {
-            _isInputAccepted = true;
-        }
-
-        private void DeleteBackward(ConsoleKeyInfo key)
-        {
-            if (_input.Length < 1 || _cursorX == 0)
-            {
-                return;
-            }
-
-            _input.Remove(_cursorX - 1, 1);
-            _cursorX--;
-            _out.Write(Ansi.Movement.CursorLeft);
-            _out.Write(Ansi.Modification.DeleteCharacter);
-            Render();
-        }
-
-        private void DeleteBackwardWord(
-            ConsoleKeyInfo key,
-            ConsoleModifiers requiredModifiers = default(ConsoleModifiers),
-            Action<ConsoleKeyInfo> alternativeAction = null)
-        {
-            if (!key.Modifiers.HasFlag(requiredModifiers))
-            {
-                if (alternativeAction != null)
-                {
-                    alternativeAction(key);
-                    return;
-                }
-
-                SelfInsert(key);
-                return;
-            }
-
-            int deleteTo = GetBackwardWordOffset();
-            int amountToDelete = _cursorX - deleteTo;
-            _input.Remove(deleteTo, amountToDelete);
-            _out.Write(Ansi.Movement.MultipleCursorLeft, amountToDelete);
-            _out.Write(Ansi.Modification.DeleteCharacters, amountToDelete);
-            _cursorX = deleteTo;
-            Render();
-        }
-
-        private void DeleteForwardWord(
-            ConsoleKeyInfo key,
-            ConsoleModifiers requiredModifiers = default(ConsoleModifiers),
-            Action<ConsoleKeyInfo> alternativeAction = null)
-        {
-            if (!key.Modifiers.HasFlag(requiredModifiers))
-            {
-                if (alternativeAction != null)
-                {
-                    alternativeAction(key);
-                    return;
-                }
-
-                SelfInsert(key);
-                return;
-            }
-
-            int deleteTo = GetForwardWordOffset();
-            _input.Remove(_cursorX, deleteTo - _cursorX);
-            Render();
-        }
-
-        private int GetBackwardWordOffset()
-        {
-            if (_input.Length == 0)
-            {
-                return 0;
-            }
-
-            return Regex.Matches(_input.ToString(), @"\b")
-                .Cast<Match>()
-                .Where(match => match.Index < _cursorX)
-                .OrderByDescending(match => match.Index)
-                .First()
-                .Index;
-        }
-
-        private int GetForwardWordOffset()
-        {
-            var offset = Regex.Matches(_input.ToString(), @"\b")
-                .Cast<Match>()
-                .Where(match => match.Index > _cursorX)
-                .OrderBy(match => match.Index)
-                .FirstOrDefault()
-                ?.Index
-                ?? -1;
-
-            return offset == -1 ? _input.Length : offset;
-        }
-
-        private void DeleteForward(ConsoleKeyInfo key)
-        {
-            if (_input.Length < 1 || _cursorX == _input.Length)
-            {
-                return;
-            }
-
-            _input.Remove(_cursorX, 1);
-            Render();
-        }
-
-        private void SelfInsert(ConsoleKeyInfo key)
-        {
-            if (key.Modifiers.HasFlag(ConsoleModifiers.Control) ||
-                key.Modifiers.HasFlag(ConsoleModifiers.Alt))
-            {
-                return;
-            }
-
-            if (Console.WindowWidth - 1 == _input.Length)
-            {
-                return;
-            }
-
-            _input.Insert(_cursorX, key.KeyChar);
-            _out.Write(Ansi.Modification.InsertCharacter);
-            _out.Write(key.KeyChar);
-            _cursorX++;
-            Render();
-        }
-
-        private void MoveSelectionUp(
-            ConsoleKeyInfo key, ConsoleModifiers requiredModifiers = default(ConsoleModifiers))
-        {
-            if (!key.Modifiers.HasFlag(requiredModifiers))
-            {
-                SelfInsert(key);
-                return;
-            }
-
-            if (_selectionIndex == 0)
-            {
-                _selectionIndex = _renderedItemsLength - 1;
-            }
-            else
-            {
-                _selectionIndex--;
-            }
-
-            Render(isForSelectionChange: true);
-        }
-
-        private void MoveSelectionDown(
-            ConsoleKeyInfo key,
-            ConsoleModifiers requiredModifiers = default(ConsoleModifiers))
-        {
-            if (!key.Modifiers.HasFlag(requiredModifiers))
-            {
-                SelfInsert(key);
-                return;
-            }
-
-            if (_selectionIndex >= _renderedItemsLength - 1)
-            {
-                _selectionIndex = 0;
-            }
-            else
-            {
-                _selectionIndex++;
-            }
-
-            Render(isForSelectionChange: true);
-        }
-
-        private void SetCursorX(int x)
-        {
-            _out.Write(
-                string.Format(
-                    CultureInfo.InvariantCulture,
-                    Ansi.Movement.SetHorizontalCursorPosition,
-                    x + 1));
-        }
-
-        private void SetCursorY(int y)
-        {
-            _out.Write(
-                string.Format(
-                    CultureInfo.InvariantCulture,
-                    Ansi.Movement.SetVerticalCursorPosition,
-                    y));
-        }
-
-        private void ClearLine(int amount = 1)
-        {
-            if (amount == 1)
-            {
-                _out.Write(Ansi.ClearCurrentLine);
-                return;
-            }
-
-            _out.Write(
-                string.Format(
-                    CultureInfo.InvariantCulture,
-                    Ansi.ClearLines,
-                    amount));
-        }
-
-        private void Render(bool isForSelectionChange = false)
-        {
-            if (_lastWindowWidth != Console.WindowWidth ||
-                _lastWindowHeight != Console.WindowHeight)
-            {
-                // Force full redraw on window resize.
-                EnsureInputWithinBounds();
-                _lastWindowWidth = Console.WindowWidth;
-                _lastWindowHeight = Console.WindowHeight;
-                isForSelectionChange = false;
-                _isHeaderWritten = false;
-                SetCursorX(0);
-                SetCursorY(0);
-                _out.Write(Ansi.ClearScreen);
-            }
-
-            if (!_isHeaderWritten)
-            {
-                WriteSubjectScript();
-                _out.Write(Ansi.Colors.Primary);
-                _out.WriteLine(Caption);
-                _out.Write(Ansi.Colors.Secondary);
-                _out.WriteLine(Message);
-                _out.Write(Ansi.Modification.InsertLines, 2);
-                _inputLine = Console.CursorTop;
-                _out.WriteLine(_input);
-                _out.Write(Ansi.Modification.InsertLines, 2);
-                _out.Write(Ansi.Colors.Reset);
-                _isHeaderWritten = true;
-                _resultsStartLine = Console.CursorTop;
-            }
-
-            RenderItems(skipMatchRebuild: isForSelectionChange);
-            SetCursorY(_inputLine);
-            SetCursorX(_cursorX);
-        }
-
-        private void WriteSubjectScript()
-        {
-            if (_renderedScript != null)
-            {
-                _out.Write(_renderedScript);
-                _out.WriteLine();
-                _out.WriteLine();
-                return;
-            }
-
-            if (CompletionData == null || string.IsNullOrWhiteSpace(CompletionData.Item1.Extent.Text))
-            {
-                _renderedScript = string.Empty;
-                return;
-            }
-
-            Token[] tokens = CompletionData.Item2;
-            if (Util.GetStringHeight(CompletionData.Item1.Extent.Text, _lastWindowWidth) > 4)
-            {
-                Parser.ParseInput(CompletionData.Item3.Line, out tokens, out _);
-            }
-
-            _renderedScript = Util.GetRenderedScript(tokens);
-            _out.Write(_renderedScript);
-            _out.WriteLine();
-            _out.WriteLine();
-        }
-
-        private void EnsureInputWithinBounds()
-        {
-            int newMaxLength = Console.WindowWidth - 1;
-            if (newMaxLength >= _input.Length)
-            {
-                return;
-            }
-
-            _input.Remove(
-                newMaxLength,
-                _input.Length - newMaxLength);
         }
 
         private int ReallyRenderItems(int currentMaxLines)
@@ -769,31 +376,6 @@ namespace EditorServicesCommandSuite.PSReadLine
 
                 _out.WriteLine();
             }
-        }
-
-        private void Write(string buffer, int index, int count, bool newLine = false, string color = null)
-        {
-            if (string.IsNullOrEmpty(color))
-            {
-                _out.Write(Ansi.Colors.Default);
-            }
-            else
-            {
-                _out.Write(color);
-            }
-
-            _out.Write(buffer, index, count);
-
-            if (newLine)
-            {
-                _out.WriteLine();
-            }
-        }
-
-        private void WriteEmphasis(string buffer, int index, int count)
-        {
-            _out.Write(Ansi.Colors.Emphasis);
-            _out.Write(buffer, index, count);
         }
 
         private string RenderItem(int index, TItem item)

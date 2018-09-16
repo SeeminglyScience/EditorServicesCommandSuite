@@ -1,4 +1,6 @@
+using System;
 using System.Management.Automation;
+using System.Management.Automation.Language;
 using EditorServicesCommandSuite.Internal;
 using Microsoft.PowerShell.EditorServices;
 
@@ -19,6 +21,12 @@ namespace EditorServicesCommandSuite.EditorServices
         public override bool IsUntitledWorkspace()
         {
             return string.IsNullOrEmpty(_workspace.WorkspacePath);
+        }
+
+        protected override Tuple<ScriptBlockAst, Token[]> GetFileContext(string path)
+        {
+            ScriptFile scriptFile = _workspace.GetFile(path);
+            return Tuple.Create(scriptFile.ScriptAst, scriptFile.ScriptTokens);
         }
     }
 }

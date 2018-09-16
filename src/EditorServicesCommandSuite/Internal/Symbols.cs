@@ -1,10 +1,18 @@
+using System.ComponentModel;
+
 namespace EditorServicesCommandSuite.Internal
 {
     /// <summary>
     /// Provides constants and static instances of common symbols.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static class Symbols
     {
+        /// <summary>
+        /// The character: "+"
+        /// </summary>
+        public const char Plus = '+';
+
         /// <summary>
         /// The character: "&gt;"
         /// </summary>
@@ -134,6 +142,26 @@ namespace EditorServicesCommandSuite.Internal
         /// The character: "}"
         /// </summary>
         public const char HashtableClose = CurlyClose;
+
+        /// <summary>
+        /// An array of characters for the string "function"
+        /// </summary>
+        public static readonly char[] Function = { 'f', 'u', 'n', 'c', 't', 'i', 'o', 'n' };
+
+        /// <summary>
+        /// An array of characters for the string "begin"
+        /// </summary>
+        public static readonly char[] Begin = { 'b', 'e', 'g', 'i', 'n' };
+
+        /// <summary>
+        /// An array of characters for the string "end"
+        /// </summary>
+        public static readonly char[] End = { 'e', 'n', 'd' };
+
+        /// <summary>
+        /// An array of characters for the string "process"
+        /// </summary>
+        public static readonly char[] Process = { 'p', 'r', 'o', 'c', 'e', 's', 's' };
 
         /// <summary>
         /// An array of characters for the string "$null"

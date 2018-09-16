@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
@@ -9,6 +10,7 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Represents the context of a refactor request.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public abstract class DocumentContextBase
     {
         internal readonly PSCmdlet _psCmdlet;

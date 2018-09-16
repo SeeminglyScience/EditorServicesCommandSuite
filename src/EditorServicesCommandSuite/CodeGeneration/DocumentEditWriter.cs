@@ -10,7 +10,7 @@ using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.CodeGeneration
 {
-    internal class DocumentEditWriter : StreamWriter
+    internal class DocumentEditWriter : SpanEnabledStreamWriter
     {
         protected int _implicitOverrideCount;
 
@@ -28,6 +28,8 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         private readonly List<DocumentEdit> _editsToBeReduced = new List<DocumentEdit>();
 
+        private readonly string _fileName;
+
         private int? _pendingIndent;
 
         private bool _isWritePending;
@@ -44,8 +46,14 @@ namespace EditorServicesCommandSuite.CodeGeneration
         }
 
         public DocumentEditWriter(string initialValue)
+            : this(initialValue, string.Empty)
+        {
+        }
+
+        public DocumentEditWriter(string initialValue, string fileName)
             : base(new MemoryStream(), DefaultEncoding)
         {
+            _fileName = fileName;
             _byteOffsetModifier = Encoding.IsSingleByte ? 1 : 2;
             TabString = Settings.TabString;
             NewLine = Settings.NewLine;
@@ -215,25 +223,22 @@ namespace EditorServicesCommandSuite.CodeGeneration
         }
 
         internal virtual void WriteEachWithSeparator<TInput>(
-            IList<TInput> source,
+            IEnumerable<TInput> source,
             Action<TInput> writer,
-            char[] separator)
+            Action separationWriter)
         {
-            WriteEachWithSeparator<TInput>(
-                source,
-                writer,
-                () => Write(separator));
-        }
+            var enumerator = source.GetEnumerator();
+            if (!enumerator.MoveNext())
+            {
+                return;
+            }
 
-        internal virtual void WriteEachWithSeparator<TInput>(
-            IList<TInput> source,
-            Action<TInput> writer,
-            string separator)
-        {
-            WriteEachWithSeparator<TInput>(
-                source,
-                writer,
-                () => Write(separator));
+            writer(enumerator.Current);
+            while (enumerator.MoveNext())
+            {
+                separationWriter();
+                writer(enumerator.Current);
+            }
         }
 
         internal virtual void WriteEachWithSeparator<TInput>(
@@ -391,6 +396,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             long currentPosition = 0;
             var edit = new DocumentEdit()
             {
+                FileName = _fileName,
                 StartOffset = _lastPositionSet,
                 EndOffset = _lastPositionSet + overwriteCount,
             };
@@ -462,6 +468,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
                 yield return new DocumentEdit()
                 {
+                    FileName = _fileName,
                     StartOffset = editGroup.Key,
                     EndOffset = highestOverride.EndOffset,
                     OriginalValue = highestOverride.OriginalValue,
@@ -472,6 +479,13 @@ namespace EditorServicesCommandSuite.CodeGeneration
                             .Select(edit => edit.NewValue)),
                 };
             }
+        }
+
+        private void BaseWrite(ReadOnlySpan<char> buffer)
+        {
+            WriteIndentIfPending();
+            base.Write(buffer);
+            _isWritePending = true;
         }
 
         private void BaseWrite(Action writer)
@@ -486,6 +500,14 @@ namespace EditorServicesCommandSuite.CodeGeneration
             await WriteIndentIfPendingAsync();
             await writer();
             _isWritePending = true;
+        }
+
+        private void BaseWriteLine(ReadOnlySpan<char> value)
+        {
+            base.Write(value);
+            base.Write(CoreNewLine);
+            _isWritePending = true;
+            _pendingIndent = Indent;
         }
 
         private void BaseWriteLine(Action writer = null)
@@ -531,6 +553,8 @@ namespace EditorServicesCommandSuite.CodeGeneration
 #pragma warning disable SA1202
         public override void WriteLine() => BaseWriteLine();
 
+        public override void WriteLine(ReadOnlySpan<char> value) => BaseWriteLine(value);
+
         public override void WriteLine(bool value) => BaseWriteLine(() => base.Write(value));
 
         public override void WriteLine(char value) => BaseWriteLine(() => base.Write(value));
@@ -564,6 +588,8 @@ namespace EditorServicesCommandSuite.CodeGeneration
         public override void WriteLine(uint value) => BaseWriteLine(() => base.Write(value));
 
         public override void WriteLine(ulong value) => BaseWriteLine(() => base.Write(value));
+
+        public override void Write(ReadOnlySpan<char> buffer) => BaseWrite(buffer);
 
         public override void Write(bool value) => BaseWrite(() => base.Write(value));
 

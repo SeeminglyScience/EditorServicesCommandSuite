@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Management.Automation;
 using System.Threading;
@@ -11,6 +12,7 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Represents the cmdletization of a refactor provider.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public class RefactorCmdletAdapter : CmdletAdapter<object>
     {
         private readonly CancellationTokenSource _isStopping = new CancellationTokenSource();
@@ -20,6 +22,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <summary>
         /// The BeginProcessing method.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void BeginProcessing()
         {
         }
@@ -30,6 +33,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="objectInstance">The parameter is not used.</param>
         /// <param name="methodInvocationInfo">The parameter is not used.</param>
         /// <param name="passThru">The parameter is not used.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void ProcessRecord(object objectInstance, MethodInvocationInfo methodInvocationInfo, bool passThru)
         {
         }
@@ -38,6 +42,7 @@ namespace EditorServicesCommandSuite.Internal
         /// The ProcessRecord method.
         /// </summary>
         /// <param name="query">The parameter is not used.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void ProcessRecord(QueryBuilder query)
         {
         }
@@ -48,6 +53,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="query">The parameter is not used.</param>
         /// <param name="methodInvocationInfo">The parameter is not used.</param>
         /// <param name="passThru">The parameter is not used.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void ProcessRecord(QueryBuilder query, MethodInvocationInfo methodInvocationInfo, bool passThru)
         {
         }
@@ -58,6 +64,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="methodInvocationInfo">
         /// The information used to determine which refactor provider to target.
         /// </param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void ProcessRecord(MethodInvocationInfo methodInvocationInfo)
         {
             RemoveCommonParameters(Cmdlet.MyInvocation.BoundParameters);
@@ -70,6 +77,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <summary>
         /// The EndProcessing method.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void EndProcessing()
         {
         }
@@ -77,6 +85,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <summary>
         /// The StopProcessing method.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void StopProcessing()
         {
             _isStopping.Cancel();
@@ -118,7 +127,8 @@ namespace EditorServicesCommandSuite.Internal
             }
 
             await CommandSuite.Instance.Documents.WriteDocumentEditsAsync(
-                await _provider.RequestEdits(context));
+                await _provider.RequestEdits(context),
+                context.CancellationToken);
         }
     }
 }

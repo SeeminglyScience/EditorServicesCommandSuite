@@ -74,15 +74,17 @@ namespace EditorServicesCommandSuite.Tests
             }
 
             // while (!System.Diagnostics.Debugger.IsAttached) System.Threading.Thread.Sleep(200);
-            var completionTuple = CommandCompletion.MapStringInputToParsedInput(
-                sb.ToString(),
-                cursor);
+            (Ast ast, Token[] tokens, IScriptPosition position) = CommandCompletion
+                .MapStringInputToParsedInput(
+                    sb.ToString(),
+                    cursor);
+
             return new DocumentContext(
-                (ScriptBlockAst)completionTuple.Item1,
-                completionTuple.Item1.FindAstAt(completionTuple.Item3),
-                new LinkedList<Token>(completionTuple.Item2).First.At(completionTuple.Item3),
+                (ScriptBlockAst)ast,
+                ast.FindAstAt(position),
+                new LinkedList<Token>(tokens).First.At(position),
                 PositionUtilities.NewScriptExtent(
-                    completionTuple.Item1.Extent,
+                    ast.Extent,
                     selectionStart,
                     selectionEnd));
         }

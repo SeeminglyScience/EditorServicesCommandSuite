@@ -52,7 +52,34 @@ namespace EditorServicesCommandSuite.Language
 
         internal static IEnumerable<string> GetLines(string text, string newLine)
         {
-            return text.Split(new[] { newLine }, StringSplitOptions.None);
+            int lastIndex = text.IndexOf(newLine);
+            if (lastIndex == -1)
+            {
+                yield return text;
+                yield break;
+            }
+
+            yield return text.Substring(0, lastIndex);
+            while (true)
+            {
+                int newLastIndex = text.IndexOf(newLine, lastIndex + newLine.Length);
+                if (newLastIndex == -1)
+                {
+                    if (text.Length - lastIndex == newLine.Length)
+                    {
+                        break;
+                    }
+
+                    yield return text.Substring(
+                        lastIndex + newLine.Length, text.Length - (lastIndex + newLine.Length));
+                    break;
+                }
+
+                yield return text.Substring(
+                    lastIndex + newLine.Length,
+                    newLastIndex - (lastIndex + newLine.Length));
+                lastIndex = newLastIndex;
+            }
         }
     }
 }

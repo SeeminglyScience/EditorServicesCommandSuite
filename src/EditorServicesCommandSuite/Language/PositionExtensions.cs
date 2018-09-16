@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Management.Automation.Language;
 using EditorServicesCommandSuite.Reflection;
@@ -27,6 +28,18 @@ namespace EditorServicesCommandSuite.Language
 
         public static IScriptPosition CloneWithNewOffset(this IScriptPosition position, int offset)
         {
+            if (position is Empty.Position)
+            {
+                Debug.Assert(
+                    position.Offset == offset,
+                    "Caller should verify CloneWithNewOffset is not called on EmptyPosition");
+                return position;
+            }
+
+            Debug.Assert(
+                position.GetType().Name == "InternalScriptPosition",
+                "Caller should verify target of CloneWithNewOffset of a controlled type");
+
             return (IScriptPosition)ReflectionCache.InternalScriptPosition_CloneWithNewOffset
                 .Invoke(position, new object[] { offset });
         }
@@ -49,7 +62,7 @@ namespace EditorServicesCommandSuite.Language
         {
             if (!extents.Any())
             {
-                return Empty.Extent;
+                return Empty.Extent.Untitled;
             }
 
             return PositionUtilities.NewScriptExtent(
@@ -68,10 +81,21 @@ namespace EditorServicesCommandSuite.Language
             return JoinExtents(tokens.Select(token => token.Extent));
         }
 
+        public static bool IsOffsetWithinOrDirectlyAfter(this IScriptExtent extent, int offsetToTest)
+        {
+            return ContainsOffset(extent, offsetToTest) || extent.EndOffset + 1 == offsetToTest;
+        }
+
         public static bool ContainsOffset(this IScriptExtent extent, int offsetToTest)
         {
             return extent.StartOffset <= offsetToTest
                 && extent.EndOffset >= offsetToTest;
+        }
+
+        public static bool ContainsExtent(this IScriptExtent extent, IScriptExtent extentToTest)
+        {
+            return extent.ContainsOffset(extentToTest.StartOffset)
+                && extent.ContainsOffset(extentToTest.EndOffset);
         }
     }
 }

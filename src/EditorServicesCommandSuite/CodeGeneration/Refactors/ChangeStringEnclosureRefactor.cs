@@ -143,7 +143,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     FormatWriter = new PowerShellScriptWriter(rootAst),
                     Token = token,
                     NestedExpressions =
-                        expandableAst?.NestedExpressions.ToArray() ?? Empty.Array<ExpressionAst>(),
+                        expandableAst?.NestedExpressions.ToArray() ?? Array.Empty<ExpressionAst>(),
                 };
 
                 helper.Convert();
@@ -272,10 +272,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 }
                 else
                 {
-                    _nestedExtents = Empty.Array<IScriptExtent>();
-                    _expressionStarts = Empty.Array<int>();
-                    _expressionEnds = Empty.Array<int>();
-                    _wasParenClose = Empty.Array<bool>();
+                    _nestedExtents = Array.Empty<IScriptExtent>();
+                    _expressionStarts = Array.Empty<int>();
+                    _expressionEnds = Array.Empty<int>();
+                    _wasParenClose = Array.Empty<bool>();
                 }
 
                 for (var i = 0; i < _nestedExtents.Length; i++)

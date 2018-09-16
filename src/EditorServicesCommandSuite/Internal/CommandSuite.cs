@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Host;
@@ -13,6 +15,7 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Provides a central entry point for interacting with the command suite session.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never), DebuggerStepThrough]
     public abstract class CommandSuite
     {
         private static CommandSuite s_instance;
@@ -24,6 +27,7 @@ namespace EditorServicesCommandSuite.Internal
         /// </summary>
         /// <param name="engine">The PowerShell engine.</param>
         /// <param name="host">The PowerShell host.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected CommandSuite(
             EngineIntrinsics engine,
             PSHost host)
@@ -59,6 +63,7 @@ namespace EditorServicesCommandSuite.Internal
         /// Gets the current instance or <see langword="null" /> if it has not been
         /// created yet.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal static CommandSuite Instance
         {
             get
@@ -74,58 +79,61 @@ namespace EditorServicesCommandSuite.Internal
             }
         }
 
-        internal static bool TryGetInstance(out CommandSuite instance)
-        {
-            instance = s_instance;
-            return s_instance != null;
-        }
-
         /// <summary>
         /// Gets the diagnostics provider.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract IRefactorAnalysisContext Diagnostics { get; }
 
         /// <summary>
         /// Gets the processor for <see cref="DocumentEdit" /> objects.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract IDocumentEditProcessor Documents { get; }
 
         /// <summary>
         /// Gets the interface for interacting with the UI.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract IRefactorUI UI { get; }
 
         /// <summary>
         /// Gets the interface for navigating an open document.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal NavigationService Navigation => InternalNavigation;
 
         /// <summary>
         /// Gets the interface for getting information about the users current
         /// state in an open document. (e.g. cursor position, selection, etc)
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract DocumentContextProvider DocumentContext { get; }
 
         /// <summary>
         /// Gets the interface for safely invoking PowerShell commands.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal abstract IPowerShellExecutor Execution { get; }
 
         /// <summary>
         /// Gets the interface for getting information about the state of the
         /// current workspace.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal virtual IRefactorWorkspace Workspace { get; } = new WorkspaceContext();
 
         /// <summary>
         /// Gets the interface for the PowerShell engine.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal EngineIntrinsics ExecutionContext { get; }
 
         /// <summary>
         /// Generates the cdxml for cmdletizing refactor providers and writes it to a file.
         /// </summary>
         /// <param name="path">The path to save the cdxml to.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public static void WriteRefactorModule(string path)
         {
             Cmdletizer.WriteRefactorModule(path);
@@ -137,6 +145,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="session">
         /// The <see cref="SessionState" /> where the refactor functions are loaded.
         /// </param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void ImportSessionRefactors(SessionState session)
         {
             var functions = session.InvokeCommand.GetCommands(
@@ -166,6 +175,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public async Task RequestRefactor(PSCmdlet cmdlet)
         {
             Validate.IsNotNull(nameof(cmdlet), cmdlet);
@@ -184,12 +194,19 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public async Task RequestRefactor(PSCmdlet cmdlet, CancellationToken cancellationToken)
         {
             Validate.IsNotNull(nameof(cmdlet), cmdlet);
             await RequestRefactor(
                 cmdlet,
                 await DocumentContext.GetDocumentContextAsync(cmdlet, cancellationToken));
+        }
+
+        internal static bool TryGetInstance(out CommandSuite instance)
+        {
+            instance = s_instance;
+            return s_instance != null;
         }
 
         /// <summary>
@@ -223,7 +240,10 @@ namespace EditorServicesCommandSuite.Internal
                 item => item.Name,
                 item => item.Description);
 
-            await Documents.WriteDocumentEditsAsync(await selectedRefactor.GetDocumentEdits());
+            await Documents.WriteDocumentEditsAsync(
+                await selectedRefactor.GetDocumentEdits(),
+                request.CancellationToken);
+
             if (request.SelectionRange != null)
             {
                 await Navigation.SetSelectionAsync(
@@ -240,11 +260,13 @@ namespace EditorServicesCommandSuite.Internal
         /// to <see cref="CommandSuite.Navigation" />.
         /// </summary>
         /// <returns>The <see cref="NavigationService" />.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected abstract NavigationService GetNavigationServiceImpl();
 
         /// <summary>
         /// Creates and registers default refactor providers.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected void InitializeRefactorProviders()
         {
             Refactors.RegisterProvider(new ImplementAbstractMethodsRefactor(UI));
@@ -255,6 +277,8 @@ namespace EditorServicesCommandSuite.Internal
             Refactors.RegisterProvider(new SuppressAnalyzerMessageRefactor(Diagnostics));
             Refactors.RegisterProvider(new AddModuleQualificationRefactor(Execution, UI, Workspace));
             Refactors.RegisterProvider(new ExpandMemberExpressionRefactor(UI));
+            Refactors.RegisterProvider(new ExtractFunctionRefactor(UI, Workspace));
+            Refactors.RegisterProvider(new NameUnnamedBlockRefactor());
         }
     }
 }

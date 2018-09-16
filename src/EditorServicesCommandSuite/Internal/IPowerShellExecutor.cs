@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ namespace EditorServicesCommandSuite.Internal
     /// Provides the ability to invoke PowerShell commands in a way that will not
     /// conflict with the host editor.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public interface IPowerShellExecutor
     {
         /// <summary>
@@ -24,9 +26,10 @@ namespace EditorServicesCommandSuite.Internal
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the result of the invocation.
         /// </returns>
-         Task<IEnumerable<TResult>> ExecuteCommandAsync<TResult>(
-             PSCommand psCommand,
-             CancellationToken cancellationToken);
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        Task<IEnumerable<TResult>> ExecuteCommandAsync<TResult>(
+            PSCommand psCommand,
+            CancellationToken cancellationToken);
 
         /// <summary>
         /// Executes a PowerShell command in a way that will not conflict with the
@@ -40,7 +43,8 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// The result of the invocation.
         /// </returns>
-         IEnumerable<TResult> ExecuteCommand<TResult>(
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        IEnumerable<TResult> ExecuteCommand<TResult>(
              PSCommand psCommand,
              CancellationToken cancellationToken);
     }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
@@ -63,14 +64,14 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                         AddModuleQualificationStrings.PSCmdletRequired,
                         nameof(AddModuleQualificationRefactor)),
                     waitForResponse: false);
-                return Empty.Array<DocumentEdit>();
+                return Array.Empty<DocumentEdit>();
             }
 
             string commandName = ast.GetCommandName();
             if (string.IsNullOrWhiteSpace(commandName))
             {
                 await ShowCommandNotFoundError(_ui);
-                return Empty.Array<DocumentEdit>();
+                return Array.Empty<DocumentEdit>();
             }
 
             CommandInfo command = cmdlet.SessionState.InvokeCommand.GetCommand(
@@ -84,7 +85,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             {
                 if (!TryGetModuleNameFromCommand(command, out moduleName))
                 {
-                    return Empty.Array<DocumentEdit>();
+                    return Array.Empty<DocumentEdit>();
                 }
 
                 return await GetEdits(ast, moduleName);
@@ -95,7 +96,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             if (!ManifestInfo.TryGetWorkspaceManifest(_workspace, out manifest))
             {
                 await ShowCommandNotFoundError(_ui);
-                return Empty.Array<DocumentEdit>();
+                return Array.Empty<DocumentEdit>();
             }
 
             if (manifest.FunctionsToExport.Contains(commandName) ||
@@ -106,7 +107,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             }
 
             request.CancellationToken.ThrowIfCancellationRequested();
-            return Empty.Array<DocumentEdit>();
+            return Array.Empty<DocumentEdit>();
         }
 
         private static async Task ShowCommandNotFoundError(IRefactorUI ui)

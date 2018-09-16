@@ -37,6 +37,26 @@ namespace EditorServicesCommandSuite.Language
             return source.GetOutputType() ?? new PSTypeName(defaultType);
         }
 
+        public static IEnumerable<Ast> Descendants(this Ast source)
+        {
+            return AstEnumerable.Create(source, excludeSelf: true);
+        }
+
+        public static IEnumerable<Ast> Descendants(this Ast source, Func<Ast, bool> filter)
+        {
+            return AstEnumerable.Create(source, filter, excludeSelf: true);
+        }
+
+        public static IEnumerable<Ast> DescendantsAndSelf(this Ast source)
+        {
+            return AstEnumerable.Create(source);
+        }
+
+        public static IEnumerable<Ast> DescendantsAndSelf(this Ast source, Func<Ast, bool> filter)
+        {
+            return AstEnumerable.Create(source, filter);
+        }
+
         public static Ast FindAstAt(this Ast source, IScriptPosition position)
         {
             Validate.IsNotNull(nameof(position), position);
@@ -46,21 +66,48 @@ namespace EditorServicesCommandSuite.Language
                 return null;
             }
 
-            return source.FindAll(
-                ast => ast.Extent.ContainsOffset(position.Offset),
-                searchNestedScriptBlocks: true)
-                .OrderBy(ast => ast.Extent.EndOffset - ast.Extent.StartOffset)
-                .ThenByDescending(ast =>
-                {
-                    var count = 0;
-                    for (; ast.Parent != null; ast = ast.Parent)
-                    {
-                        count++;
-                    }
-
-                    return count;
-                })
+            return source
+                .DescendantsAndSelf(ast => ast.Extent.IsOffsetWithinOrDirectlyAfter(position.Offset))
+                .OrderBySmallest()
                 .FirstOrDefault();
+        }
+
+        public static Ast FindAstContaining(this Ast source, IScriptExtent extent)
+        {
+            Validate.IsNotNull(nameof(extent), extent);
+
+            if (source == null)
+            {
+                return null;
+            }
+
+            return source
+                .DescendantsAndSelf(
+                    ast =>
+                    {
+                        return ast.Extent.ContainsOffset(extent.StartOffset)
+                            && ast.Extent.IsOffsetWithinOrDirectlyAfter(extent.EndOffset);
+                    })
+                .OrderBySmallest()
+                .FirstOrDefault();
+        }
+
+        public static IOrderedEnumerable<TAst> OrderBySmallest<TAst>(this IEnumerable<TAst> source)
+            where TAst : Ast
+        {
+            return source
+                .OrderBy(ast => ast.Extent.EndOffset - ast.Extent.StartOffset)
+                .ThenBy(
+                    ast =>
+                    {
+                        var count = 0;
+                        for (Ast subject = ast; subject.Parent != null; subject = subject.Parent)
+                        {
+                            count++;
+                        }
+
+                        return count;
+                    });
         }
 
         public static ScriptBlockAst FindRootAst(this Ast ast)
@@ -227,7 +274,7 @@ namespace EditorServicesCommandSuite.Language
             var index = ast.Extent.Text.IndexOf(target);
             if (index < 0)
             {
-                return EmptyPosition.Empty;
+                return Empty.Position.Untitled;
             }
 
             return ast.Extent.StartScriptPosition.CloneWithNewOffset(

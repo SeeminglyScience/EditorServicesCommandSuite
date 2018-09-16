@@ -1,4 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+  <PropertyGroup>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>2.0</OldToolsVersion>
+  </PropertyGroup>
   <Import Project="..\EditorServicesCommandSuite.Common.props" />
   <ItemGroup>
     <ProjectReference Include="..\EditorServicesCommandSuite\EditorServicesCommandSuite.csproj" />
@@ -10,5 +17,3 @@
     <PackageReference Include="System.Buffers" Version="4.4.0" />
   </ItemGroup>
 </Project>
-
-
