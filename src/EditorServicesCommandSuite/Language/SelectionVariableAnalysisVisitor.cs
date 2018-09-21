@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+using System.Threading;
+using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Language
 {
@@ -126,11 +129,11 @@ namespace EditorServicesCommandSuite.Language
             return AstVisitAction.Continue;
         }
 
-        internal static Dictionary<string, SelectionVariableAnalysisResult> ProcessSelection(
+        internal static async Task<Dictionary<string, SelectionVariableAnalysisResult>> ProcessSelection(
             ScriptBlockAst rootAst,
             IScriptExtent selection,
-            IPowerShellExecutor executor,
-            EngineIntrinsics engine)
+            ThreadController pipelineThread,
+            CancellationToken cancellationToken = default)
         {
             var visitor = new SelectionVariableAnalysisVisitor(selection);
             rootAst.Visit(visitor);
@@ -169,7 +172,10 @@ namespace EditorServicesCommandSuite.Language
                         continue;
                     }
 
-                    details.InferredType = GetInferredType(variable, executor, engine);
+                    details.InferredType = await GetInferredType(
+                        variable,
+                        pipelineThread,
+                        cancellationToken);
                     continue;
                 }
 
@@ -177,21 +183,22 @@ namespace EditorServicesCommandSuite.Language
                     variable.VariablePath.UserPath,
                     new SelectionVariableAnalysisResult(
                         variable,
-                        GetInferredType(variable, executor, engine)));
+                        await GetInferredType(variable, pipelineThread)));
             }
 
             return parameterDetails;
         }
 
-        private static PSTypeName GetInferredType(
+        private static async Task<PSTypeName> GetInferredType(
             VariableExpressionAst variable,
-            IPowerShellExecutor executor,
-            EngineIntrinsics engine)
+            ThreadController pipelineThread,
+            CancellationToken cancellationToken = default)
         {
-            return Inference.AstTypeInference.InferTypeOf(
-                variable,
-                executor,
-                engine)
+            return
+                (await Inference.AstTypeInference.InferTypeOf(
+                    variable,
+                    pipelineThread,
+                    cancellationToken))
                 .DefaultIfEmpty(s_objectPSType)
                 .FirstOrDefault();
         }

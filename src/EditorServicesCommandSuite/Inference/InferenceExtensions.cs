@@ -4,8 +4,10 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Reflection;
-using EditorServicesCommandSuite.Internal;
+using System.Threading;
+using System.Threading.Tasks;
 using EditorServicesCommandSuite.Reflection;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Inference
 {
@@ -16,9 +18,10 @@ namespace EditorServicesCommandSuite.Inference
             return string.Equals(s, t, StringComparison.OrdinalIgnoreCase);
         }
 
-        internal static IEnumerable<MemberInfo> GetInferredMembers(
+        internal static async Task<IEnumerable<MemberInfo>> GetInferredMembers(
             this MemberExpressionAst ast,
-            CommandSuite commandSuite,
+            ThreadController threadController,
+            CancellationToken cancellationToken = default,
             bool skipArgumentCheck = false,
             bool includeNonPublic = false)
         {
@@ -28,29 +31,29 @@ namespace EditorServicesCommandSuite.Inference
                 PSTypeName resolvedType = ResolvePartialTypeName(new PSTypeName(typeExpression.TypeName));
                 if (resolvedType == null)
                 {
-                    yield break;
+                    return Enumerable.Empty<MemberInfo>();
                 }
 
                 if (!resolvedType.Type.IsPublic && !includeNonPublic)
                 {
-                    yield break;
+                    return Enumerable.Empty<MemberInfo>();
                 }
 
                 expressionTypes = new[] { resolvedType };
             }
             else
             {
-                expressionTypes = AstTypeInference.InferTypeOf(
+                expressionTypes = await AstTypeInference.InferTypeOf(
                     ast.Expression,
-                    commandSuite.Execution,
-                    commandSuite.ExecutionContext,
+                    threadController,
+                    cancellationToken,
                     includeNonPublic);
             }
 
             StringConstantExpressionAst memberNameConstant = ast.Member as StringConstantExpressionAst;
             if (memberNameConstant == null)
             {
-                yield break;
+                return Enumerable.Empty<MemberInfo>();
             }
 
             string memberName = memberNameConstant.Value.EqualsOrdinalIgnoreCase("new")
@@ -60,13 +63,18 @@ namespace EditorServicesCommandSuite.Inference
             int argumentCount = invokeExpression?.Arguments.Count ?? 0;
             bool isStatic = ast.Static && !memberName.EqualsOrdinalIgnoreCase(".ctor");
 
-            foreach (MemberInfo member in GetMembersForInferredTypes(expressionTypes, isStatic, includeNonPublic))
+            return EnumerateMembers();
+
+            IEnumerable<MemberInfo> EnumerateMembers()
             {
-                if (member.Name.EqualsOrdinalIgnoreCase(memberName) &&
-                    (invokeExpression == null || !(member is MethodBase)) &&
-                    (skipArgumentCheck || argumentCount == member.GetParameterCount()))
+                foreach (MemberInfo member in GetMembersForInferredTypes(expressionTypes, isStatic, includeNonPublic))
                 {
-                    yield return member;
+                    if (member.Name.EqualsOrdinalIgnoreCase(memberName) &&
+                        (invokeExpression == null || !(member is MethodBase)) &&
+                        (skipArgumentCheck || argumentCount == member.GetParameterCount()))
+                    {
+                        yield return member;
+                    }
                 }
             }
         }

@@ -41,7 +41,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return false;
             }
 
-            return GetMarkers(request).Any(
+            // TODO: Find a better way to test this.
+            return GetMarkersAsync(request).GetAwaiter().GetResult().Any(
                 marker => marker.Extent.ContainsOffset(request.SelectionExtent.EndOffset));
         }
 
@@ -61,21 +62,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             .CreateEdits();
         }
 
-        private IEnumerable<DiagnosticMarker> GetMarkers(DocumentContextBase request)
-        {
-            if (string.IsNullOrEmpty(request.RootAst.Extent.File) ||
-                !File.Exists(request.RootAst.Extent.File))
-            {
-                return _analysisContext.GetDiagnosticsFromContents(
-                    request.RootAst.Extent.Text,
-                    request.CancellationToken);
-            }
-
-            return _analysisContext.GetDiagnosticsFromPath(
-                request.RootAst.Extent.File,
-                request.CancellationToken);
-        }
-
         private async Task<IEnumerable<DiagnosticMarker>> GetMarkersAsync(DocumentContextBase request)
         {
             if (string.IsNullOrEmpty(request.RootAst.Extent.File) ||
@@ -83,11 +69,13 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             {
                 return await _analysisContext.GetDiagnosticsFromContentsAsync(
                     request.RootAst.Extent.Text,
+                    request.PipelineThread,
                     request.CancellationToken);
             }
 
             return await _analysisContext.GetDiagnosticsFromPathAsync(
                 request.RootAst.Extent.File,
+                request.PipelineThread,
                 request.CancellationToken);
         }
 

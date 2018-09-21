@@ -132,4 +132,7 @@
   <data name="NoCommandSuiteInstance" xml:space="preserve">
     <value>No existing CommandSuite instance was found. Initialization with the host editor may have failed.</value>
   </data>
+  <data name="CommandNotFound" xml:space="preserve">
+    <value>Unable to find the command "{0}".</value>
+  </data>
 </root>

@@ -14,15 +14,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         public SwitchParameter NewLineAfterHashtable { get; set; }
 
         [Parameter]
-        [DefaultFromSetting("CommandSplatRefactor.AllParameters", Default = "$false")]
-        public SwitchParameter AllParameters { get; set; }
+        [DefaultFromSetting("CommandSplatRefactor.AdditionalParameters", Default = "\"None\"")]
+        public AdditionalParameterTypes AdditionalParameters { get; set; }
 
         [Parameter]
-        [DefaultFromSetting("CommandSplatRefactor.MandatoryParameters", Default = "$false")]
-        public SwitchParameter MandatoryParameters { get; set; }
-
-        [Parameter]
-        [DefaultFromSetting("CommandSplatRefactor.NoHints", Default = "$false")]
-        public SwitchParameter NoHints { get; set; }
+        [DefaultFromSetting("CommandSplatRefactor.ExcludeHints", Default = "$false")]
+        public SwitchParameter ExcludeHints { get; set; }
     }
 }

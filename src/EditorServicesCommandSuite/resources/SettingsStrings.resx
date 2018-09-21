@@ -129,6 +129,9 @@
   <data name="MarkdownDocsPathDescription" xml:space="preserve">
     <value>The relative path from the current workspace to the directory where markdown files are stored.</value>
   </data>
+  <data name="FunctionPathsDescription" xml:space="preserve">
+    <value>The relative path(s) from the current workspace to the directory(ies) where functions are stored.</value>
+  </data>
   <data name="NewLineDescription" xml:space="preserve">
     <value>The string used to created line breaks. Defaults to "[Environment]::NewLine"</value>
   </data>
@@ -144,14 +147,19 @@
   <data name="CommandSplatRefactor_NewLineAfterHashtableDescription" xml:space="preserve">
     <value>Specifies whether a new line should be placed between the hashtable and the original command expression.</value>
   </data>
-  <data name="CommandSplatRefactor_AllParametersDescription" xml:space="preserve">
-    <value>Specifies whether all possible (remaining) parameters should be retrieved and added to the splat expression. The default behavior is to only convert arguments present in the original command expression.</value>
+  <data name="CommandSplatRefactor_AdditionalParametersDescription" xml:space="preserve">
+    <value>Specifies if additional parameters that have not been should be added to the splat expression. The following options are available:
+    "None" - Only bound parameters. This is the default.
+    "Mandatory" - Mandatory parameters that have not yet been bound will be added.
+    "All" - All resolved parameters will be added.</value>
   </data>
-  <data name="CommandSplatRefactor_MandatoryParametersDescription" xml:space="preserve">
-    <value>Specifies whether all (remaining) mandatory parameters should be retrieved and added to the splat expression. The default behavior is to only convert arguments present in the original command expression.</value>
+  <data name="CommandSplatRefactor_ExcludeHintsDescription" xml:space="preserve">
+    <value>Specifies whether the value for additional unbound parameters should be a variable of the same name as the parameter, or if it should be decorated with mandatoriness and parameter type.
+    $true - Path = $path
+    $false - Path = $mandatoryStringPath</value>
   </data>
-  <data name="CommandSplatRefactor_NoHintsDescription" xml:space="preserve">
-    <value>Specifies whether hints (mandatoryness, type) about parameters should be retrieved and added to the splat expression. The default behavior is to show hints.</value>
+  <data name="ExpandMemberExpression_AllowNonPublicMembers" xml:space="preserve">
+    <value>Specifies whether non-public members should be included in the list of resolved members. If a non-public member is selected, an expression utilizing reflection will be generated to access the member.</value>
   </data>
   <data name="UsingStatements_SeparateGroupsWithNewLineDescription" xml:space="preserve">
     <value>Specifies whether groups of using statement types should be separated with a new line character.</value>

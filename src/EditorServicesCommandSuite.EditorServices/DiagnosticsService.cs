@@ -6,7 +6,7 @@ using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
-using Microsoft.PowerShell.EditorServices.Utility;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
@@ -14,45 +14,9 @@ namespace EditorServicesCommandSuite.EditorServices
     {
         private static readonly DiagnosticMarker[] s_emptyMarkers = new DiagnosticMarker[0];
 
-        private readonly IPowerShellExecutor _executor;
-
-        public DiagnosticsService(IPowerShellExecutor executor)
-        {
-            Validate.IsNotNull(nameof(executor), executor);
-            _executor = executor;
-        }
-
-        public IEnumerable<DiagnosticMarker> GetDiagnosticsFromPath(
-            string path,
-            CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return s_emptyMarkers;
-            }
-
-            if (!File.Exists(Path.GetFullPath(path)))
-            {
-                return s_emptyMarkers;
-            }
-
-            return GetDiagnosticsImpl("Path", path, cancellationToken);
-        }
-
-        public IEnumerable<DiagnosticMarker> GetDiagnosticsFromContents(
-            string contents,
-            CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrWhiteSpace(contents))
-            {
-                return s_emptyMarkers;
-            }
-
-            return GetDiagnosticsImpl("ScriptDefinition", contents, cancellationToken);
-        }
-
         public async Task<IEnumerable<DiagnosticMarker>> GetDiagnosticsFromPathAsync(
             string path,
+            ThreadController pipelineThread,
             CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -65,11 +29,16 @@ namespace EditorServicesCommandSuite.EditorServices
                 return s_emptyMarkers;
             }
 
-            return await GetDiagnosticsImplAsync("Path", path, cancellationToken);
+            return await GetDiagnosticsImplAsync(
+                "Path",
+                path,
+                pipelineThread,
+                cancellationToken);
         }
 
         public async Task<IEnumerable<DiagnosticMarker>> GetDiagnosticsFromContentsAsync(
             string contents,
+            ThreadController pipelineThread,
             CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(contents))
@@ -77,7 +46,11 @@ namespace EditorServicesCommandSuite.EditorServices
                 return s_emptyMarkers;
             }
 
-            return await GetDiagnosticsImplAsync("ScriptDefinition", contents, cancellationToken);
+            return await GetDiagnosticsImplAsync(
+                "ScriptDefinition",
+                contents,
+                pipelineThread,
+                cancellationToken);
         }
 
         private static DiagnosticMarker ToDiagnosticMarker(PSObject marker)
@@ -90,35 +63,27 @@ namespace EditorServicesCommandSuite.EditorServices
                 ignoreUnknownMembers: true);
         }
 
-        private IEnumerable<DiagnosticMarker> GetDiagnosticsImpl(
-            string pssaParameterName,
-            string value,
-            CancellationToken cancellationToken)
-        {
-            return _executor
-                .ExecuteCommand<PSObject>(
-                    new PSCommand()
-                        .AddCommand("Invoke-ScriptAnalyzer")
-                        .AddParameter(pssaParameterName, value)
-                        .AddCommand("Select-Object")
-                        .AddParameter("Property", "*"),
-                    cancellationToken)
-                .Select(ToDiagnosticMarker);
-        }
-
         private async Task<IEnumerable<DiagnosticMarker>> GetDiagnosticsImplAsync(
             string pssaParameterName,
             string value,
+            ThreadController pipelineThread,
             CancellationToken cancellationToken)
         {
-            return (await _executor.ExecuteCommandAsync<PSObject>(
-                new PSCommand()
-                    .AddCommand("Invoke-ScriptAnalyzer")
-                    .AddParameter(pssaParameterName, value)
-                    .AddCommand("Select-Object")
-                    .AddParameter("Property", "*"),
-                cancellationToken))
-                .Select(ToDiagnosticMarker);
+            return await pipelineThread.InvokeAsync(
+                () =>
+                {
+                    using (var pwsh = PowerShell.Create(RunspaceMode.CurrentRunspace))
+                    using (cancellationToken.Register(() => pwsh.BeginStop(null, null)))
+                    {
+                        return
+                            pwsh.AddCommand("PSScriptAnalyzer\\Invoke-ScriptAnalyzer")
+                                .AddParameter(pssaParameterName, value)
+                                .AddCommand("Microsoft.PowerShell.Utility\\Select-Object")
+                                .AddParameter("Property", "*")
+                                .Invoke<PSObject>()
+                                .Select(ToDiagnosticMarker);
+                    }
+                });
         }
     }
 }

@@ -87,6 +87,11 @@ namespace EditorServicesCommandSuite.EditorServices
 
         private static string GetPathAsClientPath(string path)
         {
+            if (path.StartsWith("untitled:", StringComparison.Ordinal))
+            {
+                return path;
+            }
+
             Debug.Assert(
                 !string.IsNullOrWhiteSpace(path),
                 "Caller should verify path is valid");

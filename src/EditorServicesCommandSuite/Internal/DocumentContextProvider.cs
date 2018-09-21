@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
@@ -13,48 +12,12 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Provides context for the current state of editor host.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public abstract class DocumentContextProvider
+    internal abstract class DocumentContextProvider
     {
         /// <summary>
         /// Gets the path to the current workspace.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract string Workspace { get; }
-
-        /// <summary>
-        /// Gets the context of the current state of the editor host.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
-        /// will contain the requested context.
-        /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract Task<DocumentContextBase> GetDocumentContextAsync();
-
-        /// <summary>
-        /// Gets the context of the current state of the editor host.
-        /// </summary>
-        /// <param name="cmdlet">The <see cref="PSCmdlet" /> requesting the context.</param>
-        /// <returns>
-        /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
-        /// will contain the requested context.
-        /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract Task<DocumentContextBase> GetDocumentContextAsync(PSCmdlet cmdlet);
-
-        /// <summary>
-        /// Gets the context of the current state of the editor host.
-        /// </summary>
-        /// <param name="cancellationToken">
-        /// The cancellation token that will be checked prior to completing the returned task.
-        /// </param>
-        /// <returns>
-        /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
-        /// will contain the requested context.
-        /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract Task<DocumentContextBase> GetDocumentContextAsync(CancellationToken cancellationToken);
+        internal abstract string Workspace { get; }
 
         /// <summary>
         /// Gets the context of the current state of the editor host.
@@ -63,20 +26,24 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="cancellationToken">
         /// The cancellation token that will be checked prior to completing the returned task.
         /// </param>
+        /// <param name="pipelineThread">
+        /// The controller for the PowerShell pipeline thread.
+        /// </param>
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the requested context.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract Task<DocumentContextBase> GetDocumentContextAsync(PSCmdlet cmdlet, CancellationToken cancellationToken);
+        internal abstract Task<DocumentContextBase> GetDocumentContextAsync(
+            PSCmdlet cmdlet,
+            CancellationToken cancellationToken,
+            ThreadController pipelineThread);
 
         /// <summary>
         /// Creates a helper object that can be used to easily build context.
         /// </summary>
         /// <param name="scriptText">The full text of the current document.</param>
         /// <returns>The helper object.</returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected DocumentContextBuilder GetContextBuilder(string scriptText)
+        private protected DocumentContextBuilder GetContextBuilder(string scriptText)
         {
             return new DocumentContextBuilder(scriptText);
         }
@@ -87,8 +54,7 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="ast">The AST of the current document.</param>
         /// <param name="tokens">The tokens for the current document.</param>
         /// <returns>The helper object.</returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected DocumentContextBuilder GetContextBuilder(Ast ast, Token[] tokens)
+        private protected DocumentContextBuilder GetContextBuilder(Ast ast, Token[] tokens)
         {
             return new DocumentContextBuilder(ast, tokens);
         }
@@ -96,9 +62,10 @@ namespace EditorServicesCommandSuite.Internal
         /// <summary>
         /// Provides a more fluid way to build context for a refactor request.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected class DocumentContextBuilder
+        private protected class DocumentContextBuilder
         {
+            private ThreadController _threadController;
+
             private IScriptExtent _selectionExtent;
 
             private IScriptPosition _cursorPosition;
@@ -166,7 +133,6 @@ namespace EditorServicesCommandSuite.Internal
             /// Converts the builder into a usable <see cref="DocumentContextBase" /> object.
             /// </summary>
             /// <param name="builder">The builder to convert.</param>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public static implicit operator DocumentContextBase(DocumentContextBuilder builder)
             {
                 return new DocumentContext(
@@ -175,7 +141,8 @@ namespace EditorServicesCommandSuite.Internal
                     new LinkedList<Token>(builder.Tokens).First.AtOrBefore(builder.CursorPosition),
                     builder.SelectionExtent,
                     builder._cmdlet,
-                    builder._cancellationToken ?? CancellationToken.None);
+                    builder._cancellationToken ?? CancellationToken.None,
+                    builder._threadController);
             }
 
             /// <summary>
@@ -185,7 +152,6 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCmdlet(PSCmdlet cmdlet)
             {
                 _cmdlet = cmdlet;
@@ -199,7 +165,6 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCancellationToken(CancellationToken cancellationToken)
             {
                 _cancellationToken = cancellationToken;
@@ -213,7 +178,6 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCursorPosition(int offset)
             {
                 _cursorPosition = Ast.Extent.StartScriptPosition.CloneWithNewOffset(offset);
@@ -228,7 +192,6 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCursorPosition(int line, int column)
             {
                 _cursorPosition = Ast.Extent.StartScriptPosition.CloneWithNewOffset(
@@ -245,7 +208,6 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddCursorPosition(IScriptPosition position)
             {
                 _cursorPosition = position;
@@ -260,7 +222,6 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddSelectionRange(int startOffset, int endOffset)
             {
                 _selectionExtent = PositionUtilities.NewScriptExtent(
@@ -280,7 +241,6 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddSelectionRange(int startLine, int startColumn, int endLine, int endColumn)
             {
                 var lineMap = PositionUtilities.GetLineMap(Ast.Extent.Text);
@@ -309,7 +269,6 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddSelectionRange(IScriptPosition startPosition, IScriptPosition endPosition)
             {
                 _selectionExtent = PositionUtilities.NewScriptExtent(
@@ -328,10 +287,24 @@ namespace EditorServicesCommandSuite.Internal
             /// <returns>
             /// A reference to this instance after the operation has completed.
             /// </returns>
-            [EditorBrowsable(EditorBrowsableState.Never)]
             public DocumentContextBuilder AddSelectionRange(IScriptExtent extent)
             {
                 _selectionExtent = extent;
+                return this;
+            }
+
+            /// <summary>
+            /// Adds the cronoller for the PowerShell pipeline thread.
+            /// </summary>
+            /// <param name="pipelineThread">
+            /// The controller for the PowerShell pipeline thread.
+            /// </param>
+            /// <returns>
+            /// A reference to this instance after the operation has completed.
+            /// </returns>
+            public DocumentContextBuilder AddThreadController(ThreadController pipelineThread)
+            {
+                _threadController = pipelineThread;
                 return this;
             }
         }

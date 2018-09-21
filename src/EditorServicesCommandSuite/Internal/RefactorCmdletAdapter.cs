@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -5,6 +6,7 @@ using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
+using EditorServicesCommandSuite.Utility;
 using Microsoft.PowerShell.Cmdletization;
 
 namespace EditorServicesCommandSuite.Internal
@@ -15,6 +17,9 @@ namespace EditorServicesCommandSuite.Internal
     [EditorBrowsable(EditorBrowsableState.Never)]
     public class RefactorCmdletAdapter : CmdletAdapter<object>
     {
+        private static ConcurrentDictionary<IDocumentRefactorProvider, RefactorConfigurationAttribute> s_configCache =
+            new ConcurrentDictionary<IDocumentRefactorProvider, RefactorConfigurationAttribute>();
+
         private readonly CancellationTokenSource _isStopping = new CancellationTokenSource();
 
         private IDocumentRefactorProvider _provider;
@@ -68,10 +73,7 @@ namespace EditorServicesCommandSuite.Internal
         public override void ProcessRecord(MethodInvocationInfo methodInvocationInfo)
         {
             RemoveCommonParameters(Cmdlet.MyInvocation.BoundParameters);
-            InvokeRefactorAsync(methodInvocationInfo.MethodName, Cmdlet)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
+            InvokeRefactor(methodInvocationInfo.MethodName, Cmdlet);
         }
 
         /// <summary>
@@ -99,36 +101,53 @@ namespace EditorServicesCommandSuite.Internal
             }
         }
 
-        private async Task InvokeRefactorAsync(string className, PSCmdlet psCmdlet)
+        private RefactorConfigurationAttribute GetConfigurationAttribute(IDocumentRefactorProvider provider)
+        {
+            return provider.GetType()
+                .GetCustomAttributes(typeof(RefactorConfigurationAttribute), inherit: true)
+                .Cast<RefactorConfigurationAttribute>()
+                .FirstOrDefault();
+        }
+
+        private void InvokeRefactor(string className, PSCmdlet psCmdlet)
         {
             _provider = CommandSuite.Instance.Refactors.GetProvider(className);
-            var configAttribute = _provider.GetType().GetCustomAttributes(
-                typeof(RefactorConfigurationAttribute),
-                true)
-                .OfType<RefactorConfigurationAttribute>()
-                .FirstOrDefault();
+            RefactorConfigurationAttribute configAttribute = s_configCache.GetOrAdd(
+                _provider,
+                GetConfigurationAttribute);
 
-            DocumentContextBase context =
-                await CommandSuite.Instance.DocumentContext
-                    .GetDocumentContextAsync(
-                        psCmdlet,
-                        _isStopping.Token);
+            var threadController = new ThreadController(
+                (EngineIntrinsics)psCmdlet.GetVariableValue("ExecutionContext"),
+                psCmdlet);
 
-            if (configAttribute != null)
-            {
-                RefactorConfiguration configuration =
-                    (RefactorConfiguration)LanguagePrimitives.ConvertTo(
-                            Cmdlet.MyInvocation.BoundParameters,
-                            configAttribute.ConfigurationType);
+            Task refactorRequest = Task.Run(
+                async () =>
+                {
+                    DocumentContextBase context =
+                        await CommandSuite.Instance.DocumentContext
+                            .GetDocumentContextAsync(
+                                psCmdlet,
+                                _isStopping.Token,
+                                threadController);
 
-                context = new ConfiguredDocumentContext<RefactorConfiguration>(
-                    configuration,
-                    context);
-            }
+                    if (configAttribute != null)
+                    {
+                        RefactorConfiguration configuration =
+                            (RefactorConfiguration)LanguagePrimitives.ConvertTo(
+                                    Cmdlet.MyInvocation.BoundParameters,
+                                    configAttribute.ConfigurationType);
 
-            await CommandSuite.Instance.Documents.WriteDocumentEditsAsync(
-                await _provider.RequestEdits(context),
-                context.CancellationToken);
+                        context = new ConfiguredDocumentContext<RefactorConfiguration>(
+                            configuration,
+                            context);
+                    }
+
+                    await CommandSuite.Instance.Documents.WriteDocumentEditsAsync(
+                        await _provider.RequestEdits(context),
+                        context.CancellationToken);
+                });
+
+            threadController.GiveControl(refactorRequest, _isStopping.Token);
         }
     }
 }

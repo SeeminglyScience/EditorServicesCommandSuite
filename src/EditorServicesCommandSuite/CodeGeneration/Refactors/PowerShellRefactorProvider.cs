@@ -20,8 +20,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private const string TestParameterName = "Test";
 
-        private readonly IPowerShellExecutor _executor;
-
         private readonly FunctionInfo _function;
 
         private RefactorKind _kind;
@@ -32,11 +30,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private Type _targetType;
 
-        internal PowerShellRefactorProvider(
-            IPowerShellExecutor executor,
-            FunctionInfo function)
+        internal PowerShellRefactorProvider(FunctionInfo function)
         {
-            _executor = executor;
             _function = function;
             Initialize();
         }
@@ -58,15 +53,19 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         public async Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request)
         {
-            using (var pwsh = PowerShell.Create())
-            {
-                pwsh.AddCommand(_function)
-                    .AddParameter(TargetParameterName, GetTargetByKind(Kind, request));
+            await request.PipelineThread.InvokeAsync(
+                () =>
+                {
+                    using (var pwsh = PowerShell.Create(RunspaceMode.CurrentRunspace))
+                    using (request.CancellationToken.Register(() => pwsh.BeginStop(null, null)))
+                    {
+                        pwsh.AddCommand(_function)
+                            .AddParameter(TargetParameterName, GetTargetByKind(Kind, request))
+                            .Invoke();
+                    }
+                });
 
-                await _executor.ExecuteCommandAsync<bool>(pwsh.Commands.Clone());
-
-                return Enumerable.Empty<DocumentEdit>();
-            }
+            return Enumerable.Empty<DocumentEdit>();
         }
 
         public bool TryGetRefactorInfo(DocumentContextBase request, out IRefactorInfo info)
@@ -155,18 +154,22 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return false;
             }
 
-            using (var pwsh = PowerShell.Create())
-            {
-                pwsh.AddCommand(_function)
-                    .AddParameter(TestParameterName, true)
-                    .AddParameter(TargetParameterName, target);
+            return request.PipelineThread.InvokeAsync(
+                () =>
+                {
+                    using (var pwsh = PowerShell.Create(RunspaceMode.CurrentRunspace))
+                    using (request.CancellationToken.Register(() => pwsh.BeginStop(null, null)))
+                    {
+                        PSObject result =
+                            pwsh.AddCommand(_function)
+                                .AddParameter(TestParameterName, true)
+                                .AddParameter(TargetParameterName, target)
+                                .Invoke()
+                                .FirstOrDefault();
 
-                return _executor
-                    .ExecuteCommand<bool>(
-                        pwsh.Commands.Clone(),
-                        request.CancellationToken)
-                    .FirstOrDefault();
-            }
+                        return LanguagePrimitives.IsTrue(result);
+                    }
+                }).GetAwaiter().GetResult();
         }
 
         private object GetTargetByKind(RefactorKind kind, DocumentContextBase request)

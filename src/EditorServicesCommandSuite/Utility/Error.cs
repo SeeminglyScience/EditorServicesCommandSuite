@@ -2,11 +2,50 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Management.Automation;
+using System.Management.Automation.Language;
 
 namespace EditorServicesCommandSuite.Utility
 {
     internal static class Error
     {
+        public static CommandNotFoundException CommandNotFound(string commandName)
+        {
+            return new CommandNotFoundException(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    RefactorStrings.CommandNotFound,
+                    commandName));
+        }
+
+        public static PSArgumentException CannotInferMember(CommandElementAst member)
+        {
+            return new PSArgumentException(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    ExpandMemberExpressionStrings.CannotInferMember,
+                    member));
+        }
+
+        public static PSInvalidOperationException InvalidOperation(string message)
+        {
+            return new PSInvalidOperationException(message);
+        }
+
+        public static PSArgumentException CannotExtractFromUnnamed()
+        {
+            return new PSArgumentException(ExtractFunctionStrings.CannotExtractFromUnnamed);
+        }
+
+        public static PSArgumentException CommandNotFound()
+        {
+            return new PSArgumentException(AddModuleQualificationStrings.CommandNameRequired);
+        }
+
+        public static PSInvalidOperationException CmdletRequired(string refactorProvider)
+        {
+            return new PSInvalidOperationException(AddModuleQualificationStrings.PSCmdletRequired);
+        }
+
         public static ErrorRecord UntitledWorkspaceNotSupported()
         {
             return new ErrorRecord(

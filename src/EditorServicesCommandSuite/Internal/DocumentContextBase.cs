@@ -1,17 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Internal
 {
     /// <summary>
     /// Represents the context of a refactor request.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public abstract class DocumentContextBase
+    internal abstract class DocumentContextBase
     {
         internal readonly PSCmdlet _psCmdlet;
 
@@ -19,56 +18,10 @@ namespace EditorServicesCommandSuite.Internal
             ScriptBlockAst rootAst,
             Ast currentAst,
             LinkedListNode<Token> currentToken,
-            IScriptExtent selectionExtent)
-            : this(
-                rootAst,
-                currentAst,
-                currentToken,
-                selectionExtent,
-                null,
-                CancellationToken.None)
-        {
-        }
-
-        internal DocumentContextBase(
-            ScriptBlockAst rootAst,
-            Ast currentAst,
-            LinkedListNode<Token> currentToken,
-            IScriptExtent selectionExtent,
-            PSCmdlet psCmdlet)
-            : this(
-                rootAst,
-                currentAst,
-                currentToken,
-                selectionExtent,
-                psCmdlet,
-                CancellationToken.None)
-        {
-        }
-
-        internal DocumentContextBase(
-            ScriptBlockAst rootAst,
-            Ast currentAst,
-            LinkedListNode<Token> currentToken,
-            IScriptExtent selectionExtent,
-            CancellationToken cancellationToken)
-            : this(
-                rootAst,
-                currentAst,
-                currentToken,
-                selectionExtent,
-                null,
-                CancellationToken.None)
-        {
-        }
-
-        internal DocumentContextBase(
-            ScriptBlockAst rootAst,
-            Ast currentAst,
-            LinkedListNode<Token> currentToken,
             IScriptExtent selectionExtent,
             PSCmdlet psCmdlet,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            ThreadController threadController)
         {
             RootAst = rootAst;
             Ast = currentAst;
@@ -76,6 +29,7 @@ namespace EditorServicesCommandSuite.Internal
             SelectionExtent = selectionExtent;
             CancellationToken = cancellationToken;
             _psCmdlet = psCmdlet;
+            PipelineThread = threadController;
         }
 
         /// <summary>
@@ -118,6 +72,8 @@ namespace EditorServicesCommandSuite.Internal
         /// and end column respectively of the selected text.
         /// </summary>
         internal virtual Tuple<int, int, int, int> SelectionRange { get; set; }
+
+        internal virtual ThreadController PipelineThread { get; set; }
 
         /// <summary>
         /// Retrieves the configuration that the refactor provider should use.

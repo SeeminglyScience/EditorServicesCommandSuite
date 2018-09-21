@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Management.Automation;
 using System.Management.Automation.Host;
 using EditorServicesCommandSuite.Internal;
+using EditorServicesCommandSuite.Utility;
 using Microsoft.PowerShell.EditorServices;
 using Microsoft.PowerShell.EditorServices.Extensions;
-using Microsoft.PowerShell.EditorServices.Utility;
 
 namespace EditorServicesCommandSuite.EditorServices.Internal
 {
@@ -15,7 +15,7 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
     /// suite session.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never), DebuggerStepThrough]
-    public class CommandSuite : EditorServicesCommandSuite.Internal.CommandSuite
+    public sealed class CommandSuite : EditorServicesCommandSuite.Internal.CommandSuite
     {
         private const string EditorOperationsFieldName = "editorOperations";
 
@@ -36,8 +36,7 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
             Messages = new MessageService(Editor);
             UI = new UIService(Messages);
             _navigation = new EditorServicesNavigationService(Messages);
-            Execution = new ExecutionService(psEditor, this, internalContext, ExecutionContext);
-            Diagnostics = new DiagnosticsService(Execution);
+            Diagnostics = new DiagnosticsService();
 
             var editorOperations =
                 typeof(EditorObject)
@@ -70,34 +69,29 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
         /// <summary>
         /// Gets the diagnostics provider.
         /// </summary>
-        protected override IRefactorAnalysisContext Diagnostics { get; }
+        internal override IRefactorAnalysisContext Diagnostics { get; }
 
         /// <summary>
         /// Gets the processor for <see cref="DocumentEdit" /> objects.
         /// </summary>
-        protected override IDocumentEditProcessor Documents { get; }
+        internal override IDocumentEditProcessor Documents { get; }
 
         /// <summary>
         /// Gets the interface for interacting with the UI.
         /// </summary>
-        protected override IRefactorUI UI { get; }
+        internal override IRefactorUI UI { get; }
 
         /// <summary>
         /// Gets the interface for getting information about the users current
         /// state in an open document. (e.g. cursor position, selection, etc)
         /// </summary>
-        protected override DocumentContextProvider DocumentContext { get; }
-
-        /// <summary>
-        /// Gets the interface for safely invoking PowerShell commands.
-        /// </summary>
-        protected override IPowerShellExecutor Execution { get; }
+        internal override DocumentContextProvider DocumentContext { get; }
 
         /// <summary>
         /// Gets the interface for getting information about the state of the
         /// current workspace.
         /// </summary>
-        protected override IRefactorWorkspace Workspace { get; }
+        internal override IRefactorWorkspace Workspace { get; }
 
         /// <summary>
         /// Gets the command suite instance for the process, or creates
@@ -110,20 +104,31 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
         /// <returns>
         /// The command suite instance for the process.
         /// </returns>
-        [Obsolete("do not use this method", error: true), EditorBrowsable(EditorBrowsableState.Never)]
+        [Obsolete(StringLiterals.InternalUseOnly, error: true), EditorBrowsable(EditorBrowsableState.Never)]
         public static CommandSuite GetCommandSuite(
             EditorObject psEditor,
             EngineIntrinsics engine,
             PSHost host,
             PowerShellContext internalContext)
         {
-            Validate.IsNotNull(nameof(engine), engine);
-            Validate.IsNotNull(nameof(psEditor), psEditor);
-            Validate.IsNotNull(nameof(host), host);
-
-            if (Instance != null)
+            if (engine == null)
             {
-                return Instance;
+                throw new ArgumentNullException(nameof(engine));
+            }
+
+            if (psEditor == null)
+            {
+                throw new ArgumentNullException(nameof(psEditor));
+            }
+
+            if (host == null)
+            {
+                throw new ArgumentNullException(nameof(host));
+            }
+
+            if (s_instance != null)
+            {
+                return s_instance;
             }
 
             s_instance = new CommandSuite(psEditor, engine, host, internalContext);
@@ -136,7 +141,7 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
         /// navigation service.
         /// </summary>
         /// <returns>The <see cref="NavigationService" />.</returns>
-        protected override NavigationService GetNavigationServiceImpl()
+        private protected override NavigationService GetNavigationServiceImpl()
         {
             return _navigation;
         }

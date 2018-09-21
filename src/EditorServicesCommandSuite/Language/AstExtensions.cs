@@ -97,7 +97,7 @@ namespace EditorServicesCommandSuite.Language
         {
             return source
                 .OrderBy(ast => ast.Extent.EndOffset - ast.Extent.StartOffset)
-                .ThenBy(
+                .ThenByDescending(
                     ast =>
                     {
                         var count = 0;

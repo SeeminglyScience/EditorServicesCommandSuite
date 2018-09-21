@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Host;
@@ -15,7 +14,7 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Provides a central entry point for interacting with the command suite session.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never), DebuggerStepThrough]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public abstract class CommandSuite
     {
         private static CommandSuite s_instance;
@@ -27,8 +26,7 @@ namespace EditorServicesCommandSuite.Internal
         /// </summary>
         /// <param name="engine">The PowerShell engine.</param>
         /// <param name="host">The PowerShell host.</param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected CommandSuite(
+        private protected CommandSuite(
             EngineIntrinsics engine,
             PSHost host)
         {
@@ -40,6 +38,25 @@ namespace EditorServicesCommandSuite.Internal
             Refactors = new RefactorService();
             s_instance = this;
             ExecutionContext = engine;
+        }
+
+        /// <summary>
+        /// Gets the current instance or <see langword="null" /> if it has not been
+        /// created yet.
+        /// </summary>
+        internal static CommandSuite Instance
+        {
+            get
+            {
+                if (s_instance != null)
+                {
+                    return s_instance;
+                }
+
+                // Throw an exception with an error record to avoid null reference
+                // exceptions if the editor host failed to properly initalize.
+                throw new NoCommandSuiteInstanceException();
+            }
         }
 
         internal InternalNavigationService InternalNavigation
@@ -60,74 +77,42 @@ namespace EditorServicesCommandSuite.Internal
         internal PSHost Host { get; }
 
         /// <summary>
-        /// Gets the current instance or <see langword="null" /> if it has not been
-        /// created yet.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal static CommandSuite Instance
-        {
-            get
-            {
-                if (s_instance != null)
-                {
-                    return s_instance;
-                }
-
-                // Throw an exception with an error record to avoid null reference
-                // exceptions if the editor host failed to properly initalize.
-                throw new NoCommandSuiteInstanceException();
-            }
-        }
-
-        /// <summary>
         /// Gets the diagnostics provider.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract IRefactorAnalysisContext Diagnostics { get; }
+        internal abstract IRefactorAnalysisContext Diagnostics { get; }
 
         /// <summary>
         /// Gets the processor for <see cref="DocumentEdit" /> objects.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract IDocumentEditProcessor Documents { get; }
+        internal abstract IDocumentEditProcessor Documents { get; }
 
         /// <summary>
         /// Gets the interface for interacting with the UI.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract IRefactorUI UI { get; }
+        internal abstract IRefactorUI UI { get; }
 
         /// <summary>
         /// Gets the interface for navigating an open document.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal NavigationService Navigation => InternalNavigation;
+        internal NavigationService Navigation => InternalNavigation;
 
         /// <summary>
         /// Gets the interface for getting information about the users current
         /// state in an open document. (e.g. cursor position, selection, etc)
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract DocumentContextProvider DocumentContext { get; }
-
-        /// <summary>
-        /// Gets the interface for safely invoking PowerShell commands.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal abstract IPowerShellExecutor Execution { get; }
+        internal abstract DocumentContextProvider DocumentContext { get; }
 
         /// <summary>
         /// Gets the interface for getting information about the state of the
         /// current workspace.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal virtual IRefactorWorkspace Workspace { get; } = new WorkspaceContext();
+        internal virtual IRefactorWorkspace Workspace { get; } = new WorkspaceContext();
 
         /// <summary>
         /// Gets the interface for the PowerShell engine.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        protected internal EngineIntrinsics ExecutionContext { get; }
+        internal EngineIntrinsics ExecutionContext { get; }
 
         /// <summary>
         /// Generates the cdxml for cmdletizing refactor providers and writes it to a file.
@@ -148,7 +133,7 @@ namespace EditorServicesCommandSuite.Internal
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void ImportSessionRefactors(SessionState session)
         {
-            var functions = session.InvokeCommand.GetCommands(
+            IEnumerable<CommandInfo> functions = session.InvokeCommand.GetCommands(
                 "*",
                 CommandTypes.Function,
                 nameIsPattern: true)
@@ -159,12 +144,10 @@ namespace EditorServicesCommandSuite.Internal
                             .Any(a => a is ScriptBasedRefactorProviderAttribute);
                 });
 
-            foreach (var function in functions)
+            foreach (CommandInfo function in functions)
             {
                 Refactors.RegisterProvider(
-                    new PowerShellRefactorProvider(
-                        Execution,
-                        (FunctionInfo)function));
+                    new PowerShellRefactorProvider((FunctionInfo)function));
             }
         }
 
@@ -172,16 +155,20 @@ namespace EditorServicesCommandSuite.Internal
         /// Requests refactor options based on the current state of the host editor.
         /// </summary>
         /// <param name="cmdlet">The <see cref="PSCmdlet" /> to use for context.</param>
-        /// <returns>
-        /// A <see cref="Task" /> object representing the asynchronus operation.
-        /// </returns>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public async Task RequestRefactor(PSCmdlet cmdlet)
+        public virtual void RequestRefactor(PSCmdlet cmdlet)
         {
-            Validate.IsNotNull(nameof(cmdlet), cmdlet);
-            await RequestRefactor(
-                cmdlet,
-                TaskCmdletAdapter.GetStoppingCancellationToken(cmdlet));
+            var threadController = new ThreadController(ExecutionContext, cmdlet);
+            var cancellationToken = TaskCmdletAdapter.GetStoppingCancellationToken(cmdlet);
+            Task refactorRequest = Task.Run(
+                async () => await RequestRefactor(
+                    cmdlet,
+                    await DocumentContext.GetDocumentContextAsync(
+                        cmdlet,
+                        cancellationToken,
+                        threadController)));
+
+            threadController.GiveControl(refactorRequest, cancellationToken);
         }
 
         /// <summary>
@@ -191,16 +178,19 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="cancellationToken">
         /// The cancellation token that will be checked prior to completing the returned task.
         /// </param>
-        /// <returns>
-        /// A <see cref="Task" /> object representing the asynchronus operation.
-        /// </returns>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public async Task RequestRefactor(PSCmdlet cmdlet, CancellationToken cancellationToken)
+        public void RequestRefactor(PSCmdlet cmdlet, CancellationToken cancellationToken)
         {
-            Validate.IsNotNull(nameof(cmdlet), cmdlet);
-            await RequestRefactor(
-                cmdlet,
-                await DocumentContext.GetDocumentContextAsync(cmdlet, cancellationToken));
+            var threadController = new ThreadController(ExecutionContext, cmdlet);
+            Task refactorRequest = Task.Run(
+                async () => await RequestRefactor(
+                    cmdlet,
+                    await DocumentContext.GetDocumentContextAsync(
+                        cmdlet,
+                        cancellationToken,
+                        threadController)));
+
+            threadController.GiveControl(refactorRequest, cancellationToken);
         }
 
         internal static bool TryGetInstance(out CommandSuite instance)
@@ -224,7 +214,6 @@ namespace EditorServicesCommandSuite.Internal
             var refactors = new List<IRefactorInfo>();
             foreach (var refactor in Refactors.GetRefactorOptions(request))
             {
-                cmdlet.ThrowIfStopping();
                 refactors.Add(refactor);
             }
 
@@ -256,18 +245,9 @@ namespace EditorServicesCommandSuite.Internal
         }
 
         /// <summary>
-        /// Get the <see cref="NavigationService" /> that will be saved
-        /// to <see cref="CommandSuite.Navigation" />.
-        /// </summary>
-        /// <returns>The <see cref="NavigationService" />.</returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected abstract NavigationService GetNavigationServiceImpl();
-
-        /// <summary>
         /// Creates and registers default refactor providers.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected void InitializeRefactorProviders()
+        internal void InitializeRefactorProviders()
         {
             Refactors.RegisterProvider(new ImplementAbstractMethodsRefactor(UI));
             Refactors.RegisterProvider(new DropNamespaceRefactor());
@@ -275,10 +255,17 @@ namespace EditorServicesCommandSuite.Internal
             Refactors.RegisterProvider(new ChangeStringEnclosureRefactor(UI));
             Refactors.RegisterProvider(new SurroundSelectedLinesRefactor(UI, Navigation));
             Refactors.RegisterProvider(new SuppressAnalyzerMessageRefactor(Diagnostics));
-            Refactors.RegisterProvider(new AddModuleQualificationRefactor(Execution, UI, Workspace));
+            Refactors.RegisterProvider(new AddModuleQualificationRefactor(UI, Workspace));
             Refactors.RegisterProvider(new ExpandMemberExpressionRefactor(UI));
             Refactors.RegisterProvider(new ExtractFunctionRefactor(UI, Workspace));
             Refactors.RegisterProvider(new NameUnnamedBlockRefactor());
         }
+
+        /// <summary>
+        /// Get the <see cref="NavigationService" /> that will be saved
+        /// to <see cref="CommandSuite.Navigation" />.
+        /// </summary>
+        /// <returns>The <see cref="NavigationService" />.</returns>
+        private protected abstract NavigationService GetNavigationServiceImpl();
     }
 }

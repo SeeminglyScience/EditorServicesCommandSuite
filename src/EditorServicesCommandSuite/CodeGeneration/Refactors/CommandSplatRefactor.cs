@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Language;
@@ -19,6 +20,13 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private const string SplatVariableSuffix = "Splat";
 
+        private const string AmbiguousParameterSet = "AmbiguousParameterSet";
+
+        private static readonly HashSet<string> s_allCommonParameters =
+            new HashSet<string>(
+                Cmdlet.CommonParameters.Concat(Cmdlet.OptionalCommonParameters),
+                StringComparer.OrdinalIgnoreCase);
+
         internal CommandSplatRefactor(IRefactorUI ui)
         {
             UI = ui;
@@ -33,161 +41,27 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         internal static async Task<IEnumerable<DocumentEdit>> GetEdits(
             string variableName,
             CommandAst commandAst,
+            AdditionalParameterTypes includedParameterTypes,
             bool newLineAfterHashtable,
-            bool allParameters,
-            bool mandatoryParameters,
-            bool noHints,
-            EngineIntrinsics executionContext,
+            bool excludeHints,
+            ThreadController pipelineThread,
+            CancellationToken cancellationToken,
             IRefactorUI ui = null)
         {
-            var parentStatement = commandAst.FindParent<StatementAst>();
-            var commandName = commandAst.GetCommandName();
-            var elements = commandAst.CommandElements.Skip(1);
-            var elementsExtent = elements.JoinExtents();
-            var boundParameters = StaticParameterBinder.BindCommand(commandAst, resolve: true);
+            StaticBindingResult bindingResult = await pipelineThread.InvokeAsync(
+                () => StaticParameterBinder.BindCommand(commandAst, resolve: true));
 
-            if (boundParameters.BindingExceptions.TryGetValue(commandName, out StaticBindingError globalError) &&
-                globalError.BindingException.ErrorId.Equals("AmbiguousParameterSet", StringComparison.Ordinal))
-            {
-                if (ui != null)
-                {
-                    await ui.ShowErrorMessageAsync(globalError.BindingException.Message);
-                    return Enumerable.Empty<DocumentEdit>();
-                }
-
-                throw new PSInvalidOperationException(globalError.BindingException.Message, globalError.BindingException);
-            }
-
-            if (boundParameters.BoundParameters.Count == 0 &&
-                !(allParameters || mandatoryParameters))
-            {
-                return Enumerable.Empty<DocumentEdit>();
-            }
-
-            var commandInfo = executionContext
-                    .InvokeCommand
-                    .GetCommand(commandName, CommandTypes.All);
-
-            var parameterSetName = ResolveParameterSet(boundParameters, commandInfo);
-
-            var parameterInfo = commandInfo.ParameterSets
-                .FirstOrDefault(set => set.Name.Equals(parameterSetName, StringComparison.Ordinal))
-                ?.Parameters;
-
-            List<Parameter> parameterList = new List<Parameter>();
-
-            foreach (var param in parameterInfo)
-            {
-                var shouldAdd = false;
-                ParameterBindingResult boundParameterValue = null;
-
-                if (allParameters)
-                {
-                    shouldAdd = true;
-                }
-
-                if (mandatoryParameters && param.IsMandatory)
-                {
-                    shouldAdd = true;
-                }
-
-                if (Cmdlet.CommonParameters.Contains(param.Name) || Cmdlet.OptionalCommonParameters.Contains(param.Name))
-                {
-                    shouldAdd = false;
-                }
-
-                if (boundParameters.BoundParameters.ContainsKey(param.Name))
-                {
-                    boundParameters.BoundParameters.TryGetValue(
-                        param.Name,
-                        out boundParameterValue);
-                }
-
-                if (boundParameterValue != null || shouldAdd)
-                {
-                    parameterList.Add(
-                        new Parameter(
-                            param.Name,
-                            boundParameterValue,
-                            param.IsMandatory,
-                            param.ParameterType));
-                }
-            }
-
-            var splatWriter = new PowerShellScriptWriter(commandAst);
-            var elementsWriter = new PowerShellScriptWriter(commandAst);
-
-            splatWriter.SetPosition(parentStatement);
-            splatWriter.WriteAssignment(
-                () => splatWriter.WriteVariable(variableName),
-                () => splatWriter.OpenHashtable());
-
-            if (elementsExtent is Empty.Extent)
-            {
-                elementsWriter.SetPosition(parentStatement, atEnd: true);
-                elementsWriter.Write(Symbols.Space);
-            }
-            else
-            {
-                elementsWriter.SetPosition(elementsExtent);
-            }
-
-            elementsWriter.WriteVariable(variableName, isSplat: true);
-
-            var first = true;
-            foreach (var param in parameterList)
-            {
-                if (param.Name.All(c => char.IsDigit(c)))
-                {
-                    elementsWriter.Write(
-                        Symbols.Space
-                        + param.Value.Value.Extent.Text);
-                    continue;
-                }
-
-                if (first)
-                {
-                    first = false;
-                }
-                else
-                {
-                    splatWriter.WriteLine();
-                }
-
-                splatWriter.WriteHashtableEntry(
-                    param.Name,
-                    () => splatWriter.WriteAsExpressionValue(param, noHints));
-            }
-
-            foreach (var bindingException in boundParameters.BindingExceptions)
-            {
-                elementsWriter.Write(Symbols.Space);
-                elementsWriter.Write(bindingException.Value.CommandElement.Extent.Text);
-
-                // The ui?.ShowWarningMessageAsync() pattern does not work during testing. Await does not seem to like null.
-                if (ui != null)
-                {
-                    await ui.ShowWarningMessageAsync(
-                        string.Format(
-                            CultureInfo.CurrentCulture,
-                            CommandSplatStrings.CouldNotResolvePositionalArgument,
-                            bindingException.Value.CommandElement.Extent.Text),
-                        waitForResponse: false);
-                }
-            }
-
-            splatWriter.CloseHashtable();
-
-            if (newLineAfterHashtable)
-            {
-                splatWriter.WriteLine();
-            }
-
-            splatWriter.WriteLine();
-            splatWriter.WriteIndentIfPending();
-            splatWriter.CreateDocumentEdits();
-            elementsWriter.CreateDocumentEdits(elementsExtent.Text.Length);
-            return splatWriter.Edits.Concat(elementsWriter.Edits);
+            return await GetEdits(
+                new CommandSplatArguments(
+                    pipelineThread,
+                    ui,
+                    bindingResult,
+                    commandAst,
+                    variableName,
+                    includedParameterTypes,
+                    excludeHints,
+                    newLineAfterHashtable,
+                    cancellationToken));
         }
 
         internal override bool CanRefactorTarget(DocumentContextBase request, CommandAst ast)
@@ -206,21 +80,174 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             var splatVariable = string.IsNullOrWhiteSpace(config.VariableName)
                 ? GetSplatVariableName(ast.CommandElements.First())
                 : config.VariableName;
-            var executionContext = CommandSuite.Instance.ExecutionContext;
 
             return await GetEdits(
                 splatVariable,
                 ast,
-                config.NewLineAfterHashtable.IsPresent,
-                config.AllParameters.IsPresent,
-                config.MandatoryParameters.IsPresent,
-                config.NoHints.IsPresent,
-                executionContext,
+                config.AdditionalParameters,
+                config.NewLineAfterHashtable,
+                config.ExcludeHints,
+                request.PipelineThread,
+                request.CancellationToken,
                 UI);
         }
 
+        private static async Task<IEnumerable<DocumentEdit>> GetEdits(CommandSplatArguments args)
+        {
+            StatementAst parentStatement = args.Command.FindParent<StatementAst>();
+            string commandName = args.Command.GetCommandName();
+            IEnumerable<CommandElementAst> elements = args.Command.CommandElements.Skip(1);
+            IScriptExtent elementsExtent = elements.JoinExtents();
+
+            if (args.BindingResult.BoundParameters.Count == 0 &&
+                !(args.IncludedTypes == AdditionalParameterTypes.Mandatory ||
+                args.IncludedTypes == AdditionalParameterTypes.All))
+            {
+                return Enumerable.Empty<DocumentEdit>();
+            }
+
+            List<Parameter> parameterList = new List<Parameter>();
+            foreach (KeyValuePair<string, ParameterBindingResult> parameter in args.BindingResult.BoundParameters)
+            {
+                parameterList.Add(new Parameter(parameter.Key, parameter.Value));
+            }
+
+            if (args.IncludedTypes != AdditionalParameterTypes.None)
+            {
+                await AddAdditionalParameters(
+                    args,
+                    commandName,
+                    parameterList);
+            }
+
+            var splatWriter = new PowerShellScriptWriter(args.Command);
+            var elementsWriter = new PowerShellScriptWriter(args.Command);
+
+            splatWriter.SetPosition(parentStatement);
+            splatWriter.WriteAssignment(
+                () => splatWriter.WriteVariable(args.VariableName),
+                () => splatWriter.OpenHashtable());
+
+            if (elementsExtent is Empty.Extent)
+            {
+                elementsWriter.SetPosition(parentStatement, atEnd: true);
+                elementsWriter.Write(Symbols.Space);
+            }
+            else
+            {
+                elementsWriter.SetPosition(elementsExtent);
+            }
+
+            elementsWriter.WriteVariable(args.VariableName, isSplat: true);
+
+            var first = true;
+            foreach (Parameter parameter in parameterList)
+            {
+                if (parameter.Name.All(c => char.IsDigit(c)))
+                {
+                    elementsWriter.Write(Symbols.Space);
+                    elementsWriter.Write(parameter.Value.Value.Extent.Text);
+                    continue;
+                }
+
+                if (first)
+                {
+                    first = false;
+                }
+                else
+                {
+                    splatWriter.WriteLine();
+                }
+
+                splatWriter.WriteHashtableEntry(
+                    parameter.Name,
+                    () => splatWriter.WriteAsExpressionValue(parameter, args.ExcludeHints));
+            }
+
+            foreach (var bindingException in args.BindingResult.BindingExceptions)
+            {
+                elementsWriter.Write(Symbols.Space);
+                elementsWriter.Write(bindingException.Value.CommandElement.Extent.Text);
+
+                await args.UI.ShowWarningMessageAsync(
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        CommandSplatStrings.CouldNotResolvePositionalArgument,
+                        bindingException.Value.CommandElement.Extent.Text));
+            }
+
+            splatWriter.CloseHashtable();
+
+            if (args.NewLineAfterHashtable)
+            {
+                splatWriter.WriteLine();
+            }
+
+            splatWriter.WriteLine();
+            splatWriter.WriteIndentIfPending();
+            splatWriter.CreateDocumentEdits();
+            elementsWriter.CreateDocumentEdits(elementsExtent.Text.Length);
+            return splatWriter.Edits.Concat(elementsWriter.Edits);
+        }
+
+        private static async Task AddAdditionalParameters(
+            CommandSplatArguments args,
+            string commandName,
+            List<Parameter> parameterList)
+        {
+            if (args.BindingResult.BindingExceptions.TryGetValue(commandName, out StaticBindingError globalError) &&
+                globalError.BindingException.ErrorId.Equals(AmbiguousParameterSet, StringComparison.Ordinal))
+            {
+                await args.UI.ShowErrorMessageOrThrowAsync(
+                    Error.InvalidOperation,
+                    globalError.BindingException.Message);
+            }
+
+            CommandInfo commandInfo =
+                await args.PipelineThread.InvokeAsync(
+                    (EngineIntrinsics engine) => engine
+                        .InvokeCommand
+                        .GetCommand(commandName, CommandTypes.All));
+
+            if (commandInfo == null)
+            {
+                await args.UI.ShowErrorMessageOrThrowAsync(
+                    Error.CommandNotFound,
+                    commandName);
+            }
+
+            string parameterSetName = ResolveParameterSet(args.BindingResult, commandInfo);
+            foreach (ParameterMetadata parameter in commandInfo.Parameters.Values)
+            {
+                args.CancellationToken.ThrowIfCancellationRequested();
+                if (s_allCommonParameters.Contains(parameter.Name))
+                {
+                    continue;
+                }
+
+                if (args.BindingResult.BoundParameters.ContainsKey(parameter.Name))
+                {
+                    continue;
+                }
+
+                ParameterSetMetadata setMetadata;
+                if (!(parameter.ParameterSets.TryGetValue(parameterSetName, out setMetadata) ||
+                    parameter.ParameterSets.TryGetValue(ParameterAttribute.AllParameterSets, out setMetadata)))
+                {
+                    continue;
+                }
+
+                if (args.IncludedTypes != AdditionalParameterTypes.All && !setMetadata.IsMandatory)
+                {
+                    continue;
+                }
+
+                parameterList.Add(new Parameter(parameter, setMetadata));
+            }
+        }
+
         private static string ResolveParameterSet(
-            StaticBindingResult paramBinder,
+            StaticBindingResult bindingResult,
             CommandInfo commandInfo)
         {
             if (commandInfo.ParameterSets.Count == 1)
@@ -228,20 +255,16 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return commandInfo.ParameterSets[0].Name;
             }
 
+            var parameterNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (CommandParameterSetInfo parameterSet in commandInfo.ParameterSets)
             {
-                var currentSetParameterNames = new HashSet<string>(parameterSet.Parameters.Select(p => p.Name));
-                var isMatch = true;
-                foreach (string parameterName in paramBinder.BoundParameters.Keys)
+                parameterNames.Clear();
+                foreach (CommandParameterInfo parameter in parameterSet.Parameters)
                 {
-                    if (!currentSetParameterNames.Contains(parameterName))
-                    {
-                        isMatch = false;
-                        break;
-                    }
+                    parameterNames.Add(parameter.Name);
                 }
 
-                if (isMatch)
+                if (parameterNames.IsSupersetOf(bindingResult.BoundParameters.Keys))
                 {
                     return parameterSet.Name;
                 }
@@ -280,6 +303,49 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return
                 char.ToLower(variableName[0])
                 + variableName.Substring(1);
+        }
+
+        private struct CommandSplatArguments
+        {
+            internal readonly ThreadController PipelineThread;
+
+            internal readonly IRefactorUI UI;
+
+            internal readonly CancellationToken CancellationToken;
+
+            internal readonly StaticBindingResult BindingResult;
+
+            internal readonly CommandAst Command;
+
+            internal readonly string VariableName;
+
+            internal readonly AdditionalParameterTypes IncludedTypes;
+
+            internal readonly bool ExcludeHints;
+
+            internal readonly bool NewLineAfterHashtable;
+
+            internal CommandSplatArguments(
+                ThreadController pipelineThread,
+                IRefactorUI ui,
+                StaticBindingResult bindingResult,
+                CommandAst commandAst,
+                string variableName,
+                AdditionalParameterTypes includedParameterTypes,
+                bool excludeHints,
+                bool newLineAfterHashtable,
+                CancellationToken cancellationToken)
+            {
+                PipelineThread = pipelineThread;
+                UI = ui;
+                BindingResult = bindingResult;
+                Command = commandAst;
+                VariableName = variableName;
+                IncludedTypes = includedParameterTypes;
+                ExcludeHints = excludeHints;
+                NewLineAfterHashtable = newLineAfterHashtable;
+                CancellationToken = cancellationToken;
+            }
         }
     }
 }

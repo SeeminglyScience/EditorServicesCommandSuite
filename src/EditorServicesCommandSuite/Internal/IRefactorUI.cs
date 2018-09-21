@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel;
 using System.Threading.Tasks;
 
 namespace EditorServicesCommandSuite.Internal
@@ -7,8 +6,7 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Provides the ability to interact with the UI of the host editor.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public interface IRefactorUI
+    internal interface IRefactorUI
     {
         /// <summary>
         /// Shows a warning message.
@@ -20,7 +18,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         Task ShowWarningMessageAsync(string message, bool waitForResponse);
 
         /// <summary>
@@ -33,7 +30,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         Task ShowErrorMessageAsync(string message, bool waitForResponse);
 
         /// <summary>
@@ -48,7 +44,6 @@ namespace EditorServicesCommandSuite.Internal
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the input string.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         Task<string> ShowInputPromptAsync(
             string caption,
             string message,
@@ -65,7 +60,6 @@ namespace EditorServicesCommandSuite.Internal
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the chosen item.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         Task<TItem> ShowChoicePromptAsync<TItem>(
             string caption,
             string message,
@@ -85,7 +79,6 @@ namespace EditorServicesCommandSuite.Internal
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the chosen item.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         Task<TItem> ShowChoicePromptAsync<TItem>(
             string caption,
             string message,
@@ -109,7 +102,6 @@ namespace EditorServicesCommandSuite.Internal
         /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
         /// will contain the chosen item.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         Task<TItem> ShowChoicePromptAsync<TItem>(
             string caption,
             string message,

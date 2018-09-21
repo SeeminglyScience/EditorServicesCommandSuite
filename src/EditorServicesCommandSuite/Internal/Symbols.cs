@@ -1,12 +1,9 @@
-using System.ComponentModel;
-
 namespace EditorServicesCommandSuite.Internal
 {
     /// <summary>
     /// Provides constants and static instances of common symbols.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public static class Symbols
+    internal static class Symbols
     {
         /// <summary>
         /// The character: "+"

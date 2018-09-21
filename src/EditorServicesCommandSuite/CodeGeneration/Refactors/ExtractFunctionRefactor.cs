@@ -49,8 +49,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             DocumentContextBase request,
             string functionName,
             ExtractFunctionDestination destination,
-            IPowerShellExecutor executor,
-            EngineIntrinsics engine,
+            ThreadController pipelineThread,
             string newFilePath = null,
             IRefactorUI ui = null)
         {
@@ -60,8 +59,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     ClosestAst = request.Ast,
                     CurrentToken = request.Token,
                     Destination = destination,
-                    Engine = engine,
-                    Executor = executor,
+                    PipelineThread = pipelineThread,
                     FunctionName = functionName,
                     RootAst = request.RootAst,
                     Selection = request.SelectionExtent,
@@ -123,8 +121,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     ClosestAst = request.Ast,
                     CurrentToken = request.Token,
                     Destination = destination,
-                    Engine = CommandSuite.Instance.ExecutionContext,
-                    Executor = CommandSuite.Instance.Execution,
+                    PipelineThread = request.PipelineThread,
                     FunctionName = functionName,
                     RootAst = request.RootAst,
                     Selection = extent,
@@ -134,15 +131,14 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 });
         }
 
-        private static Task<IEnumerable<DocumentEdit>> GetEdits(ExtractFunctionArguments args)
+        private static async Task<IEnumerable<DocumentEdit>> GetEdits(ExtractFunctionArguments args)
         {
             args.Selection = PositionUtilities.GetFullLines(args.Selection);
             args.ParameterDetails =
-                SelectionVariableAnalysisVisitor.ProcessSelection(
+                await SelectionVariableAnalysisVisitor.ProcessSelection(
                     args.RootAst,
                     args.Selection,
-                    args.Executor,
-                    args.Engine);
+                    args.PipelineThread);
 
             IScriptExtent restrictedSelection = PositionUtilities.NewScriptExtent(
                 args.Selection,
@@ -179,15 +175,15 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             writer.FinishWriting();
             if (args.Destination == ExtractFunctionDestination.Begin)
             {
-                return ExtractToBegin(args, writer);
+                return await ExtractToBegin(args, writer);
             }
 
             if (args.Destination == ExtractFunctionDestination.NewFile)
             {
-                return ExtractToNewFile(args, writer);
+                return await ExtractToNewFile(args, writer);
             }
 
-            return Task.FromResult(writer.Edits);
+            return writer.Edits;
         }
 
         private static async Task<IEnumerable<DocumentEdit>> ExtractToBegin(
@@ -200,13 +196,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             if (parentNamedBlock.Unnamed)
             {
-                if (args.UI != null)
-                {
-                    await args.UI.ShowErrorMessageAsync(ExtractFunctionStrings.CannotExtractFromUnnamed);
-                    throw new TaskCanceledException();
-                }
-
-                throw new PSInvalidOperationException(ExtractFunctionStrings.CannotExtractFromUnnamed);
+                await args.UI.ShowErrorMessageOrThrowAsync(Error.CannotExtractFromUnnamed);
             }
 
             WriteToBegin(
@@ -444,9 +434,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             internal IRefactorUI UI;
 
-            internal IPowerShellExecutor Executor;
-
-            internal EngineIntrinsics Engine;
+            internal ThreadController PipelineThread;
 
             internal Dictionary<string, SelectionVariableAnalysisResult> ParameterDetails;
 

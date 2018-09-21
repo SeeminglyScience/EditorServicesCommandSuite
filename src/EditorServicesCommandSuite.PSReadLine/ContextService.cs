@@ -3,32 +3,19 @@ using System.Management.Automation.Language;
 using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
+using EditorServicesCommandSuite.Utility;
 using Microsoft.PowerShell;
 
 namespace EditorServicesCommandSuite.PSReadLine
 {
     internal class ContextService : DocumentContextProvider
     {
-        protected override string Workspace => string.Empty;
+        internal override string Workspace => string.Empty;
 
-        protected override Task<DocumentContextBase> GetDocumentContextAsync()
-        {
-            return GetDocumentContextAsync(null, CancellationToken.None);
-        }
-
-        protected override Task<DocumentContextBase> GetDocumentContextAsync(PSCmdlet cmdlet)
-        {
-            return GetDocumentContextAsync(cmdlet, CancellationToken.None);
-        }
-
-        protected override Task<DocumentContextBase> GetDocumentContextAsync(CancellationToken cancellationToken)
-        {
-            return GetDocumentContextAsync(null, cancellationToken);
-        }
-
-        protected override Task<DocumentContextBase> GetDocumentContextAsync(
+        internal override Task<DocumentContextBase> GetDocumentContextAsync(
             PSCmdlet cmdlet,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            ThreadController threadController)
         {
             PSConsoleReadLine.GetSelectionState(
                 out int selectionStart,
@@ -53,7 +40,8 @@ namespace EditorServicesCommandSuite.PSReadLine
                     .AddCursorPosition(cursor)
                     .AddCancellationToken(cancellationToken)
                     .AddSelectionRange(selectionStart, selectionStart + selectionLength)
-                    .AddCmdlet(cmdlet));
+                    .AddCmdlet(cmdlet)
+                    .AddThreadController(threadController));
         }
     }
 }

@@ -20,34 +20,28 @@ namespace EditorServicesCommandSuite.PSReadLine.Internal
             DocumentContext = new ContextService();
             Diagnostics = new NullDiagnosticService();
             _navigation = new PSReadLineNavigationService();
-            Execution = new ExecutionService();
         }
 
         /// <summary>
         /// Gets the diagnostics provider.
         /// </summary>
-        protected override IRefactorAnalysisContext Diagnostics { get; }
+        internal override IRefactorAnalysisContext Diagnostics { get; }
 
         /// <summary>
         /// Gets the processor for <see cref="DocumentEdit" /> objects.
         /// </summary>
-        protected override IDocumentEditProcessor Documents { get; }
+        internal override IDocumentEditProcessor Documents { get; }
 
         /// <summary>
         /// Gets the interface for interacting with the UI.
         /// </summary>
-        protected override IRefactorUI UI { get; }
+        internal override IRefactorUI UI { get; }
 
         /// <summary>
         /// Gets the interface for getting information about the users current
         /// state in an open document. (e.g. cursor position, selection, etc)
         /// </summary>
-        protected override DocumentContextProvider DocumentContext { get; }
-
-        /// <summary>
-        /// Gets the interface for safely invoking PowerShell commands.
-        /// </summary>
-        protected override IPowerShellExecutor Execution { get; }
+        internal override DocumentContextProvider DocumentContext { get; }
 
         /// <summary>
         /// Gets the command suite instance for the process, or creates
@@ -81,7 +75,7 @@ namespace EditorServicesCommandSuite.PSReadLine.Internal
         /// navigation service.
         /// </summary>
         /// <returns>The <see cref="NavigationService" />.</returns>
-        protected override NavigationService GetNavigationServiceImpl()
+        private protected override NavigationService GetNavigationServiceImpl()
         {
             return _navigation;
         }

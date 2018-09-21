@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using EditorServicesCommandSuite.Utility;
@@ -9,15 +8,13 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Provides the default <see cref="IRefactorWorkspace" /> implementation.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public class WorkspaceContext : IRefactorWorkspace
+    internal class WorkspaceContext : IRefactorWorkspace
     {
         private const string FileSystemProviderQualifier = "Microsoft.PowerShell.Core\\FileSystem::";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkspaceContext" /> class.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         protected internal WorkspaceContext()
         {
         }
@@ -26,7 +23,6 @@ namespace EditorServicesCommandSuite.Internal
         /// Initializes a new instance of the <see cref="WorkspaceContext" /> class.
         /// </summary>
         /// <param name="engine">The PowerShell engine for the session.</param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         protected WorkspaceContext(EngineIntrinsics engine)
         {
             Engine = engine;
@@ -35,7 +31,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <summary>
         /// Gets the PowerShell engine associated with the session.
         /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         protected EngineIntrinsics Engine { get; }
 
         /// <summary>
@@ -44,7 +39,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// The path of the workspace if the implementation overrides the method, otherwise an empty string.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual string GetWorkspacePath()
         {
             return string.Empty;
@@ -57,7 +51,6 @@ namespace EditorServicesCommandSuite.Internal
         /// A value indicating whether the workspace is untitled if the implement overrides
         /// the method, otherwise it always returns false.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual bool IsUntitledWorkspace()
         {
             return true;
@@ -72,7 +65,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A value indicating whether the path was able to be resolved.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual bool TryResolveRelativePath(
             string path,
             out bool doesExist,
@@ -132,7 +124,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A value indicating whether AST and token data was successfully retrieved.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual bool TryGetFileContext(
             string path,
             bool force,
@@ -178,7 +169,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// AST and token data for the script file or <see langword="null" /> if invalid.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         protected virtual Tuple<ScriptBlockAst, Token[]> GetFileContext(string path)
         {
             return Tuple.Create(

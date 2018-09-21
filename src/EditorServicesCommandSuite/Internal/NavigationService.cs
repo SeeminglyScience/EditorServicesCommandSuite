@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Management.Automation.Language;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,15 +7,13 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Provides the ability to alter the user's current position within a document.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public abstract class NavigationService : IRefactorNavigation
+    internal abstract class NavigationService : IRefactorNavigation
     {
         /// <summary>
         /// Sets the position of the cursor.
         /// </summary>
         /// <param name="line">The new line number.</param>
         /// <param name="column">The new column number.</param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual void SetCursorPosition(int line, int column)
         {
             SetCursorPosition(line, column, CancellationToken.None);
@@ -30,7 +27,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="cancellationToken">
         /// The cancellation token that will be checked prior to completing the returned task.
         /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void SetCursorPosition(int line, int column, CancellationToken cancellationToken);
 
         /// <summary>
@@ -39,7 +35,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="position">
         /// The script position representing the new cursor location.
         /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual void SetCursorPosition(IScriptPosition position)
         {
             SetCursorPosition(position.LineNumber, position.ColumnNumber, CancellationToken.None);
@@ -54,7 +49,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="cancellationToken">
         /// The cancellation token that will be checked prior to completing the returned task.
         /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual void SetCursorPosition(IScriptPosition position, CancellationToken cancellationToken)
         {
             SetCursorPosition(position.LineNumber, position.ColumnNumber, cancellationToken);
@@ -68,7 +62,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual Task SetCursorPositionAsync(int line, int column)
         {
             return SetCursorPositionAsync(line, column, CancellationToken.None);
@@ -85,7 +78,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract Task SetCursorPositionAsync(int line, int column, CancellationToken cancellationToken);
 
         /// <summary>
@@ -97,7 +89,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual Task SetCursorPositionAsync(IScriptPosition position)
         {
             return SetCursorPositionAsync(position.LineNumber, position.ColumnNumber, CancellationToken.None);
@@ -115,7 +106,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual Task SetCursorPositionAsync(IScriptPosition position, CancellationToken cancellationToken)
         {
             return SetCursorPositionAsync(
@@ -139,7 +129,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="endColumn">
         /// The column number of the selection end.
         /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual void SetSelection(int startLine, int startColumn, int endLine, int endColumn)
         {
             SetSelection(
@@ -168,7 +157,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="cancellationToken">
         /// The cancellation token that will be checked prior to completing the returned task.
         /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void SetSelection(int startLine, int startColumn, int endLine, int endColumn, CancellationToken cancellationToken);
 
         /// <summary>
@@ -177,7 +165,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="extent">
         /// The script extent representing the entire range of the new selection.
         /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual void SetSelection(IScriptExtent extent)
         {
             SetSelection(
@@ -197,7 +184,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <param name="cancellationToken">
         /// The cancellation token that will be checked prior to completing the returned task.
         /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual void SetSelection(IScriptExtent extent, CancellationToken cancellationToken)
         {
             SetSelection(
@@ -226,7 +212,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual Task SetSelectionAsync(int startLine, int startColumn, int endLine, int endColumn)
         {
             return SetSelectionAsync(
@@ -258,7 +243,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract Task SetSelectionAsync(int startLine, int startColumn, int endLine, int endColumn, CancellationToken cancellationToken);
 
         /// <summary>
@@ -270,7 +254,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual Task SetSelectionAsync(IScriptExtent extent)
         {
             return SetSelectionAsync(
@@ -293,7 +276,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual Task SetSelectionAsync(IScriptExtent extent, CancellationToken cancellationToken)
         {
             return SetSelectionAsync(

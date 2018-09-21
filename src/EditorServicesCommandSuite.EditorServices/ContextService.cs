@@ -2,6 +2,7 @@ using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
+using EditorServicesCommandSuite.Utility;
 using Microsoft.PowerShell.EditorServices;
 using Microsoft.PowerShell.EditorServices.Protocol.LanguageServer;
 
@@ -18,26 +19,12 @@ namespace EditorServicesCommandSuite.EditorServices
             _messages = messages;
         }
 
-        protected override string Workspace => _workspace.WorkspacePath;
+        internal override string Workspace => _workspace.WorkspacePath;
 
-        protected override Task<DocumentContextBase> GetDocumentContextAsync()
-        {
-            return GetDocumentContextAsync(null, CancellationToken.None);
-        }
-
-        protected override Task<DocumentContextBase> GetDocumentContextAsync(CancellationToken cancellationToken)
-        {
-            return GetDocumentContextAsync(null, cancellationToken);
-        }
-
-        protected override Task<DocumentContextBase> GetDocumentContextAsync(PSCmdlet cmdlet)
-        {
-            return GetDocumentContextAsync(cmdlet, CancellationToken.None);
-        }
-
-        protected override async Task<DocumentContextBase> GetDocumentContextAsync(
+        internal override async Task<DocumentContextBase> GetDocumentContextAsync(
             PSCmdlet cmdlet,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            ThreadController threadController)
         {
             var context = await _messages.Sender.SendRequest(
                 GetEditorContextRequest.Type,
@@ -55,7 +42,8 @@ namespace EditorServicesCommandSuite.EditorServices
                     context.SelectionRange.End.Line + 1,
                     context.SelectionRange.End.Character)
                 .AddCancellationToken(cancellationToken)
-                .AddCmdlet(cmdlet);
+                .AddCmdlet(cmdlet)
+                .AddThreadController(threadController);
         }
     }
 }

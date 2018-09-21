@@ -8,7 +8,9 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Reflection;
-using EditorServicesCommandSuite.Internal;
+using System.Threading;
+using System.Threading.Tasks;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Inference
 {
@@ -40,16 +42,19 @@ namespace EditorServicesCommandSuite.Inference
             }
         }
 
-        internal static IList<PSTypeName> InferTypeOf(
+        internal static async Task<IList<PSTypeName>> InferTypeOf(
             Ast ast,
-            IPowerShellExecutor powerShell,
-            EngineIntrinsics engine,
+            ThreadController pipelineThread,
+            CancellationToken cancellationToken = default,
             bool includeNonPublic = false)
         {
-            return InferTypeOfProxyDelegate(ast)
-                ?.Where(t => t.Type != typeof(object))
-                ?.ToArray()
-                ?? Array.Empty<PSTypeName>();
+            return
+                await pipelineThread.InvokeAsync(
+                    () => InferTypeOfProxyDelegate(ast)
+                        ?.Where(t => t.Type != typeof(object))
+                        ?.ToArray()
+                        ?? Array.Empty<PSTypeName>(),
+                    cancellationToken);
         }
 
         private static InferTypeOfProxy GetCoreTypeInference()

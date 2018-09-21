@@ -8,6 +8,8 @@
   <Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
     <!--A call to an instance member of the local class or a base class is not prefixed with ‘this.’, within a C# code file.-->
     <Rule Id="SA1101" Action="None" />
+    <!--A parameter to a C# method or indexer, other than the first parameter, spans across multiple lines.-->
+    <Rule Id="SA1118" Action="None" />
     <!--Each attribute should be placed in its own set of square brackets.-->
     <Rule Id="SA1133" Action="None" />
     <!--A C# statement containing opening and closing curly brackets is written completely on a single line.-->

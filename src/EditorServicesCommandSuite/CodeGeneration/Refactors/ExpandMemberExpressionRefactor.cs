@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
@@ -128,19 +127,18 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             MemberExpressionAst ast)
         {
             ExpandMemberExpressionSettings config = request.GetConfiguration<ExpandMemberExpressionSettings>();
-            MemberInfo[] inferredMembers = ast
-                .GetInferredMembers(
-                    CommandSuite.Instance,
-                    skipArgumentCheck: true,
-                    includeNonPublic: config.AllowNonPublicMembers.IsPresent)
-                .ToArray();
+            MemberInfo[] inferredMembers =
+                    (await ast.GetInferredMembers(
+                        request.PipelineThread,
+                        skipArgumentCheck: true,
+                        includeNonPublic: config.AllowNonPublicMembers.IsPresent))
+                    .ToArray();
 
             if (inferredMembers.Length == 0)
             {
-                await _ui?.ShowErrorMessageAsync(
-                    ExpandMemberExpressionStrings.CannotInferMember.FormatCulture(ast.Member),
-                    waitForResponse: false);
-                return Array.Empty<DocumentEdit>();
+                await _ui.ShowErrorMessageOrThrowAsync(
+                    Error.CannotInferMember,
+                    ast.Member);
             }
 
             MemberInfo chosenMember = await _ui.ShowChoicePromptAsync(

@@ -1,7 +1,7 @@
 using System.Management.Automation;
 using System.Management.Automation.Language;
-using System.Management.Automation.Runspaces;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Language;
@@ -478,37 +478,26 @@ namespace EditorServicesCommandSuite.Tests
             bool newLineAfterHashtable = false,
             bool allParameters = false,
             bool mandatoryParameters = false,
-            bool noHints = false)
+            bool noHints = false,
+            CancellationToken cancellationToken = default)
         {
-            using (var runspace = RunspaceFactory.CreateRunspace())
-            {
-                runspace.Open();
-                // StaticParameterBinder.BindCommand() will only try to bind a CommandAst to a real command if there is a DefaultRunspace available.
-                var oldRunspace = Runspace.DefaultRunspace;
-                Runspace.DefaultRunspace = runspace;
-                try
-                {
-                    EngineIntrinsics executionContext =
-                        (EngineIntrinsics)runspace
-                            .SessionStateProxy
-                            .GetVariable("ExecutionContext");
+            AdditionalParameterTypes includedTypes =
+                allParameters ? AdditionalParameterTypes.All
+                    : mandatoryParameters ? AdditionalParameterTypes.Mandatory
+                    : AdditionalParameterTypes.None;
 
-                    return await MockContext.GetRefactoredTextAsync(
-                        testString,
-                        context => CommandSplatRefactor.GetEdits(
-                            variableName,
-                            context.Ast.FindParent<CommandAst>(),
-                            newLineAfterHashtable,
-                            allParameters,
-                            mandatoryParameters,
-                            noHints,
-                            executionContext));
-                }
-                finally
-                {
-                    Runspace.DefaultRunspace = oldRunspace;
-                }
-            }
+            return await MockContext.GetRefactoredTextAsync(
+                testString,
+                context => CommandSplatRefactor.GetEdits(
+                    variableName,
+                    context.Ast.FindParent<CommandAst>(),
+                    includedTypes,
+                    newLineAfterHashtable,
+                    noHints,
+                    context.PipelineThread,
+                    context.CancellationToken),
+                withRunspace: true,
+                cancellationToken);
         }
     }
 }

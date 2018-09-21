@@ -3,6 +3,7 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
 using EditorServicesCommandSuite.Internal;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
@@ -20,7 +21,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 contextToCopy.Token,
                 contextToCopy.SelectionExtent,
                 contextToCopy._psCmdlet,
-                CancellationToken.None)
+                contextToCopy.CancellationToken,
+                contextToCopy.PipelineThread)
         {
         }
 
@@ -35,25 +37,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 contextToCopy.Token,
                 contextToCopy.SelectionExtent,
                 contextToCopy._psCmdlet,
-                cancellationToken)
-        {
-        }
-
-        internal ConfiguredDocumentContext(
-            TConfiguration configuration,
-            ScriptBlockAst rootAst,
-            Ast currentAst,
-            LinkedListNode<Token> currentToken,
-            PSCmdlet cmdlet,
-            IScriptExtent selectionExtent)
-            : this(
-                configuration,
-                rootAst,
-                currentAst,
-                currentToken,
-                selectionExtent,
-                cmdlet,
-                CancellationToken.None)
+                cancellationToken,
+                contextToCopy.PipelineThread)
         {
         }
 
@@ -64,14 +49,16 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             LinkedListNode<Token> currentToken,
             IScriptExtent selectionExtent,
             PSCmdlet cmdlet,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            ThreadController threadController)
             : base(
                 rootAst,
                 currentAst,
                 currentToken,
                 selectionExtent,
                 cmdlet,
-                cancellationToken)
+                cancellationToken,
+                threadController)
         {
             Configuration = configuration;
         }

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,8 +7,7 @@ namespace EditorServicesCommandSuite.Internal
     /// <summary>
     /// Provides the ability to process <see cref="DocumentEdit" /> objects.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public interface IDocumentEditProcessor
+    internal interface IDocumentEditProcessor
     {
         /// <summary>
         /// Apply document edits to the current document.
@@ -21,7 +19,6 @@ namespace EditorServicesCommandSuite.Internal
         /// <returns>
         /// A <see cref="Task" /> object representing the asynchronus operation.
         /// </returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         Task WriteDocumentEditsAsync(IEnumerable<DocumentEdit> edits, CancellationToken cancellationToken);
     }
 }

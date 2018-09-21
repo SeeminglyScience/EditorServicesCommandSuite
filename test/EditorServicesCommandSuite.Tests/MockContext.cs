@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+using System.Management.Automation.Runspaces;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Internal;
@@ -12,40 +14,137 @@ using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Tests
 {
-    public class MockContext
+    public class MockContext : IDisposable
     {
-        public static async Task<string> GetRefactoredTextAsync(
+        private readonly PowerShell _pwsh;
+
+        private readonly Runspace _runspace;
+
+        private readonly ThreadController _threadController;
+
+        private readonly CancellationTokenSource _controllerCancel;
+
+        private readonly PSCmdlet _cmdlet;
+
+        private bool _isDisposed;
+
+        private MockContext(
+            PowerShell powerShell,
+            Runspace runspace,
+            ThreadController pipelineThread,
+            PSCmdlet cmdlet,
+            CancellationTokenSource controllerCancel)
+        {
+            _pwsh = powerShell;
+            _runspace = runspace;
+            _threadController = pipelineThread;
+            _cmdlet = cmdlet;
+            _controllerCancel = controllerCancel;
+        }
+
+        public void Dispose()
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            _controllerCancel.Cancel();
+            _pwsh?.Dispose();
+            _runspace?.Dispose();
+            _isDisposed = true;
+        }
+
+        internal static async Task<MockContext> CreateAsync(
+            bool withRunspace = false,
+            CancellationToken cancellationToken = default)
+        {
+            if (withRunspace)
+            {
+                return await CreateWithRunspaceAsync(cancellationToken);
+            }
+
+            return await CreateBasicAsync(cancellationToken);
+        }
+
+        private static Task<MockContext> CreateBasicAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                new MockContext(
+                    powerShell: null,
+                    runspace: null,
+                    pipelineThread: null,
+                    cmdlet: null,
+                    controllerCancel: CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)));
+        }
+
+        private static async Task<MockContext> CreateWithRunspaceAsync(CancellationToken cancellationToken)
+        {
+            InitialSessionState iss = InitialSessionState.CreateDefault2();
+            Runspace runspace = RunspaceFactory.CreateRunspace(iss);
+            runspace.Open();
+            PowerShell pwsh = PowerShell.Create();
+            pwsh.Runspace = runspace;
+            pwsh.AddScript(@"
+                [CmdletBinding()]
+                param([MulticastDelegate] $Delegate)
+                end {
+                    $Delegate.Invoke($PSCmdlet, $ExecutionContext)
+                }");
+
+            var completed = new TaskCompletionSource<(PSCmdlet, ThreadController)>();
+            var controllerCancel = new CancellationTokenSource();
+            if (cancellationToken.CanBeCanceled)
+            {
+                controllerCancel = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            }
+
+            pwsh.AddParameter("Delegate", new Action<PSCmdlet, EngineIntrinsics>(
+                (cmdlet, engine) =>
+                {
+                    var threadController = new ThreadController(engine, cmdlet);
+                    Task.Run(() => completed.TrySetResult((cmdlet, threadController)));
+                    threadController.GiveControl(controllerCancel.Token);
+                }));
+
+            pwsh.BeginInvoke();
+            var (psCmdlet, controller) = await completed.Task;
+            return new MockContext(pwsh, runspace, controller, psCmdlet, controllerCancel);
+        }
+
+        internal static async Task<string> GetRefactoredTextAsync(
             string testString,
-            Func<DocumentContextBase, Task<IEnumerable<DocumentEdit>>> editFactory)
+            Func<DocumentContextBase, Task<IEnumerable<DocumentEdit>>> editFactory,
+            bool withRunspace = false,
+            CancellationToken cancellationToken = default)
         {
             Settings.SetSetting("NewLine", "\n");
             Settings.SetSetting("TabString", "\t");
-            var context = GetContext(testString);
-            var sb = new StringBuilder(context.RootAst.Extent.Text);
-            foreach (var edit in (await editFactory(context)).OrderByDescending(e => e.StartOffset))
+            using (MockContext mockContext = await MockContext.CreateAsync(withRunspace, cancellationToken))
             {
-                if (edit == null)
+                var context = mockContext.GetContext(testString);
+                var sb = new StringBuilder(context.RootAst.Extent.Text);
+
+                foreach (var edit in (await editFactory(context)).OrderByDescending(e => e.StartOffset))
                 {
-                    continue;
+                    if (edit == null)
+                    {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrEmpty(edit.OriginalValue))
+                    {
+                        sb.Remove((int)edit.StartOffset, edit.OriginalValue.Length);
+                    }
+
+                    sb.Insert((int)edit.StartOffset, edit.NewValue);
                 }
 
-                if (!string.IsNullOrEmpty(edit.OriginalValue))
-                {
-                    sb.Remove((int)edit.StartOffset, edit.OriginalValue.Length);
-                }
-
-                sb.Insert((int)edit.StartOffset, edit.NewValue);
-                // sb.Replace(
-                //     edit.OriginalValue,
-                //     edit.NewValue,
-                //     (int)edit.StartOffset,
-                //     1);
+                return sb.ToString();
             }
-
-            return sb.ToString();
         }
 
-        public static DocumentContextBase GetContext(string testString)
+        internal DocumentContextBase GetContext(string testString)
         {
             var sb = new StringBuilder(testString);
             var cursor = testString.IndexOf("{{c}}");
@@ -73,7 +172,6 @@ namespace EditorServicesCommandSuite.Tests
                 selectionEnd = cursor;
             }
 
-            // while (!System.Diagnostics.Debugger.IsAttached) System.Threading.Thread.Sleep(200);
             (Ast ast, Token[] tokens, IScriptPosition position) = CommandCompletion
                 .MapStringInputToParsedInput(
                     sb.ToString(),
@@ -86,7 +184,10 @@ namespace EditorServicesCommandSuite.Tests
                 PositionUtilities.NewScriptExtent(
                     ast.Extent,
                     selectionStart,
-                    selectionEnd));
+                    selectionEnd),
+                _cmdlet,
+                _controllerCancel.Token,
+                _threadController);
         }
     }
 }

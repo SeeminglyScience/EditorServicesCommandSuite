@@ -12,18 +12,14 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
     [Refactor(VerbsCommon.Add, "ModuleQualification")]
     internal class AddModuleQualificationRefactor : AstRefactorProvider<CommandAst>
     {
-        private readonly IPowerShellExecutor _executor;
-
         private readonly IRefactorUI _ui;
 
         private readonly IRefactorWorkspace _workspace;
 
         internal AddModuleQualificationRefactor(
-            IPowerShellExecutor executor,
             IRefactorUI ui,
             IRefactorWorkspace workspace)
         {
-            _executor = executor;
             _ui = ui;
             _workspace = workspace;
         }
@@ -58,27 +54,25 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             PSCmdlet cmdlet = null;
             if (!request.TryGetCmdlet(out cmdlet))
             {
-                await _ui.ShowErrorMessageAsync(
-                    string.Format(
-                        System.Globalization.CultureInfo.CurrentCulture,
-                        AddModuleQualificationStrings.PSCmdletRequired,
-                        nameof(AddModuleQualificationRefactor)),
-                    waitForResponse: false);
+                await _ui.ShowErrorMessageOrThrowAsync(
+                    Error.CmdletRequired,
+                    nameof(AddModuleQualificationRefactor));
+
                 return Array.Empty<DocumentEdit>();
             }
 
             string commandName = ast.GetCommandName();
             if (string.IsNullOrWhiteSpace(commandName))
             {
-                await ShowCommandNotFoundError(_ui);
+                await _ui.ShowErrorMessageOrThrowAsync(Error.CommandNotFound);
                 return Array.Empty<DocumentEdit>();
             }
 
-            CommandInfo command = cmdlet.SessionState.InvokeCommand.GetCommand(
-                commandName,
-                CommandTypes.Function | CommandTypes.Cmdlet);
-
-            request.CancellationToken.ThrowIfCancellationRequested();
+            CommandInfo command = await request.PipelineThread.InvokeAsync(
+                () => cmdlet.SessionState.InvokeCommand.GetCommand(
+                    commandName,
+                    CommandTypes.Function | CommandTypes.Cmdlet),
+                request.CancellationToken);
 
             string moduleName;
             if (command != null)
@@ -95,7 +89,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             ManifestInfo manifest;
             if (!ManifestInfo.TryGetWorkspaceManifest(_workspace, out manifest))
             {
-                await ShowCommandNotFoundError(_ui);
+                await _ui.ShowErrorMessageOrThrowAsync(Error.CommandNotFound);
                 return Array.Empty<DocumentEdit>();
             }
 
@@ -108,13 +102,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             request.CancellationToken.ThrowIfCancellationRequested();
             return Array.Empty<DocumentEdit>();
-        }
-
-        private static async Task ShowCommandNotFoundError(IRefactorUI ui)
-        {
-            await ui.ShowErrorMessageAsync(
-                AddModuleQualificationStrings.CommandNameRequired,
-                waitForResponse: false);
         }
 
         private static bool TryGetModuleNameFromCommand(CommandInfo command, out string moduleName)

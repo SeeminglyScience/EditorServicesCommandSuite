@@ -1,4 +1,5 @@
 using System;
+using System.Management.Automation;
 using System.Management.Automation.Language;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
@@ -7,14 +8,17 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
     {
         internal Parameter(
             string name,
-            ParameterBindingResult value,
-            bool isMandatory,
-            Type parameterType)
+            ParameterBindingResult value)
         {
             Name = name;
             Value = value;
-            IsMandatory = isMandatory;
-            Type = parameterType;
+        }
+
+        internal Parameter(ParameterMetadata metadata, ParameterSetMetadata setMetadata)
+        {
+            Name = metadata.Name;
+            IsMandatory = setMetadata.IsMandatory;
+            Type = metadata.ParameterType;
         }
 
         public string Name { get; }

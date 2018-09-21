@@ -3,6 +3,7 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
 using EditorServicesCommandSuite.Internal;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
@@ -12,39 +13,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             ScriptBlockAst rootAst,
             Ast currentAst,
             LinkedListNode<Token> currentToken,
-            IScriptExtent selectionExtent)
-            : base(rootAst, currentAst, currentToken, selectionExtent, null, CancellationToken.None)
-        {
-        }
-
-        internal DocumentContext(
-            ScriptBlockAst rootAst,
-            Ast currentAst,
-            LinkedListNode<Token> currentToken,
-            IScriptExtent selectionExtent,
-            CancellationToken cancellationToken)
-            : base(rootAst, currentAst, currentToken, selectionExtent, null, cancellationToken)
-        {
-        }
-
-        internal DocumentContext(
-            ScriptBlockAst rootAst,
-            Ast currentAst,
-            LinkedListNode<Token> currentToken,
-            IScriptExtent selectionExtent,
-            PSCmdlet cmdlet)
-            : base(rootAst, currentAst, currentToken, selectionExtent, cmdlet, CancellationToken.None)
-        {
-        }
-
-        internal DocumentContext(
-            ScriptBlockAst rootAst,
-            Ast currentAst,
-            LinkedListNode<Token> currentToken,
             IScriptExtent selectionExtent,
             PSCmdlet cmdlet,
-            CancellationToken cancellationToken)
-            : base(rootAst, currentAst, currentToken, selectionExtent, cmdlet, cancellationToken)
+            CancellationToken cancellationToken,
+            ThreadController threadController)
+            : base(rootAst, currentAst, currentToken, selectionExtent, cmdlet, cancellationToken, threadController)
         {
         }
 
