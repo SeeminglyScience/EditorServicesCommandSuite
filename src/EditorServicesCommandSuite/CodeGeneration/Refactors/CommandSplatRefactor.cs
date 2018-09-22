@@ -256,6 +256,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             }
 
             var parameterNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var candidates = new List<string>();
             foreach (CommandParameterSetInfo parameterSet in commandInfo.ParameterSets)
             {
                 parameterNames.Clear();
@@ -266,11 +267,40 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
                 if (parameterNames.IsSupersetOf(bindingResult.BoundParameters.Keys))
                 {
-                    return parameterSet.Name;
+                    candidates.Add(parameterSet.Name);
                 }
             }
 
-            return ParameterAttribute.AllParameterSets;
+            if (candidates.Count == 0)
+            {
+                return ParameterAttribute.AllParameterSets;
+            }
+
+            if (TryGetDefaultParameterSet(commandInfo, out string defaultParameterSetName) &&
+                candidates.Contains(defaultParameterSetName))
+            {
+                return defaultParameterSetName;
+            }
+
+            return candidates[0];
+        }
+
+        private static bool TryGetDefaultParameterSet(CommandInfo commandInfo, out string defaultParameterSetName)
+        {
+            if (commandInfo is CmdletInfo cmdlet && !string.IsNullOrEmpty(cmdlet.DefaultParameterSet))
+            {
+                defaultParameterSetName = cmdlet.DefaultParameterSet;
+                return true;
+            }
+
+            if (commandInfo is FunctionInfo function && !string.IsNullOrEmpty(function.DefaultParameterSet))
+            {
+                defaultParameterSetName = function.DefaultParameterSet;
+                return true;
+            }
+
+            defaultParameterSetName = null;
+            return false;
         }
 
         private string GetSplatVariableName(CommandElementAst element)

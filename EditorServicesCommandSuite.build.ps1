@@ -151,11 +151,19 @@ task DoTest {
                 Select-Object -First 1 -ExpandProperty Name
         }
 
-        & $dotnet xunit `
-            -framework netcoreapp2.0 `
-            -configuration Test `
-            -fxversion $TestRuntimeVersion `
-            -nologo
+        & $dotnet restore
+
+        $oldPSModulePath = $env:PSModulePath
+        try {
+            $env:PSModulePath = $env:PSModulePath -replace ([regex]::Escape($PSHome)), 'C:\Program Files\PowerShell\6'
+            & $dotnet xunit `
+                -framework netcoreapp2.0 `
+                -configuration Test `
+                -fxversion $TestRuntimeVersion `
+                -nologo
+        } finally {
+            $env:PSModulePath = $oldPSModulePath
+        }
     } finally {
         Pop-Location
     }

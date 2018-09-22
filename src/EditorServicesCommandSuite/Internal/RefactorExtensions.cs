@@ -36,7 +36,7 @@ namespace EditorServicesCommandSuite.Internal
                 throw exceptionGenerator();
             }
 
-            await ui.ShowErrorMessageAsync(exceptionGenerator().Message);
+            await ui.ShowErrorMessageAsync(exceptionGenerator().Message, waitForResponse: false);
             throw new PipelineStoppedException();
         }
 
@@ -69,7 +69,7 @@ namespace EditorServicesCommandSuite.Internal
                 throw exceptionGenerator(arg0);
             }
 
-            await ui.ShowErrorMessageAsync(exceptionGenerator(arg0).Message);
+            await ui.ShowErrorMessageAsync(exceptionGenerator(arg0).Message, waitForResponse: false);
             throw new PipelineStoppedException();
         }
 
@@ -107,7 +107,7 @@ namespace EditorServicesCommandSuite.Internal
                 throw exceptionGenerator(arg0, arg1);
             }
 
-            await ui.ShowErrorMessageAsync(exceptionGenerator(arg0, arg1).Message);
+            await ui.ShowErrorMessageAsync(exceptionGenerator(arg0, arg1).Message, waitForResponse: false);
             throw new PipelineStoppedException();
         }
 
@@ -139,7 +139,7 @@ namespace EditorServicesCommandSuite.Internal
         /// </returns>
         public static Task ShowWarningMessageAsync(this IRefactorUI ui, string message)
         {
-            return ui?.ShowWarningMessageAsync(message, waitForResponse: false);
+            return ui?.ShowWarningMessageAsync(message, waitForResponse: false) ?? Task.CompletedTask;
         }
 
         /// <summary>
@@ -152,7 +152,7 @@ namespace EditorServicesCommandSuite.Internal
         /// </returns>
         public static Task ShowErrorMessageAsync(this IRefactorUI ui, string message)
         {
-            return ui.ShowErrorMessageAsync(message, waitForResponse: false);
+            return ui?.ShowErrorMessageAsync(message, waitForResponse: false) ?? Task.CompletedTask;
         }
 
         /// <summary>

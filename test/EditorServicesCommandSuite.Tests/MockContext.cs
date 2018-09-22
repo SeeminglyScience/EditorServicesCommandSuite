@@ -80,7 +80,7 @@ namespace EditorServicesCommandSuite.Tests
 
         private static async Task<MockContext> CreateWithRunspaceAsync(CancellationToken cancellationToken)
         {
-            InitialSessionState iss = InitialSessionState.CreateDefault2();
+            InitialSessionState iss = InitialSessionState.CreateDefault();
             Runspace runspace = RunspaceFactory.CreateRunspace(iss);
             runspace.Open();
             PowerShell pwsh = PowerShell.Create();
