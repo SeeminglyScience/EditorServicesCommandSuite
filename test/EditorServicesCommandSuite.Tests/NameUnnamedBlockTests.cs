@@ -12,8 +12,15 @@ namespace EditorServicesCommandSuite.Tests
         public async void NamesUnnamedBlock()
         {
             Assert.Equal(
-                "end {\n\tGet-ChildItem\n\tGet-Acl\n}",
-                await GetRefactoredTextAsync("Get-ChildItem\nGet-Ac{{c}}l"));
+                TestBuilder.Create()
+                    .Lines("end {")
+                    .Lines("    Get-ChildItem")
+                    .Lines("    Get-Acl")
+                    .Texts("}"),
+                await GetRefactoredTextAsync(
+                    TestBuilder.Create()
+                        .Lines("Get-ChildItem")
+                        .Texts("Get-Ac{0}l", hasCursor: true)));
         }
 
         // [Fact(Skip = "Need to fix test")]
@@ -21,16 +28,34 @@ namespace EditorServicesCommandSuite.Tests
         public async void DoesNotBreakFunctionSyntax()
         {
             Assert.Equal(
-                "function Test {\n\tend {\n\t\tGet-ChildItem\n\t\tGet-Acl\n\t}\n}",
-                await GetRefactoredTextAsync("function Test {\n\tGet-ChildItem\n\tGet-Ac{{c}}l\n}"));
+                TestBuilder.Create()
+                    .Lines("function Test {")
+                    .Lines("    end {")
+                    .Lines("        Get-ChildItem")
+                    .Lines("        Get-Acl")
+                    .Lines("    }")
+                    .Texts("}"),
+                await GetRefactoredTextAsync(
+                    TestBuilder.Create()
+                        .Lines("function Test {")
+                        .Lines("    Get-ChildItem")
+                        .Lines("    Get-Ac{0}l", hasCursor: true)
+                        .Texts("}")));
         }
 
         [Fact]
         public async void RetainsIndent()
         {
             Assert.Equal(
-                "\tend {\n\t\tGet-ChildItem\n\t\tGet-Acl\n\t}",
-                await GetRefactoredTextAsync("\tGet-ChildItem\n\tGet-Acl"));
+                TestBuilder.Create()
+                    .Lines("    end {")
+                    .Lines("        Get-ChildItem")
+                    .Lines("        Get-Acl")
+                    .Texts("    }"),
+                await GetRefactoredTextAsync(
+                    TestBuilder.Create()
+                        .Lines("    Get-ChildItem")
+                        .Texts("    Get-Acl")));
         }
 
         private async Task<string> GetRefactoredTextAsync(string testString)

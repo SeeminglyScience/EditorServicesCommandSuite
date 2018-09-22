@@ -22,10 +22,10 @@ namespace EditorServicesCommandSuite.Tests
         {
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Recurse = $true")
-                    .Line("}")
-                    .Text("Get-ChildItem @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Recurse = $true")
+                    .Lines("}")
+                    .Texts("Get-ChildItem @splat"),
                 await GetRefactoredTextAsync("Get-ChildItem -Recurse"));
         }
 
@@ -34,10 +34,10 @@ namespace EditorServicesCommandSuite.Tests
         {
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Path = './myPath'")
-                    .Line("}")
-                    .Text("Get-ChildItem @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Path = './myPath'")
+                    .Lines("}")
+                    .Texts("Get-ChildItem @splat"),
                 await GetRefactoredTextAsync("Get-ChildItem -Path ./myPath"));
         }
 
@@ -46,10 +46,10 @@ namespace EditorServicesCommandSuite.Tests
         {
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Path = \"./myPath$c\"")
-                    .Line("}")
-                    .Text("Get-ChildItem @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Path = \"./myPath$c\"")
+                    .Lines("}")
+                    .Texts("Get-ChildItem @splat"),
                 await GetRefactoredTextAsync("Get-ChildItem -Path ./myPath$c"));
         }
 
@@ -58,24 +58,24 @@ namespace EditorServicesCommandSuite.Tests
         {
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Attachments = $stringArrayAttachments")
-                    .Line("    Bcc = $stringArrayBcc")
-                    .Line("    Body = $stringBody")
-                    .Line("    BodyAsHtml = $switchParameterBodyAsHtml")
-                    .Line("    Encoding = $encodingEncoding")
-                    .Line("    Cc = $stringArrayCc")
-                    .Line("    DeliveryNotificationOption = $deliveryNotificationOptionsDeliveryNotificationOption")
-                    .Line("    From = $mandatoryStringFrom")
-                    .Line("    SmtpServer = $stringSmtpServer")
-                    .Line("    Priority = $mailPriorityPriority")
-                    .Line("    Subject = $mandatoryStringSubject")
-                    .Line("    To = $mandatoryStringArrayTo")
-                    .Line("    Credential = $pSCredentialCredential")
-                    .Line("    UseSsl = $switchParameterUseSsl")
-                    .Line("    Port = $int32Port")
-                    .Line("}")
-                    .Text("Send-MailMessage @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Attachments = $stringArrayAttachments")
+                    .Lines("    Bcc = $stringArrayBcc")
+                    .Lines("    Body = $stringBody")
+                    .Lines("    BodyAsHtml = $switchParameterBodyAsHtml")
+                    .Lines("    Encoding = $encodingEncoding")
+                    .Lines("    Cc = $stringArrayCc")
+                    .Lines("    DeliveryNotificationOption = $deliveryNotificationOptionsDeliveryNotificationOption")
+                    .Lines("    From = $mandatoryStringFrom")
+                    .Lines("    SmtpServer = $stringSmtpServer")
+                    .Lines("    Priority = $mailPriorityPriority")
+                    .Lines("    Subject = $mandatoryStringSubject")
+                    .Lines("    To = $mandatoryStringArrayTo")
+                    .Lines("    Credential = $pSCredentialCredential")
+                    .Lines("    UseSsl = $switchParameterUseSsl")
+                    .Lines("    Port = $int32Port")
+                    .Lines("}")
+                    .Texts("Send-MailMessage @splat"),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage",
                     allParameters: true));
@@ -86,24 +86,24 @@ namespace EditorServicesCommandSuite.Tests
         {
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    From = 'someone@someplace.com'")
-                    .Line("    Attachments = $stringArrayAttachments")
-                    .Line("    Bcc = $stringArrayBcc")
-                    .Line("    Body = $stringBody")
-                    .Line("    BodyAsHtml = $switchParameterBodyAsHtml")
-                    .Line("    Encoding = $encodingEncoding")
-                    .Line("    Cc = $stringArrayCc")
-                    .Line("    DeliveryNotificationOption = $deliveryNotificationOptionsDeliveryNotificationOption")
-                    .Line("    SmtpServer = $stringSmtpServer")
-                    .Line("    Priority = $mailPriorityPriority")
-                    .Line("    Subject = $mandatoryStringSubject")
-                    .Line("    To = $mandatoryStringArrayTo")
-                    .Line("    Credential = $pSCredentialCredential")
-                    .Line("    UseSsl = $switchParameterUseSsl")
-                    .Line("    Port = $int32Port")
-                    .Line("}")
-                    .Text("Send-MailMessage @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    From = 'someone@someplace.com'")
+                    .Lines("    Attachments = $stringArrayAttachments")
+                    .Lines("    Bcc = $stringArrayBcc")
+                    .Lines("    Body = $stringBody")
+                    .Lines("    BodyAsHtml = $switchParameterBodyAsHtml")
+                    .Lines("    Encoding = $encodingEncoding")
+                    .Lines("    Cc = $stringArrayCc")
+                    .Lines("    DeliveryNotificationOption = $deliveryNotificationOptionsDeliveryNotificationOption")
+                    .Lines("    SmtpServer = $stringSmtpServer")
+                    .Lines("    Priority = $mailPriorityPriority")
+                    .Lines("    Subject = $mandatoryStringSubject")
+                    .Lines("    To = $mandatoryStringArrayTo")
+                    .Lines("    Credential = $pSCredentialCredential")
+                    .Lines("    UseSsl = $switchParameterUseSsl")
+                    .Lines("    Port = $int32Port")
+                    .Lines("}")
+                    .Texts("Send-MailMessage @splat"),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage -From 'someone@someplace.com'",
                     allParameters: true));
@@ -115,11 +115,11 @@ namespace EditorServicesCommandSuite.Tests
             // Should result in default set.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Path = $mandatoryStringArrayPath")
-                    .Line("    Algorithm = $stringAlgorithm")
-                    .Line("}")
-                    .Text("Get-FileHash @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Path = $mandatoryStringArrayPath")
+                    .Lines("    Algorithm = $stringAlgorithm")
+                    .Lines("}")
+                    .Texts("Get-FileHash @splat"),
                 await GetRefactoredTextAsync(
                     "Get-FileHash",
                     allParameters: true));
@@ -132,17 +132,17 @@ namespace EditorServicesCommandSuite.Tests
             // Should result in default parameter set.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Name = $true")
-                    .Line("    Path = $stringArrayPath")
-                    .Line("    Filter = $stringFilter")
-                    .Line("    Include = $stringArrayInclude")
-                    .Line("    Exclude = $stringArrayExclude")
-                    .Line("    Recurse = $switchParameterRecurse")
-                    .Line("    Depth = $uInt32Depth")
-                    .Line("    Force = $switchParameterForce")
-                    .Line("}")
-                    .Text("Get-ChildItem @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Name = $true")
+                    .Lines("    Path = $stringArrayPath")
+                    .Lines("    Filter = $stringFilter")
+                    .Lines("    Include = $stringArrayInclude")
+                    .Lines("    Exclude = $stringArrayExclude")
+                    .Lines("    Recurse = $switchParameterRecurse")
+                    .Lines("    Depth = $uInt32Depth")
+                    .Lines("    Force = $switchParameterForce")
+                    .Lines("}")
+                    .Texts("Get-ChildItem @splat"),
                 await GetRefactoredTextAsync(
                     "Get-ChildItem -Name",
                     allParameters: true));
@@ -155,13 +155,13 @@ namespace EditorServicesCommandSuite.Tests
             // should result in splat of default parameter set.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Path = 'c:\\test\\test'")
-                    .Line("    Value = $objectValue")
-                    .Line("    Force = $switchParameterForce")
-                    .Line("    Credential = $pSCredentialCredential")
-                    .Line("}")
-                    .Text("mkdir @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Path = 'c:\\test\\test'")
+                    .Lines("    Value = $objectValue")
+                    .Lines("    Force = $switchParameterForce")
+                    .Lines("    Credential = $pSCredentialCredential")
+                    .Lines("}")
+                    .Texts("mkdir @splat"),
                 await GetRefactoredTextAsync(
                     "mkdir -Path 'c:\\test\\test'",
                     allParameters: true));
@@ -174,14 +174,14 @@ namespace EditorServicesCommandSuite.Tests
             // sets. Should result in a splat of that set.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Name = 'somename'")
-                    .Line("    Path = $stringArrayPath")
-                    .Line("    Value = $objectValue")
-                    .Line("    Force = $switchParameterForce")
-                    .Line("    Credential = $pSCredentialCredential")
-                    .Line("}")
-                    .Text("mkdir @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Name = 'somename'")
+                    .Lines("    Path = $stringArrayPath")
+                    .Lines("    Value = $objectValue")
+                    .Lines("    Force = $switchParameterForce")
+                    .Lines("    Credential = $pSCredentialCredential")
+                    .Lines("}")
+                    .Texts("mkdir @splat"),
                 await GetRefactoredTextAsync(
                     "mkdir -Name 'somename'",
                     allParameters: true));
@@ -195,11 +195,11 @@ namespace EditorServicesCommandSuite.Tests
             // all parameters, and the incorrect parameter should remain on the same line as the cmdlet.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    InputObject = $pSObjectInputObject")
-                    .Line("    Expression = $mandatoryScriptBlockExpression")
-                    .Line("}")
-                    .Text("Measure-Command @splat -ThisIsAnInvalidParameter"),
+                    .Lines("$splat = @{")
+                    .Lines("    InputObject = $pSObjectInputObject")
+                    .Lines("    Expression = $mandatoryScriptBlockExpression")
+                    .Lines("}")
+                    .Texts("Measure-Command @splat -ThisIsAnInvalidParameter"),
                 await GetRefactoredTextAsync(
                     "Measure-Command -ThisIsAnInvalidParameter 'somevalue'",
                     allParameters: true));
@@ -214,10 +214,10 @@ namespace EditorServicesCommandSuite.Tests
             // parameters, with an invalid parameter.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line()
-                    .Line("}")
-                    .Text("Get-Host @splat -ThisIsAnInvalidParameter"),
+                    .Lines("$splat = @{")
+                    .Lines()
+                    .Lines("}")
+                    .Texts("Get-Host @splat -ThisIsAnInvalidParameter"),
                 await GetRefactoredTextAsync(
                     "Get-Host -ThisIsAnInvalidParameter 'somevalue'",
                     allParameters: true));
@@ -240,12 +240,12 @@ namespace EditorServicesCommandSuite.Tests
         {
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    From = $mandatoryStringFrom")
-                    .Line("    Subject = $mandatoryStringSubject")
-                    .Line("    To = $mandatoryStringArrayTo")
-                    .Line("}")
-                    .Text("Send-MailMessage @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    From = $mandatoryStringFrom")
+                    .Lines("    Subject = $mandatoryStringSubject")
+                    .Lines("    To = $mandatoryStringArrayTo")
+                    .Lines("}")
+                    .Texts("Send-MailMessage @splat"),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage",
                     mandatoryParameters: true));
@@ -256,12 +256,12 @@ namespace EditorServicesCommandSuite.Tests
         {
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    From = 'someone@someplace.com'")
-                    .Line("    Subject = $mandatoryStringSubject")
-                    .Line("    To = $mandatoryStringArrayTo")
-                    .Line("}")
-                    .Text("Send-MailMessage @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    From = 'someone@someplace.com'")
+                    .Lines("    Subject = $mandatoryStringSubject")
+                    .Lines("    To = $mandatoryStringArrayTo")
+                    .Lines("}")
+                    .Texts("Send-MailMessage @splat"),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage -From 'someone@someplace.com'",
                     mandatoryParameters: true));
@@ -273,10 +273,10 @@ namespace EditorServicesCommandSuite.Tests
             // Should result in default set.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Path = $mandatoryStringArrayPath")
-                    .Line("}")
-                    .Text("Get-FileHash @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Path = $mandatoryStringArrayPath")
+                    .Lines("}")
+                    .Texts("Get-FileHash @splat"),
                 await GetRefactoredTextAsync(
                     "Get-FileHash",
                     mandatoryParameters: true));
@@ -289,10 +289,10 @@ namespace EditorServicesCommandSuite.Tests
             // Should result in default parameter set.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Name = $true")
-                    .Line("}")
-                    .Text("Get-ChildItem @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Name = $true")
+                    .Lines("}")
+                    .Texts("Get-ChildItem @splat"),
                 await GetRefactoredTextAsync(
                     "Get-ChildItem -Name",
                     mandatoryParameters: true));
@@ -305,10 +305,10 @@ namespace EditorServicesCommandSuite.Tests
             // in splat of the default parameter set.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Path = 'c:\\test\\test'")
-                    .Line("}")
-                    .Text("mkdir @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Path = 'c:\\test\\test'")
+                    .Lines("}")
+                    .Texts("mkdir @splat"),
                 await GetRefactoredTextAsync(
                     "mkdir -Path 'c:\\test\\test'",
                     mandatoryParameters: true));
@@ -321,10 +321,10 @@ namespace EditorServicesCommandSuite.Tests
             // parameter sets. Should result in a splat of that set.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Name = 'somename'")
-                    .Line("}")
-                    .Text("mkdir @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    Name = 'somename'")
+                    .Lines("}")
+                    .Texts("mkdir @splat"),
                 await GetRefactoredTextAsync(
                     "mkdir -Name 'somename'",
                     mandatoryParameters: true));
@@ -339,10 +339,10 @@ namespace EditorServicesCommandSuite.Tests
             // as the cmdlet.
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    Expression = $mandatoryScriptBlockExpression")
-                    .Line("}")
-                    .Text("Measure-Command @splat -ThisIsAnInvalidParameter"),
+                    .Lines("$splat = @{")
+                    .Lines("    Expression = $mandatoryScriptBlockExpression")
+                    .Lines("}")
+                    .Texts("Measure-Command @splat -ThisIsAnInvalidParameter"),
                 await GetRefactoredTextAsync(
                     "Measure-Command -ThisIsAnInvalidParameter 'somevalue'",
                     mandatoryParameters: true));
@@ -359,12 +359,12 @@ namespace EditorServicesCommandSuite.Tests
         {
             Assert.Equal(
                 TestBuilder.Create()
-                    .Line("$splat = @{")
-                    .Line("    From = $from")
-                    .Line("    Subject = $subject")
-                    .Line("    To = $to")
-                    .Line("}")
-                    .Text("Send-MailMessage @splat"),
+                    .Lines("$splat = @{")
+                    .Lines("    From = $from")
+                    .Lines("    Subject = $subject")
+                    .Lines("    To = $to")
+                    .Lines("}")
+                    .Texts("Send-MailMessage @splat"),
                 await GetRefactoredTextAsync(
                     "Send-MailMessage",
                     mandatoryParameters: true,

@@ -10,7 +10,10 @@ namespace EditorServicesCommandSuite.Tests
         public async void CanDropNamespace()
         {
             Assert.Equal(
-                "using namespace System.IO\n\n[Path]",
+                TestBuilder.Create()
+                    .Lines("using namespace System.IO")
+                    .Lines()
+                    .Texts("[Path]"),
                 await GetRefactoredTextAsync("[System.IO.Path]"));
         }
 
@@ -18,7 +21,10 @@ namespace EditorServicesCommandSuite.Tests
         public async void CanResolveType()
         {
             Assert.Equal(
-                "using namespace System.Management.Automation.Host\n\n[PSHost]",
+                TestBuilder.Create()
+                    .Lines("using namespace System.Management.Automation.Host")
+                    .Lines()
+                    .Texts("[PSHost]"),
                 await GetRefactoredTextAsync("[PSHost]"));
         }
 

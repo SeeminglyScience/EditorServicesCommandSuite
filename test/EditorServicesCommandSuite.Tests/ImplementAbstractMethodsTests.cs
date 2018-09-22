@@ -16,14 +16,18 @@ namespace EditorServicesCommandSuite.Tests
         public async void AddsASingleMethod()
         {
             Assert.Equal(
-                "using namespace System\n\n" +
-                "class test : test {\n" +
-                "\t[void] TestMethod() {\n" +
-                "\t\tthrow [NotImplementedException]::new()\n" +
-                "\t}\n" +
-                "}",
+                TestBuilder.Create()
+                    .Lines("using namespace System")
+                    .Lines()
+                    .Lines("class test : test {")
+                    .Lines("    [void] TestMethod() {")
+                    .Lines("        throw [NotImplementedException]::new()")
+                    .Lines("    }")
+                    .Texts("}"),
                 await GetRefactoredTextAsync(
-                    "class test : te{{c}}st {\n}",
+                    TestBuilder.Create()
+                        .Lines("class test : te{0}st {{", hasCursor: true)
+                        .Texts("}"),
                     MemberOfType.Method().Named("TestMethod")));
         }
 
@@ -31,11 +35,14 @@ namespace EditorServicesCommandSuite.Tests
         public async void AddsASingleProperty()
         {
             Assert.Equal(
-                "class test : test {\n" +
-                "\t[string] $Name;\n" +
-                "}",
+                TestBuilder.Create()
+                    .Lines("class test : test {")
+                    .Lines("    [string] $Name;")
+                    .Texts("}"),
                 await GetRefactoredTextAsync(
-                    "class test : te{{c}}st {\n}",
+                    TestBuilder.Create()
+                        .Lines("class test : te{0}st {{", hasCursor: true)
+                        .Texts("}"),
                     MemberOfType.Property().Named("Name").Returns(typeof(string))));
         }
 
@@ -43,15 +50,21 @@ namespace EditorServicesCommandSuite.Tests
         public async void AppendsAfterExistingMembers()
         {
             Assert.Equal(
-                "using namespace System\n\n" +
-                "class test : test {\n" +
-                "\t[void] TestMethod1() {}\n\n" +
-                "\t[void] TestMethod2() {\n" +
-                "\t\tthrow [NotImplementedException]::new()\n" +
-                "\t}\n" +
-                "}",
+                TestBuilder.Create()
+                    .Lines("using namespace System")
+                    .Lines()
+                    .Lines("class test : test {")
+                    .Lines("    [void] TestMethod1() {}")
+                    .Lines()
+                    .Lines("    [void] TestMethod2() {")
+                    .Lines("        throw [NotImplementedException]::new()")
+                    .Lines("    }")
+                    .Texts("}"),
                 await GetRefactoredTextAsync(
-                    "class test : te{{c}}st {\n\t[void] TestMethod1() {}\n}",
+                    TestBuilder.Create()
+                        .Lines("class test : te{0}st {{", hasCursor: true)
+                        .Lines("    [void] TestMethod1() {}")
+                        .Texts("}"),
                     MemberOfType.Method().Named("TestMethod2")));
         }
 
