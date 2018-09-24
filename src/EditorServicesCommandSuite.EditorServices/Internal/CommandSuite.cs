@@ -28,8 +28,7 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
         private CommandSuite(
             EditorObject psEditor,
             EngineIntrinsics engine,
-            PSHost host,
-            PowerShellContext internalContext)
+            PSHost host)
             : base(engine, host)
         {
             Editor = psEditor;
@@ -100,16 +99,14 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
         /// <param name="psEditor">The psEditor variable from the integrated terminal.</param>
         /// <param name="engine">The PowerShell engine.</param>
         /// <param name="host">The PowerShell host.</param>
-        /// <param name="internalContext">The PowerShellContext to use for invoking commands.</param>
         /// <returns>
         /// The command suite instance for the process.
         /// </returns>
-        [Obsolete(StringLiterals.InternalUseOnly, error: true), EditorBrowsable(EditorBrowsableState.Never)]
+        [Hidden, Obsolete(StringLiterals.InternalUseOnly, error: true), EditorBrowsable(EditorBrowsableState.Never)]
         public static CommandSuite GetCommandSuite(
             EditorObject psEditor,
             EngineIntrinsics engine,
-            PSHost host,
-            PowerShellContext internalContext)
+            PSHost host)
         {
             if (engine == null)
             {
@@ -131,7 +128,7 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
                 return s_instance;
             }
 
-            s_instance = new CommandSuite(psEditor, engine, host, internalContext);
+            s_instance = new CommandSuite(psEditor, engine, host);
             s_instance.InitializeRefactorProviders();
             return s_instance;
         }

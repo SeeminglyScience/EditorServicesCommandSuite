@@ -127,7 +127,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     Selection = extent,
                     UI = _ui,
                     NewFilePath = filePath,
-                    NewFileAst = GetScriptBlockAst(filePath),
+                    NewFileAst = string.IsNullOrEmpty(filePath) ? null : GetScriptBlockAst(filePath),
                 });
         }
 

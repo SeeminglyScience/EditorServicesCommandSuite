@@ -1,5 +1,7 @@
 using System;
+using System.ComponentModel;
 using System.Linq;
+using System.Management.Automation;
 using EditorServicesCommandSuite.Internal;
 
 namespace EditorServicesCommandSuite.Utility
@@ -9,6 +11,23 @@ namespace EditorServicesCommandSuite.Utility
     /// </summary>
     public class CommandSuiteSettingInfo
     {
+        /// <summary>
+        /// Contains the default value displayed by the formatter when a setting is not set.
+        /// </summary>
+        [Hidden, EditorBrowsable(EditorBrowsableState.Never)]
+        public static readonly string DefaultValueDisplay =
+            string.Concat(
+                Symbols.LessThan,
+                SettingsStrings.SettingInfoDefaultValueDisplay,
+                Symbols.GreaterThan);
+
+        /// <summary>
+        /// Contains the default value displayed by the formatter when a setting does not belong
+        /// to a group.
+        /// </summary>
+        [Hidden, EditorBrowsable(EditorBrowsableState.Never)]
+        public static readonly string DefaultGroupName = SettingsStrings.SettingInfoNoGroupMessage;
+
         private readonly string _descriptionResourceName;
 
         private readonly Type _typeOfValue;

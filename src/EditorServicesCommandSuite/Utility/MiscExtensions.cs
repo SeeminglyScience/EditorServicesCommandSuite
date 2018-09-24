@@ -3,11 +3,50 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Management.Automation;
 using System.Management.Automation.Internal;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EditorServicesCommandSuite.Utility
 {
     internal static class MiscExtensions
     {
+        internal static void SynchronousAwait(this Task task, CancellationToken cancellationToken = default)
+        {
+            task.WaitForCompletion(cancellationToken);
+            task.ConfigureAwait(continueOnCapturedContext: false)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        internal static TResult SynchronousAwait<TResult>(this Task<TResult> task, CancellationToken cancellationToken = default)
+        {
+            task.WaitForCompletion(cancellationToken);
+            return task.ConfigureAwait(continueOnCapturedContext: false)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        internal static void WaitForCompletion(this IAsyncResult task, CancellationToken cancellationToken)
+        {
+            if (!cancellationToken.CanBeCanceled)
+            {
+                task.AsyncWaitHandle.WaitOne();
+                return;
+            }
+
+            var waitHandles = new WaitHandle[]
+            {
+                task.AsyncWaitHandle,
+                cancellationToken.WaitHandle,
+            };
+
+            int handleIndex = WaitHandle.WaitAny(waitHandles);
+            if (handleIndex == 1)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+
         internal static void ThrowIfStopping(this PSCmdlet cmdlet)
         {
             if (cmdlet == null || !cmdlet.Stopping)

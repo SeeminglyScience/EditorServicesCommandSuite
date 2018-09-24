@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration>
+    <Controls>
+        <Control>
+            <Name>GroupBySettingGroup</Name>
+            <CustomControl>
+                <CustomEntries>
+                    <CustomEntry>
+                        <CustomItem>
+                            <Text AssemblyName="EditorServicesCommandSuite" BaseName="EditorServicesCommandSuite.resources.SettingsStrings" ResourceId="SettingInfoGrouping" />
+                            <ExpressionBinding>
+                                <!-- Can't use EntrySelectedBy due to PowerShell/PowerShell#7847 -->
+                                <ScriptBlock>
+                                    if ($PSItem.Group) {
+                                        return $PSItem.Group
+                                    }
+
+                                    return [EditorServicesCommandSuite.Utility.CommandSuiteSettingInfo]::DefaultGroupName
+                                </ScriptBlock>
+                            </ExpressionBinding>
+                        </CustomItem>
+                    </CustomEntry>
+                </CustomEntries>
+            </CustomControl>
+        </Control>
+    </Controls>
+    <ViewDefinitions>
+        <View>
+            <Name>EditorServicesCommandSuite.CodeGeneration.Refactors.RefactorProviderInfo</Name>
+            <ViewSelectedBy>
+                <TypeName>EditorServicesCommandSuite.CodeGeneration.Refactors.RefactorProviderInfo</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader>
+                        <Width>30</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Width>10</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader />
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>Name</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Targets</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Description</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
+            <Name>EditorServicesCommandSuite.Utility.CommandSuiteSettingInfo</Name>
+            <ViewSelectedBy>
+                <TypeName>EditorServicesCommandSuite.Utility.CommandSuiteSettingInfo</TypeName>
+            </ViewSelectedBy>
+            <GroupBy>
+                <PropertyName>Group</PropertyName>
+                <CustomControlName>GroupBySettingGroup</CustomControlName>
+            </GroupBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader>
+                        <Width>30</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Value</Label>
+                        <Width>20</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader />
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>Name</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <ScriptBlock>
+                                    if ($null -eq $PSItem.Value) {
+                                        return [EditorServicesCommandSuite.Utility.CommandSuiteSettingInfo]::DefaultValueDisplay
+                                    }
+
+                                    return $PSItem.Value
+                                </ScriptBlock>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Description</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+    </ViewDefinitions>
+</Configuration>

@@ -1,33 +1,49 @@
 Import-Module $PSScriptRoot/EditorServicesCommandSuite.dll
 Import-Module $PSScriptRoot/EditorServicesCommandSuite.RefactorCmdlets.cdxml
+Update-FormatData -AppendPath $PSScriptRoot/EditorServicesCommandSuite.format.ps1xml
 
-if (-not $CommandSuite -or $CommandSuite -isnot [EditorServicesCommandSuite.Internal.CommandSuite]) {
-    $IsMainRunspace = $true
+if ($null -ne $psEditor) {
+    Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.EditorServices.dll"
 
-    if ($null -ne $psEditor) {
-        Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.EditorServices.dll"
-        try {
-            $powerShellContext = [Microsoft.PowerShell.EditorServices.PowerShellContext]::new(
-                [EditorServicesCommandSuite.EditorServices.Internal.NullLogger]::Instance,
-                $false)
-        } catch [System.Management.Automation.MethodException] {
-            $powerShellContext = [Microsoft.PowerShell.EditorServices.PowerShellContext]::new(
-                [EditorServicesCommandSuite.EditorServices.Internal.NullLogger]::Instance)
+    $CommandSuite = [EditorServicesCommandSuite.EditorServices.Internal.CommandSuite]::GetCommandSuite(
+        $psEditor,
+        $ExecutionContext,
+        $Host)
+} else {
+    Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.PSReadLine.dll"
+    $CommandSuite = [EditorServicesCommandSuite.PSReadLine.Internal.CommandSuite]::GetCommandSuite(
+        $ExecutionContext,
+        $Host)
+}
+
+function Import-CommandSuite {
+    [CmdletBinding()]
+    param()
+    end {
+        if ($null -eq $psEditor) {
+            return
         }
 
-        $CommandSuite = [EditorServicesCommandSuite.EditorServices.Internal.CommandSuite]::GetCommandSuite(
-            $psEditor,
-            $ExecutionContext,
-            $Host,
-            $powerShellContext)
-    } else {
-        Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.PSReadLine.dll"
-        $CommandSuite = [EditorServicesCommandSuite.PSReadLine.Internal.CommandSuite]::GetCommandSuite(
-            $ExecutionContext,
-            $Host)
+        $registerEditorCommandSplat = @{
+            Name        = 'Invoke-DocumentRefactor'
+            DisplayName = 'Get Context Specific Refactor Options'
+            # Use Ast.GetScriptBlock to strip SessionState affinity so PSCmdlet.SessionState
+            # reflects the real caller.
+            ScriptBlock = { Invoke-DocumentRefactor }.Ast.GetScriptBlock()
+        }
+
+        Register-EditorCommand @registerEditorCommandSplat
+
+        Get-RefactorOption | ForEach-Object {
+            $registerEditorCommandSplat = @{
+                Name        = $PSItem.Command.Name
+                DisplayName = $PSItem.Name
+                ScriptBlock = [scriptblock]::Create($PSItem.Command.Name)
+            }
+
+            Register-EditorCommand @registerEditorCommandSplat
+        }
     }
-} else {
-    $IsMainRunspace = $false
 }
 
 function Invoke-DocumentRefactor {
@@ -42,6 +58,7 @@ function Invoke-DocumentRefactor {
         } catch [OperationCanceledException] {
             # Do nothing. This should only be when a menu selection is cancelled, which I'm
             # equating to ^C
+            continue
         } catch {
             $PSCmdlet.WriteError($PSItem)
         }

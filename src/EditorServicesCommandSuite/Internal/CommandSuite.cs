@@ -171,28 +171,6 @@ namespace EditorServicesCommandSuite.Internal
             threadController.GiveControl(refactorRequest, cancellationToken);
         }
 
-        /// <summary>
-        /// Requests refactor options based on the current state of the host editor.
-        /// </summary>
-        /// <param name="cmdlet">The <see cref="PSCmdlet" /> to use for context.</param>
-        /// <param name="cancellationToken">
-        /// The cancellation token that will be checked prior to completing the returned task.
-        /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void RequestRefactor(PSCmdlet cmdlet, CancellationToken cancellationToken)
-        {
-            var threadController = new ThreadController(ExecutionContext, cmdlet);
-            Task refactorRequest = Task.Run(
-                async () => await RequestRefactor(
-                    cmdlet,
-                    await DocumentContext.GetDocumentContextAsync(
-                        cmdlet,
-                        cancellationToken,
-                        threadController)));
-
-            threadController.GiveControl(refactorRequest, cancellationToken);
-        }
-
         internal static bool TryGetInstance(out CommandSuite instance)
         {
             instance = s_instance;

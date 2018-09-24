@@ -128,10 +128,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         {
             ExpandMemberExpressionSettings config = request.GetConfiguration<ExpandMemberExpressionSettings>();
             MemberInfo[] inferredMembers =
-                    (await ast.GetInferredMembers(
+                    (await ast.GetInferredMembersAsync(
                         request.PipelineThread,
                         skipArgumentCheck: true,
-                        includeNonPublic: config.AllowNonPublicMembers.IsPresent))
+                        includeNonPublic: config.AllowNonPublicMembers.IsPresent,
+                        request.CancellationToken))
                     .ToArray();
 
             if (inferredMembers.Length == 0)

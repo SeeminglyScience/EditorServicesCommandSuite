@@ -42,5 +42,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             return null;
         }
+
+        internal IDocumentRefactorProvider[] GetProviders()
+        {
+            return _providers.Values.ToArray();
+        }
     }
 }

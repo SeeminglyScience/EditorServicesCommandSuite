@@ -1,6 +1,5 @@
 using System.Management.Automation;
 using System.Management.Automation.Language;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;

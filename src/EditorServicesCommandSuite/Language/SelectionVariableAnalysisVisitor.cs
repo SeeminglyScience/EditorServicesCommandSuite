@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
 using System.Threading.Tasks;
+using EditorServicesCommandSuite.Inference;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Utility;
 
@@ -172,10 +172,10 @@ namespace EditorServicesCommandSuite.Language
                         continue;
                     }
 
-                    details.InferredType = await GetInferredType(
-                        variable,
+                    details.InferredType = await variable.GetInferredTypeAsync(
                         pipelineThread,
-                        cancellationToken);
+                        cancellationToken,
+                        defaultValue: s_objectPSType);
                     continue;
                 }
 
@@ -183,24 +183,13 @@ namespace EditorServicesCommandSuite.Language
                     variable.VariablePath.UserPath,
                     new SelectionVariableAnalysisResult(
                         variable,
-                        await GetInferredType(variable, pipelineThread)));
+                        await variable.GetInferredTypeAsync(
+                            pipelineThread,
+                            cancellationToken,
+                            defaultValue: s_objectPSType)));
             }
 
             return parameterDetails;
-        }
-
-        private static async Task<PSTypeName> GetInferredType(
-            VariableExpressionAst variable,
-            ThreadController pipelineThread,
-            CancellationToken cancellationToken = default)
-        {
-            return
-                (await Inference.AstTypeInference.InferTypeOf(
-                    variable,
-                    pipelineThread,
-                    cancellationToken))
-                .DefaultIfEmpty(s_objectPSType)
-                .FirstOrDefault();
         }
 
         private void RegisterAssignedVariable(VariableExpressionAst variable)

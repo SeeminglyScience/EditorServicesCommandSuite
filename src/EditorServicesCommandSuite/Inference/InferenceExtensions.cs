@@ -13,17 +13,58 @@ namespace EditorServicesCommandSuite.Inference
 {
     internal static class InferenceExtensions
     {
-        public static bool EqualsOrdinalIgnoreCase(this string s, string t)
+        internal static PSCommand AddCommandWithPreferenceSetting(
+            this PSCommand psCommand,
+            string command)
         {
-            return string.Equals(s, t, StringComparison.OrdinalIgnoreCase);
+            return psCommand
+                .AddCommand(command)
+                .AddParameter("ErrorAction", ActionPreference.Ignore)
+                .AddParameter("WarningAction", ActionPreference.Ignore)
+                .AddParameter("InformationAction", ActionPreference.Ignore)
+                .AddParameter("Verbose", false)
+                .AddParameter("Debug", false);
         }
 
-        internal static async Task<IEnumerable<MemberInfo>> GetInferredMembers(
-            this MemberExpressionAst ast,
-            ThreadController threadController,
+        internal static async Task<PSTypeName> GetInferredTypeAsync(
+            this Ast ast,
+            ThreadController pipelineThread,
             CancellationToken cancellationToken = default,
-            bool skipArgumentCheck = false,
+            bool includeNonPublic = false,
+            PSTypeName defaultValue = null)
+        {
+            if (defaultValue != null)
+            {
+                return (await ast.GetInferredTypesAsync(pipelineThread, cancellationToken, includeNonPublic))
+                    .DefaultIfEmpty(defaultValue)
+                    .FirstOrDefault();
+            }
+
+            return (await ast.GetInferredTypesAsync(pipelineThread, cancellationToken, includeNonPublic))
+                .FirstOrDefault();
+        }
+
+        internal static async Task<IList<PSTypeName>> GetInferredTypesAsync(
+            this Ast ast,
+            ThreadController pipelineThread,
+            CancellationToken cancellationToken = default,
             bool includeNonPublic = false)
+        {
+            return await pipelineThread.InvokeAsync(
+                () => Inference.AstTypeInference.InferTypeOf(
+                    ast,
+                    pipelineThread,
+                    includeNonPublic,
+                    cancellationToken),
+                cancellationToken);
+        }
+
+        internal static async Task<IEnumerable<MemberInfo>> GetInferredMembersAsync(
+            this MemberExpressionAst ast,
+            ThreadController pipelineThread,
+            bool skipArgumentCheck = false,
+            bool includeNonPublic = false,
+            CancellationToken cancellationToken = default)
         {
             IList<PSTypeName> expressionTypes;
             if (ast.Static && ast.Expression is TypeExpressionAst typeExpression)
@@ -31,29 +72,32 @@ namespace EditorServicesCommandSuite.Inference
                 PSTypeName resolvedType = ResolvePartialTypeName(new PSTypeName(typeExpression.TypeName));
                 if (resolvedType == null)
                 {
-                    return Enumerable.Empty<MemberInfo>();
+                    return Array.Empty<MemberInfo>();
                 }
 
                 if (!resolvedType.Type.IsPublic && !includeNonPublic)
                 {
-                    return Enumerable.Empty<MemberInfo>();
+                    return Array.Empty<MemberInfo>();
                 }
 
                 expressionTypes = new[] { resolvedType };
             }
             else
             {
-                expressionTypes = await AstTypeInference.InferTypeOf(
-                    ast.Expression,
-                    threadController,
-                    cancellationToken,
-                    includeNonPublic);
+                expressionTypes = await pipelineThread.InvokeAsync(
+                    () => AstTypeInference.InferTypeOf(
+                        ast.Expression,
+                        pipelineThread,
+                        TypeInferenceRuntimePermissions.AllowSafeEval,
+                        includeNonPublic,
+                        cancellationToken),
+                    cancellationToken);
             }
 
             StringConstantExpressionAst memberNameConstant = ast.Member as StringConstantExpressionAst;
             if (memberNameConstant == null)
             {
-                return Enumerable.Empty<MemberInfo>();
+                return Array.Empty<MemberInfo>();
             }
 
             string memberName = memberNameConstant.Value.EqualsOrdinalIgnoreCase("new")
@@ -63,9 +107,9 @@ namespace EditorServicesCommandSuite.Inference
             int argumentCount = invokeExpression?.Arguments.Count ?? 0;
             bool isStatic = ast.Static && !memberName.EqualsOrdinalIgnoreCase(".ctor");
 
-            return EnumerateMembers();
+            return EnumerateMembersForInferredTypes();
 
-            IEnumerable<MemberInfo> EnumerateMembers()
+            IEnumerable<MemberInfo> EnumerateMembersForInferredTypes()
             {
                 foreach (MemberInfo member in GetMembersForInferredTypes(expressionTypes, isStatic, includeNonPublic))
                 {
@@ -77,16 +121,6 @@ namespace EditorServicesCommandSuite.Inference
                     }
                 }
             }
-        }
-
-        private static int GetParameterCount(this MemberInfo member)
-        {
-            if (member is MethodBase method)
-            {
-                return method.GetParameters().Length;
-            }
-
-            return 0;
         }
 
         private static IEnumerable<MemberInfo> GetMembersForInferredTypes(
@@ -131,6 +165,16 @@ namespace EditorServicesCommandSuite.Inference
                 .FirstOrDefault(t => t.Name.EqualsOrdinalIgnoreCase(typeName.Name));
 
             return resolvedType == null ? null : new PSTypeName(resolvedType);
+        }
+
+        private static int GetParameterCount(this MemberInfo member)
+        {
+            if (member is MethodBase method)
+            {
+                return method.GetParameters().Length;
+            }
+
+            return 0;
         }
     }
 }

@@ -9,6 +9,48 @@ namespace EditorServicesCommandSuite.Language
 {
     internal static class AstExtensions
     {
+        public static bool TryGetUnscopedVariable(this VariablePath variablePath, out string unscopedPath)
+        {
+            if (variablePath.IsDriveQualified)
+            {
+                unscopedPath = null;
+                return false;
+            }
+
+            if (variablePath.IsUnscopedVariable)
+            {
+                unscopedPath = variablePath.UserPath;
+                return true;
+            }
+
+            if (variablePath.IsScript)
+            {
+                unscopedPath = variablePath.UserPath.Substring("script:".Length - 1);
+                return true;
+            }
+
+            if (variablePath.IsGlobal)
+            {
+                unscopedPath = variablePath.UserPath.Substring("global:".Length - 1);
+                return true;
+            }
+
+            if (variablePath.IsPrivate)
+            {
+                unscopedPath = variablePath.UserPath.Substring("private:".Length - 1);
+                return true;
+            }
+
+            if (variablePath.IsLocal)
+            {
+                unscopedPath = variablePath.UserPath.Substring("local:".Length - 1);
+                return true;
+            }
+
+            unscopedPath = null;
+            return false;
+        }
+
         public static UsingDescription ToDescription(this UsingStatementAst usingStatement)
         {
             Validate.IsNotNull(nameof(usingStatement), usingStatement);

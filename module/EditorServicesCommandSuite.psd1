@@ -12,7 +12,7 @@
 RootModule = 'EditorServicesCommandSuite.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.4.0'
+ModuleVersion = '0.5.0'
 
 # ID used to uniquely identify this module
 GUID = '97607afd-d9bd-4a2e-a9f9-70fe1a0a9e4c'
@@ -33,7 +33,7 @@ Description = 'Collection of editor commands for use in PowerShell Editor Servic
 PowerShellVersion = '5.1'
 
 # Minimum version of Microsoft .NET Framework required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
-DotNetFrameworkVersion = '4.0'
+DotNetFrameworkVersion = '4.7.1'
 
 # Minimum version of the common language runtime (CLR) required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
 CLRVersion = '4.0'
@@ -41,25 +41,28 @@ CLRVersion = '4.0'
 # Processor architecture (None, X86, Amd64) required by this module
 ProcessorArchitecture = 'None'
 
-# Modules that must be imported into the global environment prior to importing this module
-RequiredModules = 'PSStringTemplate'
-
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = 'Add-CommandToManifest',
                     'Add-ModuleQualification',
                     'Add-SurroundingExpression',
+                    'ConvertFrom-UnnamedBlock',
+                    'Convert-StringExpression',
                     'ConvertTo-FunctionDefinition',
                     'ConvertTo-LocalizationString',
                     'ConvertTo-MarkdownHelp',
                     'ConvertTo-SplatExpression',
-                    'Convert-StringExpression',
                     'Expand-MemberExpression',
                     'Expand-TypeImplementation',
+                    'Import-CommandSuite',
                     'Invoke-DocumentRefactor',
+                    'Resolve-TypeExpression',
                     'Set-RuleSuppression'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-CmdletsToExport = 'Get-CommandSuiteSetting', 'Set-CommandSuiteSetting', 'New-CommandSuiteSettingFile'
+CmdletsToExport = 'Get-CommandSuiteSetting',
+                  'Set-CommandSuiteSetting',
+                  'New-CommandSuiteSettingFile',
+                  'Get-RefactorOption'
 
 # Variables to export from this module
 VariablesToExport = @()
@@ -68,25 +71,28 @@ VariablesToExport = @()
 AliasesToExport = @()
 
 # List of all files packaged with this module
-FileList = '..\..\module\Public\Invoke-DocumentRefactor.ps1',
+FileList = 'en-US\EditorServicesCommandSuite-help.xml',
+           'EditorServicesCommandSuite.Classes.ps1',
+           'EditorServicesCommandSuite.deps.json',
+           'EditorServicesCommandSuite.dll',
+           'EditorServicesCommandSuite.EditorServices.deps.json',
+           'EditorServicesCommandSuite.EditorServices.dll',
+           'EditorServicesCommandSuite.EditorServices.pdb',
+           'EditorServicesCommandSuite.EditorServices.xml',
+           'EditorServicesCommandSuite.format.ps1xml',
+           'EditorServicesCommandSuite.pdb',
            'EditorServicesCommandSuite.psd1',
            'EditorServicesCommandSuite.psm1',
-           'Public\Add-CommandToManifest.ps1',
-           'Public\Add-ModuleQualification.ps1',
-           'Public\Add-PinvokeMethod.ps1',
-           'Public\ConvertTo-FunctionDefinition.ps1',
-           'Public\ConvertTo-LocalizationString.ps1',
-           'Public\ConvertTo-MarkdownHelp.ps1',
-           'Public\ConvertTo-SplatExpression.ps1',
-           'Public\Expand-Expression.ps1',
-           'Public\Expand-MemberExpression.ps1',
-           'Public\Expand-TypeImplementation.ps1',
-           'Public\Import-CommandSuite.ps1',
-           'Public\New-ESCSSettingsFile.ps1',
-           'Public\Remove-Semicolon.ps1',
-           'Public\Set-HangingIndent.ps1',
-           'Public\Set-RuleSuppression.ps1',
-           'Public\Set-UsingStatementOrder.ps1'
+           'EditorServicesCommandSuite.PSReadLine.deps.json',
+           'EditorServicesCommandSuite.PSReadLine.dll',
+           'EditorServicesCommandSuite.PSReadLine.pdb',
+           'EditorServicesCommandSuite.PSReadLine.xml',
+           'EditorServicesCommandSuite.RefactorCmdlets.cdxml',
+           'EditorServicesCommandSuite.xml',
+           'System.Buffers.dll',
+           'System.Memory.dll',
+           'System.Numerics.Vectors.dll',
+           'System.Runtime.CompilerServices.Unsafe.dll'
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
 PrivateData = @{

@@ -111,10 +111,7 @@ task BuildRefactorModule {
 
 task CopyToRelease  {
     $moduleName = $Settings.Name
-    & "$PSScriptRoot\tools\BuildMonolith.ps1" -OutputPath $Folders.Release -ModuleName $Settings.Name
-
-    "$moduleName.psd1",
-    'en-US' | ForEach-Object {
+    "$moduleName.psd1", "$moduleName.format.ps1xml" | ForEach-Object {
         Join-Path $Folders.PowerShell -ChildPath $PSItem |
             Copy-Item -Destination $Folders.Release -Recurse
     }
