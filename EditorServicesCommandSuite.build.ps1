@@ -111,7 +111,7 @@ task BuildRefactorModule {
 
 task CopyToRelease  {
     $moduleName = $Settings.Name
-    "$moduleName.psd1", "$moduleName.format.ps1xml" | ForEach-Object {
+    "$moduleName.psm1", "$moduleName.psd1", "$moduleName.format.ps1xml" | ForEach-Object {
         Join-Path $Folders.PowerShell -ChildPath $PSItem |
             Copy-Item -Destination $Folders.Release -Recurse
     }
