@@ -134,8 +134,11 @@ namespace EditorServicesCommandSuite.PSReadLine
                 _out.Write(Ansi.Colors.Secondary);
                 _out.WriteLine(Message);
                 _out.Write(Ansi.Modification.InsertLines, 2);
+                _out.WriteLine();
+                _out.WriteLine();
                 _inputLine = Console.CursorTop;
                 _out.WriteLine(_input);
+                _out.WriteLine();
                 AfterInputRender();
                 _isHeaderWritten = true;
             }
@@ -143,7 +146,7 @@ namespace EditorServicesCommandSuite.PSReadLine
             RenderBody(isForSelectionChange);
         }
 
-        protected void Write(string buffer, int index, int count, bool newLine = false, string color = null)
+        protected void Write(char[] buffer, int index, int count, bool newLine = false, string color = null)
         {
             if (string.IsNullOrEmpty(color))
             {
@@ -162,7 +165,7 @@ namespace EditorServicesCommandSuite.PSReadLine
             }
         }
 
-        protected void WriteEmphasis(string buffer, int index, int count)
+        protected void WriteEmphasis(char[] buffer, int index, int count)
         {
             _out.Write(Ansi.Colors.Emphasis);
             _out.Write(buffer, index, count);

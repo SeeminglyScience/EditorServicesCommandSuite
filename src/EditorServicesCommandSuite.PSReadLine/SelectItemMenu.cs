@@ -359,12 +359,12 @@ namespace EditorServicesCommandSuite.PSReadLine
                 int lastIndex = 0;
                 foreach (Match match in _renderedItems[i].Matches)
                 {
-                    Write(_renderedItems[i].Text, lastIndex, match.Index - lastIndex, color: colorEscape);
-                    WriteEmphasis(_renderedItems[i].Text, match.Index, match.Length);
+                    Write(chars, lastIndex, match.Index - lastIndex, color: colorEscape);
+                    WriteEmphasis(chars, match.Index, match.Length);
                     lastIndex = match.Index + match.Length;
                 }
 
-                Write(_renderedItems[i].Text, lastIndex, chars.Length - lastIndex, color: colorEscape);
+                Write(chars, lastIndex, chars.Length - lastIndex, color: colorEscape);
                 _out.Write(Ansi.Colors.Reset);
                 if (!string.IsNullOrEmpty(_renderedItems[i].Description))
                 {
