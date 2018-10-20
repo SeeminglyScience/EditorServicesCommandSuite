@@ -8,6 +8,29 @@ namespace EditorServicesCommandSuite.Utility
 {
     internal static class Error
     {
+        public static PSArgumentException FunctionAlreadyExported(string functionName)
+        {
+            return new PSArgumentException(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    RegisterCommandExportStrings.FunctionAlreadyExported,
+                    functionName));
+        }
+
+        public static PSArgumentException CannotFindAst(string astType)
+        {
+            return new PSArgumentException(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    RefactorStrings.CannotFindAst,
+                    astType));
+        }
+
+        public static PSInvalidOperationException ManifestRequired()
+        {
+            return new PSInvalidOperationException(RefactorStrings.ManifestRequired);
+        }
+
         public static CommandNotFoundException CommandNotFound(string commandName)
         {
             return new CommandNotFoundException(

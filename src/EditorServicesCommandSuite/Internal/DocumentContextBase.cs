@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
@@ -25,6 +26,20 @@ namespace EditorServicesCommandSuite.Internal
         {
             RootAst = rootAst;
             Ast = currentAst;
+
+            int parentCount = 0;
+            for (var node = currentAst; node.Parent != null; node = node.Parent)
+            {
+                parentCount++;
+            }
+
+            var relatedAsts = ImmutableArray.CreateBuilder<Ast>(parentCount);
+            for (var node = currentAst; node.Parent != null; node = node.Parent)
+            {
+                relatedAsts.Add(node);
+            }
+
+            RelatedAsts = relatedAsts.MoveToImmutable();
             Token = currentToken;
             SelectionExtent = selectionExtent;
             CancellationToken = cancellationToken;
@@ -44,6 +59,8 @@ namespace EditorServicesCommandSuite.Internal
         /// This is most commonly the <see cref="Ast" /> closest to the cursor location.
         /// </remarks>
         internal virtual Ast Ast { get; set; }
+
+        internal virtual ImmutableArray<Ast> RelatedAsts { get; }
 
         /// <summary>
         /// Gets or sets a node in a <see cref="LinkedList{Token}" /> that is the

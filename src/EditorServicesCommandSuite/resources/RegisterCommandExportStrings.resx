@@ -117,28 +117,13 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="SelectRefactorCaption" xml:space="preserve">
-    <value>Select refactor</value>
+  <data name="ProviderDisplayName" xml:space="preserve">
+    <value>Register Command Export</value>
   </data>
-  <data name="SelectRefactorMessage" xml:space="preserve">
-    <value>the following options are available based on cursor location or text selection</value>
+  <data name="ProviderDisplayDescription" xml:space="preserve">
+    <value>Adds the closest command to the FunctionsToExport manifest field.</value>
   </data>
-  <data name="InvalidRefactorTarget" xml:space="preserve">
-    <value>Unable to determine a valid target for the specified refactor provider.</value>
-  </data>
-  <data name="UntitledWorkspaceNotSupported" xml:space="preserve">
-    <value>This action is not supported in an untitled workspace.</value>
-  </data>
-  <data name="NoCommandSuiteInstance" xml:space="preserve">
-    <value>No existing CommandSuite instance was found. Initialization with the host editor may have failed.</value>
-  </data>
-  <data name="CommandNotFound" xml:space="preserve">
-    <value>Unable to find the command "{0}".</value>
-  </data>
-  <data name="CannotFindAst" xml:space="preserve">
-    <value>Unable to find expected expression type. Place your cursor with an expression of type "{0}" and then try again.</value>
-  </data>
-  <data name="ManifestRequired" xml:space="preserve">
-    <value>A discoverable module manfiest file is required for this operation.</value>
+  <data name="FunctionAlreadyExported" xml:space="preserve">
+    <value>The specified function "{0}" is already listed in the "FunctionsToExport" field.</value>
   </data>
 </root>

@@ -58,14 +58,15 @@ function Invoke-DocumentRefactor {
         } catch [OperationCanceledException] {
             # Do nothing. This should only be when a menu selection is cancelled, which I'm
             # equating to ^C
-            continue
         } catch {
             $PSCmdlet.WriteError($PSItem)
         }
     }
 }
 
+New-Alias -Name Add-CommandToManifest -Value Register-CommandExport -Force
+
 # Export only the functions using PowerShell standard verb-noun naming.
 # Be sure to list each exported functions in the FunctionsToExport field of the module manifest file.
 # This improves performance of command discovery in PowerShell.
-Export-ModuleMember -Function *-* -Cmdlet *-*
+Export-ModuleMember -Function *-* -Cmdlet *-* -Alias Add-CommandToManifest

@@ -117,28 +117,115 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="SelectRefactorCaption" xml:space="preserve">
-    <value>Select refactor</value>
+  <data name="ModuleToProcess" xml:space="preserve">
+    <value>Script module or binary module file associated with this manifest</value>
   </data>
-  <data name="SelectRefactorMessage" xml:space="preserve">
-    <value>the following options are available based on cursor location or text selection</value>
+  <data name="RootModule" xml:space="preserve">
+    <value>Script module or binary module file associated with this manifest.</value>
   </data>
-  <data name="InvalidRefactorTarget" xml:space="preserve">
-    <value>Unable to determine a valid target for the specified refactor provider.</value>
+  <data name="NestedModules" xml:space="preserve">
+    <value>Modules to import as nested modules of the module specified in RootModule/ModuleToProcess</value>
   </data>
-  <data name="UntitledWorkspaceNotSupported" xml:space="preserve">
-    <value>This action is not supported in an untitled workspace.</value>
+  <data name="GUID" xml:space="preserve">
+    <value>ID used to uniquely identify this module</value>
   </data>
-  <data name="NoCommandSuiteInstance" xml:space="preserve">
-    <value>No existing CommandSuite instance was found. Initialization with the host editor may have failed.</value>
+  <data name="Author" xml:space="preserve">
+    <value>Author of this module</value>
   </data>
-  <data name="CommandNotFound" xml:space="preserve">
-    <value>Unable to find the command "{0}".</value>
+  <data name="CompanyName" xml:space="preserve">
+    <value>Company or vendor of this module</value>
   </data>
-  <data name="CannotFindAst" xml:space="preserve">
-    <value>Unable to find expected expression type. Place your cursor with an expression of type "{0}" and then try again.</value>
+  <data name="Copyright" xml:space="preserve">
+    <value>Copyright statement for this module</value>
   </data>
-  <data name="ManifestRequired" xml:space="preserve">
-    <value>A discoverable module manfiest file is required for this operation.</value>
+  <data name="ModuleVersion" xml:space="preserve">
+    <value>Version number of this module.</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Description of the functionality provided by this module</value>
+  </data>
+  <data name="PowerShellVersion" xml:space="preserve">
+    <value>Minimum version of the PowerShell engine required by this module</value>
+  </data>
+  <data name="CLRVersion" xml:space="preserve">
+    <value>Minimum version of the common language runtime (CLR) required by this module. {0}</value>
+  </data>
+  <data name="RequiredModules" xml:space="preserve">
+    <value>Modules that must be imported into the global environment prior to importing this module</value>
+  </data>
+  <data name="ScriptsToProcess" xml:space="preserve">
+    <value>Script files (.ps1) that are run in the caller's environment prior to importing this module.</value>
+  </data>
+  <data name="TypesToProcess" xml:space="preserve">
+    <value>Type files (.ps1xml) to be loaded when importing this module</value>
+  </data>
+  <data name="FormatsToProcess" xml:space="preserve">
+    <value>Format files (.ps1xml) to be loaded when importing this module</value>
+  </data>
+  <data name="RequiredAssemblies" xml:space="preserve">
+    <value>Assemblies that must be loaded prior to importing this module</value>
+  </data>
+  <data name="FileList" xml:space="preserve">
+    <value>List of all files packaged with this module</value>
+  </data>
+  <data name="PrivateData" xml:space="preserve">
+    <value>Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.</value>
+  </data>
+  <data name="PSData" xml:space="preserve">
+    <value>PSData data to pass to the Publish-Module cmdlet</value>
+  </data>
+  <data name="Tags" xml:space="preserve">
+    <value>Tags applied to this module. These help with module discovery in online galleries.</value>
+  </data>
+  <data name="ProjectUri" xml:space="preserve">
+    <value>A URL to the main website for this project.</value>
+  </data>
+  <data name="LicenseUri" xml:space="preserve">
+    <value>A URL to the license for this module.</value>
+  </data>
+  <data name="IconUri" xml:space="preserve">
+    <value>A URL to an icon representing this module.</value>
+  </data>
+  <data name="ReleaseNotes" xml:space="preserve">
+    <value>ReleaseNotes of this module</value>
+  </data>
+  <data name="FunctionsToExport" xml:space="preserve">
+    <value>Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.</value>
+  </data>
+  <data name="AliasesToExport" xml:space="preserve">
+    <value>Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.</value>
+  </data>
+  <data name="CmdletsToExport" xml:space="preserve">
+    <value>Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.</value>
+  </data>
+  <data name="VariablesToExport" xml:space="preserve">
+    <value>Variables to export from this module</value>
+  </data>
+  <data name="DscResourcesToExport" xml:space="preserve">
+    <value>DSC resources to export from this module</value>
+  </data>
+  <data name="CompatiblePSEditions" xml:space="preserve">
+    <value>Supported PSEditions</value>
+  </data>
+  <data name="ProcessorArchitecture" xml:space="preserve">
+    <value>Processor architecture (None, X86, Amd64) required by this module</value>
+  </data>
+  <data name="ModuleList" xml:space="preserve">
+    <value>List of all modules packaged with this module</value>
+  </data>
+  <data name="DotNetFrameworkVersion" xml:space="preserve">
+    <value>Minimum version of Microsoft .NET Framework required by this module. {0}</value>
+  </data>
+  <data name="PowerShellHostName" xml:space="preserve">
+    <value>Name of the PowerShell host required by this module</value>
+  </data>
+  <data name="PowerShellHostVersion" xml:space="preserve">
+    <value>Minimum version of the PowerShell host required by this module</value>
+  </data>
+  <data name="HelpInfoURI" xml:space="preserve">
+    <value>HelpInfo URI of this module</value>
+  </data>
+  <data name="DefaultCommandPrefix" xml:space="preserve">
+    <value>Default prefix for commands exported from this module. Override the default prefix using Import-Module -Prefix.</value>
   </data>
 </root>

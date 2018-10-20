@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Host;
-using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Utility;
@@ -237,6 +236,7 @@ namespace EditorServicesCommandSuite.Internal
             Refactors.RegisterProvider(new ExpandMemberExpressionRefactor(UI));
             Refactors.RegisterProvider(new ExtractFunctionRefactor(UI, Workspace));
             Refactors.RegisterProvider(new NameUnnamedBlockRefactor());
+            Refactors.RegisterProvider(new RegisterCommandExportRefactor(Workspace, UI));
         }
 
         /// <summary>

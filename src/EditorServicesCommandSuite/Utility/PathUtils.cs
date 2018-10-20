@@ -1,12 +1,30 @@
 using System;
 using System.IO;
 using System.Management.Automation;
+using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
 
 namespace EditorServicesCommandSuite.Utility
 {
     internal static class PathUtils
     {
+        public static readonly StringComparison PathComparision;
+
+        public static readonly StringComparer PathComparer;
+
+        static PathUtils()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                PathComparision = StringComparison.Ordinal;
+                PathComparer = StringComparer.Ordinal;
+                return;
+            }
+
+            PathComparision = StringComparison.OrdinalIgnoreCase;
+            PathComparer = StringComparer.OrdinalIgnoreCase;
+        }
+
         public static bool IsValidPathForNewFileCmdlet(
             PSCmdlet cmdlet,
             ref string path,

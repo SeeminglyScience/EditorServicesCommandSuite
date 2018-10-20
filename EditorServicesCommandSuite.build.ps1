@@ -124,6 +124,7 @@ task CopyToRelease  {
     Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/System.Memory.dll -Destination $releaseFolder
     Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/System.Numerics.Vectors.dll -Destination $releaseFolder
     Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/System.Runtime.CompilerServices.Unsafe.dll -Destination $releaseFolder
+    Copy-Item $PSScriptRoot/src/EditorServicesCommandSuite.PSReadLine/bin/$Configuration/netstandard2.0/publish/System.Collections.Immutable.dll -Destination $releaseFolder
 }
 
 task Analyze -If { $Settings.ShouldAnalyze } {

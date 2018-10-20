@@ -9,21 +9,19 @@ namespace EditorServicesCommandSuite.EditorServices
     {
         private readonly EditorObject _psEditor;
 
-        private readonly IMessageSender _messageSender;
-
         internal MessageService(EditorObject psEditor)
         {
             _psEditor = psEditor ?? throw new ArgumentNullException(nameof(psEditor));
-            _messageSender = (IMessageSender)_psEditor.Components.Get(typeof(IMessageSender));
+            Sender = (IMessageSender)_psEditor.Components.Get(typeof(IMessageSender));
         }
 
-        internal IMessageSender Sender => _messageSender;
+        internal IMessageSender Sender { get; }
 
         internal void SendEvent<TParams, TRegistrationOptions>(
             NotificationType<TParams, TRegistrationOptions> eventType,
             TParams eventParams)
         {
-            _messageSender
+            Sender
                 .SendEvent(eventType, eventParams)
                 .ConfigureAwait(continueOnCapturedContext: false)
                 .GetAwaiter()
@@ -34,7 +32,7 @@ namespace EditorServicesCommandSuite.EditorServices
             NotificationType<TParams, TRegistrationOptions> eventType,
             TParams eventParams)
         {
-            await _messageSender
+            await Sender
                 .SendEvent(eventType, eventParams)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
@@ -44,7 +42,7 @@ namespace EditorServicesCommandSuite.EditorServices
             TParams requestParams,
             bool waitForResponse)
         {
-            return _messageSender
+            return Sender
                 .SendRequest(requestType, requestParams, waitForResponse)
                 .ConfigureAwait(continueOnCapturedContext: false)
                 .GetAwaiter()
@@ -56,7 +54,7 @@ namespace EditorServicesCommandSuite.EditorServices
             TParams requestParams,
             bool waitForResponse)
         {
-            return await _messageSender
+            return await Sender
                 .SendRequest(requestType, requestParams, waitForResponse)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
@@ -64,7 +62,7 @@ namespace EditorServicesCommandSuite.EditorServices
         internal TResult SendRequest<TResult, TError, TRegistrationOptions>(
             RequestType0<TResult, TError, TRegistrationOptions> requestType0)
         {
-            return _messageSender
+            return Sender
                 .SendRequest(requestType0)
                 .ConfigureAwait(continueOnCapturedContext: false)
                 .GetAwaiter()
@@ -74,7 +72,7 @@ namespace EditorServicesCommandSuite.EditorServices
         internal async Task<TResult> SendRequestAsync<TResult, TError, TRegistrationOptions>(
             RequestType0<TResult, TError, TRegistrationOptions> requestType0)
         {
-            return await _messageSender
+            return await Sender
                 .SendRequest(requestType0)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }

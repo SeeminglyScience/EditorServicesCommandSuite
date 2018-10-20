@@ -42,8 +42,7 @@ CLRVersion = '4.0'
 ProcessorArchitecture = 'None'
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = 'Add-CommandToManifest',
-                    'Add-ModuleQualification',
+FunctionsToExport = 'Add-ModuleQualification',
                     'Add-SurroundingExpression',
                     'ConvertFrom-UnnamedBlock',
                     'Convert-StringExpression',
@@ -55,6 +54,7 @@ FunctionsToExport = 'Add-CommandToManifest',
                     'Expand-TypeImplementation',
                     'Import-CommandSuite',
                     'Invoke-DocumentRefactor',
+                    'Register-CommandExport',
                     'Resolve-TypeExpression',
                     'Set-RuleSuppression'
 
@@ -68,7 +68,7 @@ CmdletsToExport = 'Get-CommandSuiteSetting',
 VariablesToExport = @()
 
 # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-AliasesToExport = @()
+AliasesToExport = 'Add-CommandToManifest'
 
 # List of all files packaged with this module
 FileList = 'en-US\EditorServicesCommandSuite-help.xml',

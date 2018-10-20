@@ -190,9 +190,13 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             ExtractFunctionArguments args,
             PowerShellScriptWriter writer)
         {
+            // Find the smallest AST that contains the full selection, then find closest parent
+            // named block that is not part of an expression.
             NamedBlockAst parentNamedBlock = args.RootAst
                 .FindAstContaining(args.Selection)
-                .FindParent<NamedBlockAst>(maxDepth: int.MaxValue);
+                .FindParent<NamedBlockAst>(
+                    ast => !((ast?.Parent as ScriptBlockAst)?.Parent is ScriptBlockExpressionAst),
+                    maxDepth: int.MaxValue);
 
             if (parentNamedBlock.Unnamed)
             {
