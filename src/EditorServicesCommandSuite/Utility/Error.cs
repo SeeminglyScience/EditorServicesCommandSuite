@@ -8,6 +8,24 @@ namespace EditorServicesCommandSuite.Utility
 {
     internal static class Error
     {
+        public static PSArgumentException TypeNotFound(string typeName)
+        {
+            return new PSArgumentException(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    ImplementAbstractMethodsStrings.TypeNotFound,
+                    typeName));
+        }
+
+        public static PSArgumentException InvalidTypeForPowerShellBase(string typeName)
+        {
+            return new PSArgumentException(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    ImplementAbstractMethodsStrings.InvalidTypeForPowerShellBase,
+                    typeName));
+        }
+
         public static PSArgumentException FunctionAlreadyExported(string functionName)
         {
             return new PSArgumentException(

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
@@ -13,6 +15,9 @@ namespace EditorServicesCommandSuite.Reflection
 {
     internal static class MemberUtil
     {
+        private static readonly ConcurrentDictionary<Type, ImmutableArray<MemberDescription>> s_abstractMembersCache =
+            new ConcurrentDictionary<Type, ImmutableArray<MemberDescription>>();
+
         private static readonly BindingFlags s_allMembers =
             BindingFlags.Public
             | BindingFlags.NonPublic
@@ -58,7 +63,7 @@ namespace EditorServicesCommandSuite.Reflection
 
         public static bool IsTypeImplementable(Type type)
         {
-            return !type.GetMethods(s_allMembers).Any(member => FilterIsNotImplementableRequired(member, null));
+            return !type.GetMethods(s_allMembers).Any(FilterIsNotImplementableRequired);
         }
 
         public static bool IsTypeExpressible(Type type)
@@ -102,14 +107,11 @@ namespace EditorServicesCommandSuite.Reflection
                 .ToMemberDescriptions();
         }
 
-        public static IEnumerable<MemberDescription> GetAbstractMethods(Type subject)
+        public static ImmutableArray<MemberDescription> GetAbstractMethods(Type subject)
         {
-            return subject.FindMembers(
-                MemberTypes.Method,
-                s_allMembers,
-                Type.FilterAttribute,
-                MethodAttributes.Abstract)
-                .ToMemberDescriptions();
+            return s_abstractMembersCache.GetOrAdd(
+                subject,
+                GetAbstractMethodsImpl);
         }
 
         internal static bool TryGetResolvedType(string name, out Type type)
@@ -327,6 +329,23 @@ namespace EditorServicesCommandSuite.Reflection
             builder.Append(Symbols.SquareClose);
         }
 
+        private static ImmutableArray<MemberDescription> GetAbstractMethodsImpl(Type subject)
+        {
+            MemberInfo[] members = subject.FindMembers(
+                MemberTypes.Method,
+                s_allMembers,
+                Type.FilterAttribute,
+                MethodAttributes.Abstract);
+
+            var builder = ImmutableArray.CreateBuilder<MemberDescription>(members.Length);
+            foreach (MemberInfo member in members)
+            {
+                builder.Add(new ReflectedMemberDescription(member));
+            }
+
+            return builder.MoveToImmutable();
+        }
+
         private static bool FilterIsImplementable(MemberInfo m, object criteria)
         {
             return m is MethodInfo method &&
@@ -336,6 +355,13 @@ namespace EditorServicesCommandSuite.Reflection
                 !method.IsGenericMethod &&
                 IsTypeExpressible(method.ReturnType) &&
                 method.GetParameters().All(p => IsTypeExpressible(p.ParameterType));
+        }
+
+        private static bool FilterIsNotImplementableRequired(MemberInfo m)
+        {
+            return m is MethodInfo method &&
+                method.IsAbstract &&
+                !FilterIsImplementable(m, null);
         }
 
         private static bool FilterIsNotImplementableRequired(MemberInfo m, object criteria)

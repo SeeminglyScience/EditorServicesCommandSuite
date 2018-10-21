@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Language;
 using EditorServicesCommandSuite.Reflection;
+using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
@@ -60,9 +61,22 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         internal override bool CanRefactorTarget(DocumentContextBase request, TypeConstraintAst ast)
         {
-            return ast.Parent != null
-                && ast.Parent is TypeDefinitionAst
-                && ast.TypeName.GetReflectionType() != null;
+            var typeDefinition = ast.Parent as TypeDefinitionAst;
+            if (typeDefinition == null)
+            {
+                return false;
+            }
+
+            Type type = ast.TypeName.GetReflectionType();
+            if (type == null)
+            {
+                return false;
+            }
+
+            return MemberUtil
+                .GetAbstractMethods(type)
+                .Except(typeDefinition.Members.ToMemberDescriptions())
+                .Any();
         }
 
         internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request, TypeConstraintAst ast)
@@ -71,23 +85,19 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             var source = ast.TypeName.GetReflectionType();
             if (source == null)
             {
-                await UI.ShowErrorMessageAsync(
-                    string.Format(
-                        CultureInfo.CurrentCulture,
-                        ImplementAbstractMethodsStrings.TypeNotFound,
-                        ast.TypeName.Name),
-                    waitForResponse: false);
+                await UI.ShowErrorMessageOrThrowAsync(
+                    Error.TypeNotFound,
+                    ast.TypeName.Name);
+
                 return Enumerable.Empty<DocumentEdit>();
             }
 
             if (!MemberUtil.IsTypeImplementable(source))
             {
-                await UI.ShowErrorMessageAsync(
-                    string.Format(
-                        CultureInfo.CurrentCulture,
-                        ImplementAbstractMethodsStrings.InvalidTypeForPowerShellBase,
-                        source.ToString()),
-                    waitForResponse: false);
+                await UI.ShowErrorMessageOrThrowAsync(
+                    Error.InvalidTypeForPowerShellBase,
+                    source.ToString());
+
                 return Enumerable.Empty<DocumentEdit>();
             }
 

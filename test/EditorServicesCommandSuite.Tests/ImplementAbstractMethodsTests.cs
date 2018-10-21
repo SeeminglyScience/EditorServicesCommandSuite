@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Reflection;
@@ -98,7 +99,7 @@ namespace EditorServicesCommandSuite.Tests
 
             public override MemberTypes MemberType => _memberType.GetValueOrDefault();
 
-            public override IEnumerable<ParameterDescription> Parameters => _parameters;
+            public override ImmutableArray<ParameterDescription> Parameters => _parameters.ToImmutableArray();
 
             public override PSTypeName ReturnType => _returnType ?? new PSTypeName(typeof(void));
 

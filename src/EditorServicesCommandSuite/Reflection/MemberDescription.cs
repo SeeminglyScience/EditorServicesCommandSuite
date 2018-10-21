@@ -1,6 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 using System.Management.Automation;
 using System.Reflection;
 
@@ -28,7 +27,7 @@ namespace EditorServicesCommandSuite.Reflection
         /// <summary>
         /// Gets the parameters for the member if applicable.
         /// </summary>
-        public abstract IEnumerable<ParameterDescription> Parameters { get; }
+        public abstract ImmutableArray<ParameterDescription> Parameters { get; }
 
         /// <summary>
         /// Gets the type that is returned when the member is invoked or accessed.
@@ -62,17 +61,45 @@ namespace EditorServicesCommandSuite.Reflection
 
         public override int GetHashCode()
         {
-            return
-                Name.ToLower().GetHashCode()
-                + (int)MemberType
-                + Parameters.Select(p => p.ParameterType.Name.ToLower().GetHashCode()).Sum()
-                + ReturnType.Name.ToLower().GetHashCode()
-                + (IsStatic ? 1 : 0);
+            unchecked
+            {
+                int hash = 19;
+                hash = (hash * 31) + Name.ToLowerInvariant().GetHashCode();
+                hash = (hash * 31) + IsStatic.GetHashCode();
+                hash = (hash * 31) + ReturnType.Name.ToLowerInvariant().GetHashCode();
+
+                for (int i = 0; i < Parameters.Length; i++)
+                {
+                    hash = (hash * 31) + Parameters[i].ParameterType.Name.ToLowerInvariant().GetHashCode();
+                }
+
+                return hash;
+            }
         }
 
         public bool Equals(MemberDescription other)
         {
-            return other != null && GetHashCode() == other.GetHashCode();
+            if (!Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase) ||
+                IsStatic != other.IsStatic ||
+                ReturnType.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (Parameters.Length != other.Parameters.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < Parameters.Length; i++)
+            {
+                if (!Parameters[i].ParameterType.Name.Equals(other.Parameters[i].ParameterType.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public override bool Equals(object obj)

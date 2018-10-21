@@ -1,6 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 using System.Management.Automation;
 using System.Reflection;
 
@@ -14,22 +13,37 @@ namespace EditorServicesCommandSuite.Reflection
             : base()
         {
             _member = member ?? throw new ArgumentNullException(nameof(member));
-            if (member is MethodInfo method)
+            if (member is MethodBase methodBase)
             {
-                ReturnType = new PSTypeName(method.ReturnType);
-                Parameters = method.GetParameters().Select(ToParameterDescription);
-                IsStatic = method.IsStatic;
+                ParameterInfo[] parameters = methodBase.GetParameters();
+                var builder = ImmutableArray.CreateBuilder<ParameterDescription>(parameters.Length);
+                foreach (ParameterInfo parameter in parameters)
+                {
+                    builder.Add(
+                        new ParameterDescription(
+                            parameter.Name,
+                            new PSTypeName(parameter.ParameterType)));
+                }
+
+                Parameters = builder.MoveToImmutable();
+
+                if (member is MethodInfo method)
+                {
+                    ReturnType = new PSTypeName(method.ReturnType);
+                    IsStatic = method.IsStatic;
+                    return;
+                }
+
+                if (member is ConstructorInfo constructor)
+                {
+                    ReturnType = new PSTypeName(constructor.ReflectedType);
+                    return;
+                }
+
                 return;
             }
 
-            if (member is ConstructorInfo constructor)
-            {
-                ReturnType = new PSTypeName(constructor.ReflectedType);
-                Parameters = constructor.GetParameters().Select(ToParameterDescription);
-                return;
-            }
-
-            Parameters = Enumerable.Empty<ParameterDescription>();
+            Parameters = ImmutableArray<ParameterDescription>.Empty;
             if (member is PropertyInfo property)
             {
                 ReturnType = new PSTypeName(property.PropertyType);
@@ -56,17 +70,10 @@ namespace EditorServicesCommandSuite.Reflection
 
         public override MemberTypes MemberType => _member.MemberType;
 
-        public override IEnumerable<ParameterDescription> Parameters { get; }
+        public override ImmutableArray<ParameterDescription> Parameters { get; }
 
         public override PSTypeName ReturnType { get; }
 
         public override bool IsStatic { get; }
-
-        private ParameterDescription ToParameterDescription(ParameterInfo parameter)
-        {
-            return new ParameterDescription(
-                parameter.Name,
-                new PSTypeName(parameter.ParameterType));
-        }
     }
 }

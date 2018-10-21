@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Reflection;
@@ -15,9 +14,17 @@ namespace EditorServicesCommandSuite.Reflection
             Name = member.Name;
             if (member is FunctionMemberAst function)
             {
-                Parameters = function.Parameters.Select(ToParameterDescription);
-                IsStatic = function.IsStatic;
+                var builder = ImmutableArray.CreateBuilder<ParameterDescription>(function.Parameters.Count);
+                foreach (ParameterAst parameter in function.Parameters)
+                {
+                    builder.Add(
+                        new ParameterDescription(
+                            parameter.Name.VariablePath.UserPath,
+                            parameter.Attributes.GetOutputType()));
+                }
 
+                Parameters = builder.MoveToImmutable();
+                IsStatic = function.IsStatic;
                 if (function.IsConstructor)
                 {
                     MemberType = MemberTypes.Constructor;
@@ -39,17 +46,10 @@ namespace EditorServicesCommandSuite.Reflection
 
         public override MemberTypes MemberType { get; }
 
-        public override IEnumerable<ParameterDescription> Parameters { get; }
+        public override ImmutableArray<ParameterDescription> Parameters { get; }
 
         public override PSTypeName ReturnType { get; }
 
         public override bool IsStatic { get; }
-
-        private ParameterDescription ToParameterDescription(ParameterAst parameter)
-        {
-            return new ParameterDescription(
-                parameter.Name.VariablePath.UserPath,
-                parameter.Attributes.GetOutputType(typeof(object)));
-        }
     }
 }
