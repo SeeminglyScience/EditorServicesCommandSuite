@@ -111,16 +111,28 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 buffer.CopyTo(charBuffer.AsSpan());
                 if (appendNewLine)
                 {
-                    writer.WriteLine(charBuffer, 0, buffer.Length);
+                    writer.WriteLineInternal(charBuffer, 0, buffer.Length);
                     return;
                 }
 
-                writer.Write(charBuffer, 0, buffer.Length);
+                writer.WriteInternal(charBuffer, 0, buffer.Length);
             }
             finally
             {
                 ArrayPool<char>.Shared.Return(charBuffer);
             }
         }
+
+#pragma warning disable SA1100
+        private void WriteInternal(char[] buffer, int offset, int count)
+        {
+            base.Write(buffer, offset, count);
+        }
+
+        private void WriteLineInternal(char[] buffer, int offset, int count)
+        {
+            base.WriteLine(buffer, offset, count);
+        }
+#pragma warning restore SA1100
     }
 }
