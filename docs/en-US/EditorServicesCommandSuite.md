@@ -66,7 +66,7 @@ The New-ESCSSettingsFile function creates a settings file in the current workspa
 
 The Remove-Semicolon function will delete any semicolon in the current file that is not followed by a new line or is within a class property definition.
 
-### [Set-RuleSupression](Set-RuleSupression.md)
+### [Set-RuleSuppression](Set-RuleSuppression.md)
 
 The Set-RuleSupression function generates a SuppressMessage attribute and inserts it into a script file. The PSScriptAnalyzer rule will be determined automatically, as well as the best place to insert the Attribute.
 
