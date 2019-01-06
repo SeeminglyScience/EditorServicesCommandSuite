@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateNotNull()]
-    [version] $RequiredVersion = '1.8.1'
+    [version] $RequiredVersion = '1.10.1'
 )
 begin {
     Add-Type -AssemblyName System.IO.Compression
