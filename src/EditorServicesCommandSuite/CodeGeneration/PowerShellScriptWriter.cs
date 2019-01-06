@@ -680,93 +680,22 @@ namespace EditorServicesCommandSuite.CodeGeneration
             Write(ParenClose);
         }
 
-        internal void WriteAsExpressionValue(Parameter param, bool shouldNotWriteHints)
+        internal void WriteAsExpressionValue(Parameter parameter, bool shouldNotWriteHints)
         {
-            if (param.Value == null)
+            if (parameter.Value == null)
             {
-                if (shouldNotWriteHints)
-                {
-                    WriteVariable(param.Name, CaseType.CamelCase);
-                }
-                else
-                {
-                    Write(Dollar);
-
-                    CaseType caseType;
-                    if (param.IsMandatory)
-                    {
-                        Write("mandatory");
-                        caseType = CaseType.PascalCase;
-                    }
-                    else
-                    {
-                        caseType = CaseType.CamelCase;
-                    }
-
-                    Type parameterType = param.Type ?? typeof(object);
-
-                    // Unwrap array, byref, and pointer types. The latter two are pretty unlikely
-                    // for a command parameter, but we already need to take care of arrays anyway.
-                    while (parameterType.HasElementType)
-                    {
-                        parameterType = parameterType.GetElementType();
-                    }
-
-                    ReadOnlySpan<char> typeName = parameterType.Name.AsSpan();
-                    int backTickIndex = typeName.IndexOf(Symbols.Backtick);
-                    if (backTickIndex != -1)
-                    {
-                        typeName = typeName.Slice(0, backTickIndex);
-                    }
-
-                    WriteCasedString(typeName, caseType);
-                    if (param.Type.IsArray)
-                    {
-                        Write("Array");
-                    }
-
-                    Write(param.Name);
-                }
-
+                WriteSplatParameterHint(parameter, shouldNotWriteHints);
                 return;
             }
 
-            if (param.Value.ConstantValue is bool boolean)
+            if (parameter.Value.ConstantValue is bool boolean)
             {
                 Write(Dollar + boolean.ToString().ToLower());
                 return;
             }
 
-            if (param.Value.Value is StringConstantExpressionAst ||
-                param.Value.Value is ExpandableStringExpressionAst)
-            {
-                dynamic stringExpression = param.Value.Value;
-                if (stringExpression.StringConstantType != StringConstantType.BareWord)
-                {
-                    Write(param.Value.Value.Extent.Text);
-                    return;
-                }
-
-                if (param.Value.Value is StringConstantExpressionAst constant)
-                {
-                    WriteStringExpression(
-                        StringConstantType.SingleQuoted,
-                        constant.Value);
-                    return;
-                }
-
-                WriteStringExpression(
-                    StringConstantType.DoubleQuoted,
-                    param.Value.Value.Extent.Text);
-                return;
-            }
-
-            WriteEachWithSeparator(
-                param.Value.Value.Extent.Text.Split(
-                    new[] { this.NewLine },
-                    StringSplitOptions.None),
-                line => Write(line),
-                () => WriteLine());
+            var commandElementConverter = new ConvertFromCommandElementWriter(this);
+            parameter.Value.Value.Visit(commandElementConverter);
         }
 
         internal void WriteAttributeStatement(PSTypeName typeName)
@@ -787,13 +716,13 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         internal void CloseAttributeStatement()
         {
-            Write(new[] { ParenClose, SquareClose });
+            WriteChars(ParenClose, SquareClose);
         }
 
         internal void WriteAttributeNamedArgument(string key, string value)
         {
             Write(key);
-            Write(new[] { Space, Equal, Space });
+            WriteChars(Space, Equal, Space);
             WriteStringExpression(
                 StringConstantType.SingleQuoted,
                 value);
@@ -802,7 +731,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
         internal void WriteAttributeNamedArgument(string key, Action valueWriter)
         {
             Write(key);
-            Write(new[] { Space, Equal, Space });
+            WriteChars(Space, Equal, Space);
             valueWriter();
         }
 
@@ -862,6 +791,148 @@ namespace EditorServicesCommandSuite.CodeGeneration
         {
             Validate.IsNotNull(nameof(ast), ast);
             return ast.Extent.Text;
+        }
+
+        private void WriteSplatParameterHint(Parameter parameter, bool shouldNotWriteHints)
+        {
+            if (shouldNotWriteHints)
+            {
+                WriteVariable(parameter.Name, CaseType.CamelCase);
+                return;
+            }
+
+            Write(Dollar);
+            CaseType caseType;
+            if (parameter.IsMandatory)
+            {
+                Write("mandatory");
+                caseType = CaseType.PascalCase;
+            }
+            else
+            {
+                caseType = CaseType.CamelCase;
+            }
+
+            Type parameterType = parameter.Type ?? typeof(object);
+
+            // Unwrap array, byref, and pointer types. The latter two are pretty unlikely
+            // for a command parameter, but we already need to take care of arrays anyway.
+            while (parameterType.HasElementType)
+            {
+                parameterType = parameterType.GetElementType();
+            }
+
+            ReadOnlySpan<char> typeName = parameterType.Name.AsSpan();
+            int backTickIndex = typeName.IndexOf(Symbols.Backtick);
+            if (backTickIndex != -1)
+            {
+                typeName = typeName.Slice(0, backTickIndex);
+            }
+
+            WriteCasedString(typeName, caseType);
+            if (parameter.Type.IsArray)
+            {
+                Write("Array");
+            }
+
+            Write(parameter.Name);
+        }
+
+        private class ConvertFromCommandElementWriter : AstVisitor
+        {
+            private readonly PowerShellScriptWriter _writer;
+
+            internal ConvertFromCommandElementWriter(PowerShellScriptWriter writer)
+            {
+                _writer = writer;
+            }
+
+            public override AstVisitAction VisitExpandableStringExpression(ExpandableStringExpressionAst expandableStringExpressionAst)
+            {
+                if (expandableStringExpressionAst.StringConstantType == StringConstantType.BareWord)
+                {
+                    _writer.WriteStringExpression(
+                        StringConstantType.DoubleQuoted,
+                        expandableStringExpressionAst.Extent.Text);
+                    return AstVisitAction.SkipChildren;
+                }
+
+                return WriteExtentAndSkip(expandableStringExpressionAst);
+            }
+
+            public override AstVisitAction VisitStringConstantExpression(StringConstantExpressionAst stringConstantExpressionAst)
+            {
+                if (stringConstantExpressionAst.StringConstantType == StringConstantType.BareWord)
+                {
+                    _writer.WriteStringExpression(
+                        StringConstantType.SingleQuoted,
+                        stringConstantExpressionAst.Extent.Text);
+                    return AstVisitAction.Continue;
+                }
+
+                return WriteExtentAndSkip(stringConstantExpressionAst);
+            }
+
+            public override AstVisitAction VisitArrayLiteral(ArrayLiteralAst arrayLiteralAst)
+            {
+                _writer.WriteEachWithSeparator(
+                    arrayLiteralAst.Elements,
+                    element => element.Visit(this),
+                    () => _writer.WriteChars(Comma, Space));
+                return AstVisitAction.SkipChildren;
+            }
+
+            public override AstVisitAction VisitHashtable(HashtableAst hashtableAst)
+                => WriteExtentAndSkip(hashtableAst);
+
+            public override AstVisitAction VisitScriptBlockExpression(ScriptBlockExpressionAst scriptBlockExpressionAst)
+                => WriteExtentAndSkip(scriptBlockExpressionAst);
+
+            public override AstVisitAction VisitArrayExpression(ArrayExpressionAst arrayExpressionAst)
+                => WriteExtentAndSkip(arrayExpressionAst);
+
+            public override AstVisitAction VisitParenExpression(ParenExpressionAst parenExpressionAst)
+                => WriteExtentAndSkip(parenExpressionAst);
+
+            public override AstVisitAction VisitSubExpression(SubExpressionAst subExpressionAst)
+                => WriteExtentAndSkip(subExpressionAst);
+
+            public override AstVisitAction VisitVariableExpression(VariableExpressionAst variableExpressionAst)
+                => WriteExtentAndSkip(variableExpressionAst, skipNewLineCheck: true);
+
+            public override AstVisitAction VisitMemberExpression(MemberExpressionAst memberExpressionAst)
+                => WriteExtentAndSkip(memberExpressionAst, skipNewLineCheck: true);
+
+            public override AstVisitAction VisitInvokeMemberExpression(InvokeMemberExpressionAst methodCallAst)
+                => WriteExtentAndSkip(methodCallAst);
+
+            public override AstVisitAction VisitUsingExpression(UsingExpressionAst usingExpressionAst)
+                => WriteExtentAndSkip(usingExpressionAst, skipNewLineCheck: true);
+
+            public override AstVisitAction VisitIndexExpression(IndexExpressionAst indexExpressionAst)
+                => WriteExtentAndSkip(indexExpressionAst);
+
+            public override AstVisitAction VisitConstantExpression(ConstantExpressionAst constantExpressionAst)
+                => WriteExtentAndSkip(constantExpressionAst, skipNewLineCheck: true);
+
+            private AstVisitAction WriteExtentAndSkip(Ast ast, bool skipNewLineCheck = false)
+            {
+                if (skipNewLineCheck)
+                {
+                    _writer.Write(ast.Extent.Text);
+                    return AstVisitAction.SkipChildren;
+                }
+
+                TextUtilities.ForEachIndentNormalizedLine(
+                    line => _writer.Write(line),
+                    () => _writer.WriteLine(),
+                    ast.Extent.Text,
+                    _writer.NewLine,
+                    _writer.TabString,
+                    ignoreFirstLine: true);
+
+                return AstVisitAction.SkipChildren;
+            }
         }
     }
 }

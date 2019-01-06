@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
@@ -94,7 +95,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private static async Task<IEnumerable<DocumentEdit>> GetEdits(CommandSplatArguments args)
         {
-            StatementAst parentStatement = args.Command.FindParent<StatementAst>();
+            PipelineAst parentStatement = args.Command.FindParent<PipelineAst>();
             string commandName = args.Command.GetCommandName();
             IEnumerable<CommandElementAst> elements = args.Command.CommandElements.Skip(1);
             IScriptExtent elementsExtent = elements.JoinExtents();
@@ -195,19 +196,30 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             string commandName,
             List<Parameter> parameterList)
         {
-            if (args.BindingResult.BindingExceptions.TryGetValue(commandName, out StaticBindingError globalError) &&
-                globalError.BindingException.ErrorId.Equals(AmbiguousParameterSet, StringComparison.Ordinal))
+            bool wasAmbiguousSet =
+                args.BindingResult.BindingExceptions.TryGetValue(commandName, out StaticBindingError globalError)
+                && globalError.BindingException.ErrorId.Equals(AmbiguousParameterSet, StringComparison.Ordinal);
+
+            if (wasAmbiguousSet)
             {
                 await args.UI.ShowErrorMessageOrThrowAsync(
                     Error.InvalidOperation,
                     globalError.BindingException.Message);
             }
 
-            CommandInfo commandInfo =
+            // Need to also get parameter from the main thread as the getter will marshal the call
+            // back via the PSEventManager.
+            CommandInfo commandInfo;
+            Dictionary<string, ParameterMetadata> parameters;
+            ReadOnlyCollection<CommandParameterSetInfo> parameterSets;
+
+            (commandInfo, parameters, parameterSets) =
                 await args.PipelineThread.InvokeAsync(
-                    (EngineIntrinsics engine) => engine
-                        .InvokeCommand
-                        .GetCommand(commandName, CommandTypes.All));
+                    (EngineIntrinsics engine) =>
+                    {
+                        CommandInfo cmd = engine.InvokeCommand.GetCommand(commandName, CommandTypes.All);
+                        return (cmd, cmd.Parameters, cmd.ParameterSets);
+                    });
 
             if (commandInfo == null)
             {
@@ -216,8 +228,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     commandName);
             }
 
-            string parameterSetName = ResolveParameterSet(args.BindingResult, commandInfo);
-            foreach (ParameterMetadata parameter in commandInfo.Parameters.Values)
+            string parameterSetName = ResolveParameterSet(args.BindingResult, commandInfo, parameterSets);
+            foreach (ParameterMetadata parameter in parameters.Values)
             {
                 args.CancellationToken.ThrowIfCancellationRequested();
                 if (s_allCommonParameters.Contains(parameter.Name))
@@ -248,16 +260,17 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private static string ResolveParameterSet(
             StaticBindingResult bindingResult,
-            CommandInfo commandInfo)
+            CommandInfo commandInfo,
+            ReadOnlyCollection<CommandParameterSetInfo> parameterSets)
         {
-            if (commandInfo.ParameterSets.Count == 1)
+            if (parameterSets.Count == 1)
             {
-                return commandInfo.ParameterSets[0].Name;
+                return parameterSets[0].Name;
             }
 
             var parameterNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var candidates = new List<string>();
-            foreach (CommandParameterSetInfo parameterSet in commandInfo.ParameterSets)
+            foreach (CommandParameterSetInfo parameterSet in parameterSets)
             {
                 parameterNames.Clear();
                 foreach (CommandParameterInfo parameter in parameterSet.Parameters)

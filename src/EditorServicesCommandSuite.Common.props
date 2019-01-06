@@ -5,7 +5,7 @@
     <CodeAnalysisRuleSet>..\EditorServicesCommandSuite\EditorServicesCommandSuite.ruleset</CodeAnalysisRuleSet>
     <Configurations>Debug;Release;Test</Configurations>
     <RunCodeAnalysis>true</RunCodeAnalysis>
-    <LangVersion>7.2</LangVersion>
+    <LangVersion>7.3</LangVersion>
     <TargetFrameworks>netstandard2.0;netcoreapp2.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>

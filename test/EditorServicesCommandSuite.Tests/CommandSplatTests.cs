@@ -45,11 +45,32 @@ namespace EditorServicesCommandSuite.Tests
         {
             Assert.Equal(
                 TestBuilder.Create()
-                    .Lines("$splat = @{")
-                    .Lines("    Path = \"./myPath$c\"")
-                    .Lines("}")
-                    .Texts("Get-ChildItem @splat"),
+                    .Lines(@"$splat = @{")
+                    .Lines(@"    Path = ""./myPath$c""")
+                    .Lines(@"}")
+                    .Texts(@"Get-ChildItem @splat"),
                 await GetRefactoredTextAsync("Get-ChildItem -Path ./myPath$c"));
+        }
+
+        [Theory]
+        [InlineData("$true", "$true")]
+        [InlineData("0", "0")]
+        [InlineData("Test", "'Test'")]
+        [InlineData("Test, Test2", "'Test', 'Test2'")]
+        [InlineData("Test$var", "\"Test$var\"")]
+        [InlineData("$test.InvokeCommand", "$test.InvokeCommand")]
+        [InlineData("$test.InvokeCommand()", "$test.InvokeCommand()")]
+        public async void HandlesVariousCommandElementTypes(
+            string commandElement,
+            string hashtableValue)
+        {
+            Assert.Equal(
+                TestBuilder.Create()
+                    .Lines(@"$splat = @{")
+                    .Lines($"    Path = {hashtableValue}")
+                    .Lines(@"}")
+                    .Texts("Get-ChildItem @splat"),
+                await GetRefactoredTextAsync($"Get-ChildItem -Path {commandElement}"));
         }
 
         [Fact]

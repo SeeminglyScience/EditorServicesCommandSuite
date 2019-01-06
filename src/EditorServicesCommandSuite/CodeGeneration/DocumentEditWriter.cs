@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
+using EditorServicesCommandSuite.Language;
 using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.CodeGeneration
@@ -273,6 +274,35 @@ namespace EditorServicesCommandSuite.CodeGeneration
             {
                 WriteLine();
             }
+        }
+
+        internal virtual void WriteLines(ReadOnlySpan<char> text)
+        {
+            TextUtilities.ForEachLine(
+                line => Write(line),
+                () => WriteLine(),
+                text,
+                CoreNewLine.AsSpan());
+        }
+
+        internal virtual void WriteIndentNormalizedLines(
+            string text,
+            bool ignoreFirstLine = false)
+        {
+            WriteIndentNormalizedLines(text.AsSpan(), ignoreFirstLine);
+        }
+
+        internal virtual void WriteIndentNormalizedLines(
+            ReadOnlySpan<char> text,
+            bool ignoreFirstLine = false)
+        {
+            TextUtilities.ForEachIndentNormalizedLine(
+                line => Write(line),
+                () => WriteLine(),
+                text,
+                CoreNewLine.AsSpan(),
+                _coreTab.AsSpan(),
+                ignoreFirstLine);
         }
 
         internal virtual void WriteLines(IEnumerable<string> lines)

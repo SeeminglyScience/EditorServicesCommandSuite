@@ -27,10 +27,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             writer.Write(Symbols.End);
             writer.Write(Symbols.Space);
             writer.OpenScriptBlock();
-            writer.WriteLines(
-                TextUtilities.NormalizeIndent(
-                    TextUtilities.GetLines(fullLineStatements.Text, writer.NewLine),
-                    writer.TabString));
+            writer.WriteIndentNormalizedLines(fullLineStatements.Text);
             writer.CloseScriptBlock();
             writer.FinishWriting();
             return Task.FromResult(writer.Edits);

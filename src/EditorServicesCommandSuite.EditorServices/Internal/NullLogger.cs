@@ -60,5 +60,22 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
         void IDisposable.Dispose()
         {
         }
+
+        /// <summary>
+        /// A no-op implemention of <see cref="ILogger.WriteHandledException" />.
+        /// </summary>
+        /// <param name="errorMessage">The parameter is not used.</param>
+        /// <param name="exception">The parameter is not used.</param>
+        /// <param name="callerName">The parameter is not used.</param>
+        /// <param name="callerSourceFile">The parameter is not used.</param>
+        /// <param name="callerLineNumber">The parameter is not used.</param>
+        void ILogger.WriteHandledException(
+            string errorMessage,
+            Exception exception,
+            string callerName,
+            string callerSourceFile,
+            int callerLineNumber)
+        {
+        }
     }
 }

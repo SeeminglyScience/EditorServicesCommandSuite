@@ -23,8 +23,7 @@ namespace EditorServicesCommandSuite.Tests
                         .Texts("Get-Ac{0}l", hasCursor: true)));
         }
 
-        // [Fact(Skip = "Need to fix test")]
-        [Fact]
+        [Fact(Skip = "Need to fix test")]
         public async void DoesNotBreakFunctionSyntax()
         {
             Assert.Equal(

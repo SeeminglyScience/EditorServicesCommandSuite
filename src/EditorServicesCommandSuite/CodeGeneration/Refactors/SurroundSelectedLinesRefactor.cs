@@ -183,10 +183,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             writer.StartWriting(extent);
             writer.Write(open);
             writer.FrameOpen();
-            writer.WriteLines(
-                TextUtilities.NormalizeIndent(
-                    TextUtilities.GetLines(selectedLines.Text),
-                    writer.TabString));
+
+            writer.WriteIndentNormalizedLines(selectedLines.Text);
             writer.FrameClose();
             writer.Write(close);
         }

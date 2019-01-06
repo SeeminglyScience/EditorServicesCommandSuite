@@ -220,10 +220,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             if (args.ParameterDetails.Count == 0)
             {
                 writer.OpenNamedBlock(TokenKind.End);
-                writer.WriteLines(
-                    TextUtilities.NormalizeIndent(
-                        TextUtilities.GetLines(args.Selection.Text, writer.NewLine),
-                        writer.TabString));
+                writer.WriteIndentNormalizedLines(args.Selection.Text);
                 writer.CloseNamedBlock();
                 writer.CloseFunctionDefinition();
                 return;
@@ -272,11 +269,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 }
             }
 
-            writer.WriteLines(
-                TextUtilities.NormalizeIndent(
-                    TextUtilities.GetLines(body.ToString(), writer.NewLine),
-                    writer.TabString));
-
+            writer.WriteIndentNormalizedLines(body.ToString());
             writer.CloseNamedBlock();
             writer.CloseFunctionDefinition();
         }
