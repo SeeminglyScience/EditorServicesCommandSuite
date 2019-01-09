@@ -101,10 +101,6 @@ namespace EditorServicesCommandSuite.EditorServices
                 return path;
             }
 
-            Debug.Assert(
-                Path.IsPathRooted(path),
-                "EditorServices saved an unrooted, non-URI path to ClientFilePath");
-
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return new Uri(path).AbsoluteUri;
