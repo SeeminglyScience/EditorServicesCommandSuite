@@ -488,15 +488,15 @@ namespace EditorServicesCommandSuite.Language
 
             public object VisitErrorExpression(ErrorExpressionAst errorExpressionAst)
             {
-                AddRange(errorExpressionAst.NestedAst);
+                SafeAddRange(errorExpressionAst.NestedAst);
                 return null;
             }
 
             public object VisitErrorStatement(ErrorStatementAst errorStatementAst)
             {
-                AddRange(errorStatementAst.Conditions);
-                AddRange(errorStatementAst.Bodies);
-                AddRange(errorStatementAst.NestedAst);
+                SafeAddRange(errorStatementAst.Conditions);
+                SafeAddRange(errorStatementAst.Bodies);
+                SafeAddRange(errorStatementAst.NestedAst);
                 return null;
             }
 
