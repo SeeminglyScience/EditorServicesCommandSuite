@@ -97,14 +97,13 @@ namespace EditorServicesCommandSuite.Reflection
                 && type.GetGenericArguments().All(IsTypeExpressible);
         }
 
-        public static IEnumerable<MemberDescription> GetImplementableMethods(Type subject)
+        public static ImmutableArray<MemberDescription> GetImplementableMethods(Type subject)
         {
-            return subject.FindMembers(
+            return FindMembers(
+                subject,
                 MemberTypes.Method,
-                s_allMembers,
                 FilterIsImplementable,
-                null)
-                .ToMemberDescriptions();
+                null);
         }
 
         public static ImmutableArray<MemberDescription> GetAbstractMethods(Type subject)
@@ -331,19 +330,63 @@ namespace EditorServicesCommandSuite.Reflection
 
         private static ImmutableArray<MemberDescription> GetAbstractMethodsImpl(Type subject)
         {
-            MemberInfo[] members = subject.FindMembers(
+            return FindMembers(
+                subject,
                 MemberTypes.Method,
-                s_allMembers,
                 Type.FilterAttribute,
                 MethodAttributes.Abstract);
+        }
 
-            var builder = ImmutableArray.CreateBuilder<MemberDescription>(members.Length);
-            foreach (MemberInfo member in members)
+        private static ImmutableArray<MemberDescription> FindMembers(
+            Type subject,
+            MemberTypes memberTypes,
+            MemberFilter filter,
+            object criteria = null)
+        {
+            if (subject.IsInterface)
             {
-                builder.Add(new ReflectedMemberDescription(member));
+                return FindInterfaceMembers(subject, memberTypes, filter, criteria);
             }
 
-            return builder.MoveToImmutable();
+            var members = subject.FindMembers(memberTypes, s_allMembers, filter, criteria);
+            var result = ImmutableArray.CreateBuilder<MemberDescription>(members.Length);
+            foreach (MemberInfo member in members)
+            {
+                result.Add(new ReflectedMemberDescription(member));
+            }
+
+            return result.MoveToImmutable();
+        }
+
+        private static ImmutableArray<MemberDescription> FindInterfaceMembers(
+            Type subject,
+            MemberTypes memberTypes,
+            MemberFilter filter,
+            object criteria)
+        {
+            var members = new List<MemberDescription>();
+            var typesToProcess = new Stack<Type>();
+            typesToProcess.Push(subject);
+            while (typesToProcess.Count > 0)
+            {
+                var current = typesToProcess.Pop();
+                Type[] nestedInterfaces = current.GetInterfaces();
+                foreach (Type nestedInterface in nestedInterfaces)
+                {
+                    typesToProcess.Push(nestedInterface);
+                }
+
+                members.AddRange(
+                    current
+                        .FindMembers(
+                            memberTypes,
+                            s_allMembers,
+                            FilterIsImplementable,
+                            criteria)
+                        .ToMemberDescriptions());
+            }
+
+            return members.ToImmutableArray();
         }
 
         private static bool FilterIsImplementable(MemberInfo m, object criteria)
