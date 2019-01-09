@@ -314,7 +314,7 @@ namespace EditorServicesCommandSuite.Reflection
             for (var i = 0; i < genericArgs.Length; i++)
             {
                 GetTypeNameForLiteralImpl(
-                    type,
+                    genericArgs[i],
                     dropNamespaces,
                     droppedNamespaces,
                     builder,
@@ -322,7 +322,7 @@ namespace EditorServicesCommandSuite.Reflection
 
                 if (i < genericArgs.Length - 1)
                 {
-                    builder.Append(Symbols.Comma + Symbols.Space);
+                    builder.Append(Symbols.Comma).Append(Symbols.Space);
                 }
             }
 
