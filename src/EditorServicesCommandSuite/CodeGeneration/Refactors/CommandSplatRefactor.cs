@@ -93,20 +93,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 UI);
         }
 
-        private static async Task<IEnumerable<DocumentEdit>> GetEdits(CommandSplatArguments args)
+        private static async Task<(List<Parameter>, List<StaticBindingError>)> ProcessBindingResult(
+            CommandSplatArguments args,
+            string commandName)
         {
-            PipelineAst parentStatement = args.Command.FindParent<PipelineAst>();
-            string commandName = args.Command.GetCommandName();
-            IEnumerable<CommandElementAst> elements = args.Command.CommandElements.Skip(1);
-            IScriptExtent elementsExtent = elements.JoinExtents();
-
-            if (args.BindingResult.BoundParameters.Count == 0 &&
-                !(args.IncludedTypes == AdditionalParameterTypes.Mandatory ||
-                args.IncludedTypes == AdditionalParameterTypes.All))
-            {
-                return Enumerable.Empty<DocumentEdit>();
-            }
-
             List<Parameter> parameterList = new List<Parameter>();
             foreach (KeyValuePair<string, ParameterBindingResult> parameter in args.BindingResult.BoundParameters)
             {
@@ -119,6 +109,58 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     args,
                     commandName,
                     parameterList);
+            }
+
+            List<StaticBindingError> unresolvedPositionalArgs = new List<StaticBindingError>();
+            StaticBindingResult unresolvedBinding = null;
+            foreach (var bindingException in args.BindingResult.BindingExceptions)
+            {
+                bool isPositional = bindingException.Value.BindingException.ErrorId.Equals(
+                    "PositionalParameterNotFound",
+                    StringComparison.Ordinal);
+
+                if (isPositional)
+                {
+                    unresolvedPositionalArgs.Add(bindingException.Value);
+                    continue;
+                }
+
+                if (unresolvedBinding == null)
+                {
+                    unresolvedBinding = StaticParameterBinder.BindCommand(args.Command, resolve: false);
+                }
+
+                bool isBound = unresolvedBinding.BoundParameters.TryGetValue(
+                    bindingException.Key,
+                    out ParameterBindingResult unresolvedResult);
+
+                if (isBound)
+                {
+                    parameterList.Add(
+                        new Parameter(
+                            bindingException.Key,
+                            unresolvedResult));
+                }
+            }
+
+            return (parameterList, unresolvedPositionalArgs);
+        }
+
+        private static async Task<IEnumerable<DocumentEdit>> GetEdits(CommandSplatArguments args)
+        {
+            PipelineAst parentStatement = args.Command.FindParent<PipelineAst>();
+            string commandName = args.Command.GetCommandName();
+            IEnumerable<CommandElementAst> elements = args.Command.CommandElements.Skip(1);
+            IScriptExtent elementsExtent = elements.JoinExtents();
+
+            List<Parameter> parameterList;
+            List<StaticBindingError> unresolvedPositionalArgs;
+            (parameterList, unresolvedPositionalArgs) =
+                await ProcessBindingResult(args, commandName);
+
+            if (parameterList.Count == 0)
+            {
+                return Enumerable.Empty<DocumentEdit>();
             }
 
             var splatWriter = new PowerShellScriptWriter(args.Command);
@@ -165,16 +207,16 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     () => splatWriter.WriteAsExpressionValue(parameter, args.ExcludeHints));
             }
 
-            foreach (var bindingException in args.BindingResult.BindingExceptions)
+            foreach (StaticBindingError positionalParameter in unresolvedPositionalArgs)
             {
                 elementsWriter.Write(Symbols.Space);
-                elementsWriter.Write(bindingException.Value.CommandElement.Extent.Text);
+                elementsWriter.Write(positionalParameter.CommandElement.Extent.Text);
 
                 await args.UI.ShowWarningMessageAsync(
                     string.Format(
                         CultureInfo.CurrentCulture,
                         CommandSplatStrings.CouldNotResolvePositionalArgument,
-                        bindingException.Value.CommandElement.Extent.Text));
+                        positionalParameter.CommandElement.Extent.Text));
             }
 
             splatWriter.CloseHashtable();
