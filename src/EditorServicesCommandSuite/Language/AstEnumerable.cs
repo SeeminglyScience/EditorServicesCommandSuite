@@ -528,8 +528,8 @@ namespace EditorServicesCommandSuite.Language
 
             public object VisitForStatement(ForStatementAst forStatementAst)
             {
-                Add(forStatementAst.Initializer);
-                Add(forStatementAst.Condition);
+                SafeAdd(forStatementAst.Initializer);
+                SafeAdd(forStatementAst.Condition);
                 SafeAdd(forStatementAst.Iterator);
                 Add(forStatementAst.Body);
                 return null;
@@ -770,7 +770,7 @@ namespace EditorServicesCommandSuite.Language
             public object VisitFunctionMember(FunctionMemberAst functionMemberAst)
             {
                 SafeAddRange(functionMemberAst.Attributes);
-                Add(functionMemberAst.ReturnType);
+                SafeAdd(functionMemberAst.ReturnType);
                 SafeAddRange(functionMemberAst.Parameters);
                 Add(functionMemberAst.Body);
                 return null;
