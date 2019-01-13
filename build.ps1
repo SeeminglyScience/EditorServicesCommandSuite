@@ -1,5 +1,10 @@
 [CmdletBinding()]
 param(
+    [Parameter()]
+    [ValidateSet('Debug', 'Release')]
+    [string] $Configuration = 'Release',
+
+    [Parameter()]
     [switch] $Force
 )
 end {
@@ -8,7 +13,7 @@ end {
         Task = 'PrePublish'
         File = "$PSScriptRoot/EditorServicesCommandSuite.build.ps1"
         Force = $Force.IsPresent
-        Configuration = 'Release'
+        Configuration = $Configuration
     }
 
     Invoke-Build @invokeBuildSplat

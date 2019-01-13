@@ -1,4 +1,4 @@
-#requires -Module InvokeBuild, PSScriptAnalyzer, Pester, PlatyPS -Version 5.1
+#requires -Module InvokeBuild -Version 5.1
 [CmdletBinding()]
 param(
     [Parameter()]
@@ -50,7 +50,22 @@ task BuildDocs -If { $HasDocs } {
     New-ExternalHelp -Path $DocsPath/$Culture -OutputPath $ReleasePath/$Culture | Out-Null
 }
 
-task AssertDependencies AssertRequiredModules, AssertDotNet, AssertPSES, AssertPSRL
+task AssertDependencies AssertPowerShellCore, AssertRequiredModules, AssertDotNet, AssertPSES, AssertPSRL
+
+task AssertPowerShellCore {
+    $script:pwsh = $pwsh = Get-Command pwsh @Silent
+    if ($pwsh) {
+        return
+    }
+
+    if ($Force.IsPresent) {
+        choco install powershell-core --version 6.1.1 -y
+    } else {
+        choco install powershell-core --verison 6.1.1
+    }
+
+    $script:pwsh = Get-Command pwsh @FailOnError
+}
 
 task AssertRequiredModules {
     $assertRequiredModule = Get-Command $ToolsPath/AssertRequiredModule.ps1 @FailOnError
@@ -113,7 +128,7 @@ task BuildRefactorModule {
         [System.Text.Encoding]::Unicode.GetBytes($script))
 
     if ('Core' -eq $PSEdition) {
-        pwsh -NoProfile -EncodedCommand $encodedScript
+        & $pwsh -NoProfile -EncodedCommand $encodedScript
     } else {
         powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encodedScript
     }
@@ -153,7 +168,6 @@ task DoTest {
 
         $oldPSModulePath = $env:PSModulePath
         try {
-            $pwsh = Get-Command pwsh @FailOnError
             $realModulePath = Join-Path (Split-Path $pwsh.Path) -ChildPath 'Modules'
             $env:PSModulePath = $env:PSModulePath -replace ([regex]::Escape($PSHome)), $realModulePath
             & $dotnet test `
