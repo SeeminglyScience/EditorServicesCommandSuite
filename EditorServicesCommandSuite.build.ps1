@@ -64,7 +64,7 @@ task AssertPowerShellCore {
         choco install powershell-core --verison 6.1.1
     }
 
-    $script:pwsh = Get-Command pwsh @FailOnError
+    $script:pwsh = Get-Command $env:ProgramFiles/PowerShell/6/pwsh.exe @FailOnError
 }
 
 task AssertRequiredModules {
