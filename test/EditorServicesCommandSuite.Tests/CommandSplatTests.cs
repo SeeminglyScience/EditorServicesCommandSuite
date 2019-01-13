@@ -218,8 +218,9 @@ namespace EditorServicesCommandSuite.Tests
                     .Lines("$splat = @{")
                     .Lines("    InputObject = $pSObjectInputObject")
                     .Lines("    Expression = $mandatoryScriptBlockExpression")
+                    .Lines("    ThisIsAnInvalidParameter = 'somevalue'")
                     .Lines("}")
-                    .Texts("Measure-Command @splat -ThisIsAnInvalidParameter"),
+                    .Texts("Measure-Command @splat"),
                 await GetRefactoredTextAsync(
                     "Measure-Command -ThisIsAnInvalidParameter 'somevalue'",
                     allParameters: true));
@@ -235,9 +236,9 @@ namespace EditorServicesCommandSuite.Tests
             Assert.Equal(
                 TestBuilder.Create()
                     .Lines("$splat = @{")
-                    .Lines()
+                    .Lines("    ThisIsAnInvalidParameter = 'somevalue'")
                     .Lines("}")
-                    .Texts("Get-Host @splat -ThisIsAnInvalidParameter"),
+                    .Texts("Get-Host @splat"),
                 await GetRefactoredTextAsync(
                     "Get-Host -ThisIsAnInvalidParameter 'somevalue'",
                     allParameters: true));
@@ -361,8 +362,9 @@ namespace EditorServicesCommandSuite.Tests
                 TestBuilder.Create()
                     .Lines("$splat = @{")
                     .Lines("    Expression = $mandatoryScriptBlockExpression")
+                    .Lines("    ThisIsAnInvalidParameter = 'somevalue'")
                     .Lines("}")
-                    .Texts("Measure-Command @splat -ThisIsAnInvalidParameter"),
+                    .Texts("Measure-Command @splat"),
                 await GetRefactoredTextAsync(
                     "Measure-Command -ThisIsAnInvalidParameter 'somevalue'",
                     mandatoryParameters: true));
