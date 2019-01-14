@@ -173,6 +173,7 @@ task DoTest {
             & $dotnet test `
                 --framework netcoreapp2.0 `
                 --configuration Test `
+                --logger "trx;LogFileName=$PSScriptRoot/TestResults/results.trx" `
                 -nologo
         } finally {
             $env:PSModulePath = $oldPSModulePath
