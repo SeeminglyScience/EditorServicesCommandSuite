@@ -168,7 +168,7 @@ namespace EditorServicesCommandSuite.Tests
                     allParameters: true));
         }
 
-        [Fact]
+        [Fact(Skip = "mkdir function is Windows only")]
         public async void AllParameters_HandlesParameterSet_MultipleParamSets_ParamFromDefaultSetGiven()
         {
             // Multiple parameter set cmdlet with parameter from default set,
@@ -187,7 +187,7 @@ namespace EditorServicesCommandSuite.Tests
                     allParameters: true));
         }
 
-        [Fact]
+        [Fact(Skip = "mkdir function is Windows only")]
         public async void AllParameters_HandlesParameterSet_MultipleParamSets_NonDefaultParamSet()
         {
             // Multiple parameter set cmdlet, with a parameter from one of the non-default parameter
@@ -319,7 +319,7 @@ namespace EditorServicesCommandSuite.Tests
                     mandatoryParameters: true));
         }
 
-        [Fact]
+        [Fact(Skip = "mkdir function is Windows only")]
         public async void MandatoryParameters_HandlesParameterSet_MultipleParamSets_ParamFromDefaultSetGiven()
         {
             // Multiple parameter set cmdlet with a parameter from default set. Should result
@@ -335,7 +335,7 @@ namespace EditorServicesCommandSuite.Tests
                     mandatoryParameters: true));
         }
 
-        [Fact]
+        [Fact(Skip = "mkdir function is Windows only")]
         public async void MandatoryParameters_HandlesParameterSet_MultipleParamSets_NonDefaultParamSet()
         {
             // Multiple parameter set cmdlet, given a parameter from one of the non-default
