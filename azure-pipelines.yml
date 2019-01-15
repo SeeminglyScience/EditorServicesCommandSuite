@@ -25,11 +25,11 @@ steps:
   displayName: 'Publish Pipeline Artifact'
   inputs:
     artifactName: EditorServicesCommandSuite
-    targetPath: 'Release\EditorServicesCommandSuite'
+    targetPath: 'Release/EditorServicesCommandSuite'
 
 - task: PublishTestResults@2
   displayName: 'Publish Test Results'
   inputs:
     testResultsFormat: VSTest
-    testResultsFiles: 'TestResults\results.trx'
+    testResultsFiles: 'TestResults/results.trx'
 
