@@ -17,7 +17,7 @@ steps:
 - task: PowerShell@2
   displayName: 'Build Script'
   inputs:
-    targetType: inline
+    targetType: filePath
     filePath: build.ps1
     arguments: '-Force'
 
