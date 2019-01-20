@@ -513,6 +513,11 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         private void BaseWrite(ReadOnlySpan<char> buffer)
         {
+            if (buffer.IsEmpty)
+            {
+                return;
+            }
+
             WriteIndentIfPending();
             base.Write(buffer);
             _isWritePending = true;
