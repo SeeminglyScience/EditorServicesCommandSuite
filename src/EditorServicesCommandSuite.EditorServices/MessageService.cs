@@ -22,7 +22,7 @@ namespace EditorServicesCommandSuite.EditorServices
             TParams eventParams)
         {
             Sender
-                .SendEvent(eventType, eventParams)
+                .SendEventAsync(eventType, eventParams)
                 .ConfigureAwait(continueOnCapturedContext: false)
                 .GetAwaiter()
                 .GetResult();
@@ -33,7 +33,7 @@ namespace EditorServicesCommandSuite.EditorServices
             TParams eventParams)
         {
             await Sender
-                .SendEvent(eventType, eventParams)
+                .SendEventAsync(eventType, eventParams)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
 
@@ -43,7 +43,7 @@ namespace EditorServicesCommandSuite.EditorServices
             bool waitForResponse)
         {
             return Sender
-                .SendRequest(requestType, requestParams, waitForResponse)
+                .SendRequestAsync(requestType, requestParams, waitForResponse)
                 .ConfigureAwait(continueOnCapturedContext: false)
                 .GetAwaiter()
                 .GetResult();
@@ -55,7 +55,7 @@ namespace EditorServicesCommandSuite.EditorServices
             bool waitForResponse)
         {
             return await Sender
-                .SendRequest(requestType, requestParams, waitForResponse)
+                .SendRequestAsync(requestType, requestParams, waitForResponse)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
 
@@ -63,7 +63,7 @@ namespace EditorServicesCommandSuite.EditorServices
             RequestType0<TResult, TError, TRegistrationOptions> requestType0)
         {
             return Sender
-                .SendRequest(requestType0)
+                .SendRequestAsync(requestType0)
                 .ConfigureAwait(continueOnCapturedContext: false)
                 .GetAwaiter()
                 .GetResult();
@@ -73,7 +73,7 @@ namespace EditorServicesCommandSuite.EditorServices
             RequestType0<TResult, TError, TRegistrationOptions> requestType0)
         {
             return await Sender
-                .SendRequest(requestType0)
+                .SendRequestAsync(requestType0)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
     }

@@ -26,7 +26,7 @@ namespace EditorServicesCommandSuite.EditorServices
             CancellationToken cancellationToken,
             ThreadController threadController)
         {
-            var context = await _messages.Sender.SendRequest(
+            var context = await _messages.Sender.SendRequestAsync(
                 GetEditorContextRequest.Type,
                 new GetEditorContextRequest(),
                 waitForResponse: true);

@@ -3,10 +3,10 @@
   <ItemGroup>
     <ProjectReference Include="..\EditorServicesCommandSuite\EditorServicesCommandSuite.csproj" />
     <Reference Include="Microsoft.PowerShell.EditorServices">
-      <HintPath>..\..\lib\PowerShellEditorServices\bin\Core\Microsoft.PowerShell.EditorServices.dll</HintPath>
+      <HintPath>..\..\lib\PowerShellEditorServices\bin\Microsoft.PowerShell.EditorServices.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.PowerShell.EditorServices.Protocol">
-      <HintPath>..\..\lib\PowerShellEditorServices\bin\Core\Microsoft.PowerShell.EditorServices.Protocol.dll</HintPath>
+      <HintPath>..\..\lib\PowerShellEditorServices\bin\Microsoft.PowerShell.EditorServices.Protocol.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

@@ -38,6 +38,16 @@ $HasDocs        = Test-Path $DocsPath/$Culture/*.md
 $HasTests       = Test-Path $TestPath/*
 $IsUnix         = $PSEdition -eq 'Core' -and -not $IsWindows
 
+function InvokeWithPSModulePath([scriptblock] $Action) {
+    $oldPSModulePath = $env:PSModulePath
+    try {
+        $env:PSModulePath = Join-Path (Split-Path $pwsh.Path) -ChildPath 'Modules'
+        . $Action
+    } finally {
+        $env:PSModulePath = $oldPSModulePath
+    }
+}
+
 task Clean {
     if (Test-Path $ReleasePath) {
         Remove-Item $ReleasePath -Recurse
@@ -128,7 +138,9 @@ task BuildRefactorModule {
         [System.Text.Encoding]::Unicode.GetBytes($script))
 
     if ('Core' -eq $PSEdition) {
-        & $pwsh -NoProfile -EncodedCommand $encodedScript
+        InvokeWithPSModulePath {
+            & $pwsh -NoProfile -EncodedCommand $encodedScript
+        }
     } else {
         powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encodedScript
     }
@@ -166,17 +178,12 @@ task DoTest {
     try {
         & $dotnet restore -nologo --verbosity quiet
 
-        $oldPSModulePath = $env:PSModulePath
-        try {
-            $realModulePath = Join-Path (Split-Path $pwsh.Path) -ChildPath 'Modules'
-            $env:PSModulePath = $env:PSModulePath -replace ([regex]::Escape($PSHome)), $realModulePath
+        InvokeWithPSModulePath {
             & $dotnet test `
                 --framework netcoreapp2.0 `
                 --configuration Test `
                 --logger "trx;LogFileName=$PSScriptRoot/TestResults/results.trx" `
                 -nologo
-        } finally {
-            $env:PSModulePath = $oldPSModulePath
         }
     } finally {
         Pop-Location

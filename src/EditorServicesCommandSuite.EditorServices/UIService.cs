@@ -22,7 +22,7 @@ namespace EditorServicesCommandSuite.EditorServices
             string message,
             bool waitForResponse = false)
         {
-            await _messages.Sender.SendRequest(
+            await _messages.Sender.SendRequestAsync(
                 ShowWarningMessageRequest.Type,
                 message,
                 waitForResponse)
@@ -33,7 +33,7 @@ namespace EditorServicesCommandSuite.EditorServices
             string message,
             bool waitForResponse = false)
         {
-            await _messages.Sender.SendRequest(
+            await _messages.Sender.SendRequestAsync(
                 ShowWarningMessageRequest.Type,
                 message,
                 waitForResponse)
@@ -45,7 +45,7 @@ namespace EditorServicesCommandSuite.EditorServices
             string message,
             bool waitForResponse)
         {
-            ShowInputPromptResponse response = await _messages.Sender.SendRequest(
+            ShowInputPromptResponse response = await _messages.Sender.SendRequestAsync(
                 ShowInputPromptRequest.Type,
                 new ShowInputPromptRequest()
                 {
@@ -99,7 +99,7 @@ namespace EditorServicesCommandSuite.EditorServices
             Func<TItem, string> labelSelector,
             Func<TItem, string> helpMessageSelector)
         {
-            var response = await _messages.Sender.SendRequest(
+            var response = await _messages.Sender.SendRequestAsync(
                 ShowChoicePromptRequest.Type,
                 new ShowChoicePromptRequest()
                 {

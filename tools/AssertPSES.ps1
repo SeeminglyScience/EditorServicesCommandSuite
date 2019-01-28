@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateNotNull()]
-    [version] $RequiredVersion = '1.10.1'
+    [string] $RequiredVersion = '2.0.0-preview.1'
 )
 begin {
     Add-Type -AssemblyName System.IO.Compression
@@ -26,8 +26,6 @@ begin {
                 try {
                     $entryStream.CopyTo($destinationStream)
                 } finally {
-                    # $destinationStream.Flush()
-                    # $destinationStream.Close()
                     $destinationStream.Dispose()
                 }
             } finally {
@@ -39,7 +37,7 @@ begin {
 end {
     $psesFolder = $PSCmdlet.GetUnresolvedProviderPathFromPSPath("$PSScriptRoot/../lib/PowerShellEditorServices")
 
-    if (Test-Path $psesFolder\bin\Core\*.dll) {
+    if (Test-Path $psesFolder\bin\*.dll) {
         return
     }
 
@@ -47,8 +45,7 @@ end {
         $null = New-Item $psesFolder -ItemType Directory -Force
     }
 
-    $version = $RequiredVersion.ToString('3')
-
+    $version = $RequiredVersion
     $oldSecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol
     try {
         [System.Net.ServicePointManager]::SecurityProtocol = 'Tls, Tls11, Tls12'
@@ -73,29 +70,21 @@ end {
             <# mode:   #> [System.IO.Compression.ZipArchiveMode]::Read)
 
         try {
-            $null = New-Item $psesFolder\bin\Desktop -ItemType Directory -Force -ErrorAction Ignore
-            $null = New-Item $psesFolder\bin\Core -ItemType Directory -Force -ErrorAction Ignore
+            $null = New-Item $psesFolder\bin -ItemType Directory -Force -ErrorAction Ignore
             foreach($entry in $archiveStream.Entries) {
                 if (0 -eq $entry.Length) {
                     continue
                 }
 
-                $isDesktop = $entry.FullName.StartsWith(
-                    'PowerShellEditorServices\PowerShellEditorServices\bin\Desktop',
+                $isMatch = ($entry.FullName -replace '\\', '/').StartsWith(
+                    'PowerShellEditorServices/PowerShellEditorServices/bin',
                     [StringComparison]::OrdinalIgnoreCase)
 
-                if ($isDesktop) {
-                    SaveEntry -Entry $entry -Destination $psesFolder\bin\Desktop
+                if (-not $isMatch) {
                     continue
                 }
 
-                $isCore = $entry.FullName.StartsWith(
-                    'PowerShellEditorServices\PowerShellEditorServices\bin\Core',
-                    [StringComparison]::OrdinalIgnoreCase)
-
-                if ($isCore) {
-                    SaveEntry -Entry $entry -Destination $psesFolder\bin\Core
-                }
+                SaveEntry -Entry $entry -Destination $psesFolder\bin
             }
         } finally {
             $archiveStream.Dispose()
