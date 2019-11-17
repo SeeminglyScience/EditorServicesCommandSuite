@@ -21,7 +21,7 @@ steps:
     filePath: build.ps1
     arguments: '-Force'
 
-- task: PublishPipelineArtifact@0
+- task: PublishPipelineArtifact@1
   displayName: 'Publish Pipeline Artifact'
   inputs:
     artifactName: EditorServicesCommandSuite-$(imageName)
