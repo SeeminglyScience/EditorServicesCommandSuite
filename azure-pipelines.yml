@@ -25,7 +25,7 @@ steps:
   displayName: 'Publish Pipeline Artifact'
   inputs:
     artifactName: EditorServicesCommandSuite-$(imageName)
-    targetPath: 'Release/EditorServicesCommandSuite'
+    targetPath: 'Release'
 
 - task: PublishTestResults@2
   displayName: 'Publish Test Results'
