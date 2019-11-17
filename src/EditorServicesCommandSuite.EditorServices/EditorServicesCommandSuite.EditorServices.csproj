@@ -5,8 +5,5 @@
     <Reference Include="Microsoft.PowerShell.EditorServices">
       <HintPath>..\..\lib\PowerShellEditorServices\bin\Microsoft.PowerShell.EditorServices.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.PowerShell.EditorServices.Protocol">
-      <HintPath>..\..\lib\PowerShellEditorServices\bin\Microsoft.PowerShell.EditorServices.Protocol.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>

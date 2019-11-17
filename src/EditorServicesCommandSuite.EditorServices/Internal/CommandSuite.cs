@@ -5,8 +5,10 @@ using System.Management.Automation;
 using System.Management.Automation.Host;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Utility;
-using Microsoft.PowerShell.EditorServices;
-using Microsoft.PowerShell.EditorServices.Extensions;
+
+using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
+
+using PSWorkspaceService = Microsoft.PowerShell.EditorServices.Services.WorkspaceService;
 
 namespace EditorServicesCommandSuite.EditorServices.Internal
 {
@@ -17,10 +19,6 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
     [EditorBrowsable(EditorBrowsableState.Never), DebuggerStepThrough]
     public sealed class CommandSuite : EditorServicesCommandSuite.Internal.CommandSuite
     {
-        private const string EditorOperationsFieldName = "editorOperations";
-
-        private const string EditorSessionFieldName = "editorSession";
-
         private static CommandSuite s_instance;
 
         private readonly EditorServicesNavigationService _navigation;
@@ -37,24 +35,11 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
             _navigation = new EditorServicesNavigationService(Messages);
             Diagnostics = new DiagnosticsService();
 
-            var editorOperations =
-                typeof(EditorObject)
-                    .GetField(
-                        EditorOperationsFieldName,
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    .GetValue(Editor);
+            var workspace = (PSWorkspaceService)psEditor.Components.GetService(typeof(PSWorkspaceService));
 
-            EditorSession =
-                (EditorSession)editorOperations
-                    .GetType()
-                    .GetField(
-                        EditorSessionFieldName,
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    .GetValue(editorOperations);
-
-            Documents = new DocumentService(EditorSession, Messages);
-            DocumentContext = new ContextService(EditorSession.Workspace, Messages);
-            Workspace = new WorkspaceService(engine, EditorSession.Workspace);
+            Documents = new DocumentService(workspace, Messages);
+            DocumentContext = new ContextService(workspace, Messages);
+            Workspace = new WorkspaceService(engine, workspace);
         }
 
         internal static new CommandSuite Instance => s_instance;
@@ -62,8 +47,6 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
         internal MessageService Messages { get; }
 
         internal EditorObject Editor { get; }
-
-        internal EditorSession EditorSession { get; }
 
         /// <summary>
         /// Gets the diagnostics provider.

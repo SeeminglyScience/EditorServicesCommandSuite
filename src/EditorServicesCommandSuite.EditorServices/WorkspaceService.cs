@@ -1,16 +1,19 @@
 using System;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+
 using EditorServicesCommandSuite.Internal;
-using Microsoft.PowerShell.EditorServices;
+using Microsoft.PowerShell.EditorServices.Services.TextDocument;
+
+using PSWorkspaceService = Microsoft.PowerShell.EditorServices.Services.WorkspaceService;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
     internal class WorkspaceService : WorkspaceContext
     {
-        private readonly Workspace _workspace;
+        private readonly PSWorkspaceService _workspace;
 
-        internal WorkspaceService(EngineIntrinsics engine, Workspace workspace)
+        internal WorkspaceService(EngineIntrinsics engine, PSWorkspaceService workspace)
             : base(engine)
         {
             _workspace = workspace;

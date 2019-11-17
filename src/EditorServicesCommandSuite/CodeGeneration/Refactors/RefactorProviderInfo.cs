@@ -20,9 +20,14 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         }
 
         /// <summary>
-        /// Gets the name of the refactor option.
+        /// Gets the ID of the refactor option.
         /// </summary>
-        public string Name => _provider.Name ?? string.Empty;
+        public string Id => Command.Name;
+
+        /// <summary>
+        /// Gets the display name of the refactor option.
+        /// </summary>
+        public string DisplayName => _provider.Name ?? string.Empty;
 
         /// <summary>
         /// Gets the description of the refactor option.

@@ -1,17 +1,19 @@
 using System.Threading;
 using System.Threading.Tasks;
+
 using EditorServicesCommandSuite.Internal;
-using Microsoft.PowerShell.EditorServices.Protocol.LanguageServer;
+using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
     internal class EditorServicesNavigationService : NavigationService, INavigationSupportsOpenDocument
     {
-        private readonly MessageService _messageService;
+        private readonly MessageService _messages;
 
-        internal EditorServicesNavigationService(MessageService messageService)
+        internal EditorServicesNavigationService(MessageService messages)
         {
-            _messageService = messageService;
+            _messages = messages;
         }
 
         public void OpenDocument(string path)
@@ -21,13 +23,12 @@ namespace EditorServicesCommandSuite.EditorServices
 
         public void OpenDocument(string path, CancellationToken cancellationToken)
         {
-            _messageService.SendRequest(
-                OpenFileRequest.Type,
+            _messages.SendRequest(
+                Messages.OpenFile,
                 new OpenFileDetails()
                 {
                     FilePath = path,
-                },
-                waitForResponse: true);
+                });
         }
 
         public Task OpenDocumentAsync(string path)
@@ -37,19 +38,18 @@ namespace EditorServicesCommandSuite.EditorServices
 
         public Task OpenDocumentAsync(string path, CancellationToken cancellationToken)
         {
-            return _messageService.SendRequestAsync(
-                OpenFileRequest.Type,
+            return _messages.SendRequestAsync(
+                Messages.OpenFile,
                 new OpenFileDetails()
                 {
                     FilePath = path,
-                },
-                waitForResponse: true);
+                });
         }
 
         public override void SetCursorPosition(int line, int column, CancellationToken cancellationToken)
         {
-            _messageService.SendRequest(
-                SetSelectionRequest.Type,
+            _messages.SendRequest(
+                Messages.SetSelection,
                 new SetSelectionRequest()
                 {
                     SelectionRange = new Range()
@@ -65,14 +65,13 @@ namespace EditorServicesCommandSuite.EditorServices
                             Character = column - 1,
                         },
                     },
-                },
-                waitForResponse: true);
+                });
         }
 
         public override async Task SetCursorPositionAsync(int line, int column, CancellationToken cancellationToken)
         {
-            await _messageService.SendRequestAsync(
-                SetSelectionRequest.Type,
+            await _messages.SendRequestAsync(
+                Messages.SetSelection,
                 new SetSelectionRequest()
                 {
                     SelectionRange = new Range()
@@ -88,8 +87,7 @@ namespace EditorServicesCommandSuite.EditorServices
                             Character = column - 1,
                         },
                     },
-                },
-                waitForResponse: true)
+                })
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
 
@@ -100,8 +98,8 @@ namespace EditorServicesCommandSuite.EditorServices
             int endColumn,
             CancellationToken cancellationToken)
         {
-            _messageService.SendRequest(
-                SetSelectionRequest.Type,
+            _messages.SendRequest(
+                Messages.SetSelection,
                 new SetSelectionRequest()
                 {
                     SelectionRange = new Range()
@@ -117,14 +115,13 @@ namespace EditorServicesCommandSuite.EditorServices
                             Character = endColumn - 1,
                         },
                     },
-                },
-                waitForResponse: true);
+                });
         }
 
         public override async Task SetSelectionAsync(int startLine, int startColumn, int endLine, int endColumn, CancellationToken cancellationToken)
         {
-            await _messageService.SendRequestAsync(
-                SetSelectionRequest.Type,
+            await _messages.SendRequestAsync(
+                Messages.SetSelection,
                 new SetSelectionRequest()
                 {
                     SelectionRange = new Range()
@@ -140,8 +137,7 @@ namespace EditorServicesCommandSuite.EditorServices
                             Character = endColumn - 1,
                         },
                     },
-                },
-                waitForResponse: true);
+                }).ConfigureAwait(false);
         }
     }
 }

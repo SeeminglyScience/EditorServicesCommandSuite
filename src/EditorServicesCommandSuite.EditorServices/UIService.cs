@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 using EditorServicesCommandSuite.Internal;
-using Microsoft.PowerShell.EditorServices;
-using Microsoft.PowerShell.EditorServices.Protocol.LanguageServer;
-using Microsoft.PowerShell.EditorServices.Protocol.Messages;
+using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
@@ -22,10 +21,9 @@ namespace EditorServicesCommandSuite.EditorServices
             string message,
             bool waitForResponse = false)
         {
-            await _messages.Sender.SendRequestAsync(
-                ShowWarningMessageRequest.Type,
-                message,
-                waitForResponse)
+            await _messages.SendRequestAsync(
+                Messages.ShowWarningMessage,
+                message)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
 
@@ -33,10 +31,9 @@ namespace EditorServicesCommandSuite.EditorServices
             string message,
             bool waitForResponse = false)
         {
-            await _messages.Sender.SendRequestAsync(
-                ShowWarningMessageRequest.Type,
-                message,
-                waitForResponse)
+            await _messages.SendRequestAsync(
+                Messages.ShowErrorMessage,
+                message)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
 
@@ -45,14 +42,13 @@ namespace EditorServicesCommandSuite.EditorServices
             string message,
             bool waitForResponse)
         {
-            ShowInputPromptResponse response = await _messages.Sender.SendRequestAsync(
-                ShowInputPromptRequest.Type,
+            ShowInputPromptResponse response = await _messages.SendRequestAsync(
+                Messages.ShowInputPrompt,
                 new ShowInputPromptRequest()
                 {
                     Name = caption,
                     Label = message,
-                },
-                waitForResponse)
+                })
                 .ConfigureAwait(continueOnCapturedContext: false);
 
             if (response == null || response.PromptCancelled)
@@ -99,8 +95,8 @@ namespace EditorServicesCommandSuite.EditorServices
             Func<TItem, string> labelSelector,
             Func<TItem, string> helpMessageSelector)
         {
-            var response = await _messages.Sender.SendRequestAsync(
-                ShowChoicePromptRequest.Type,
+            var response = await _messages.SendRequestAsync(
+                Messages.ShowChoicePrompt,
                 new ShowChoicePromptRequest()
                 {
                     IsMultiChoice = false,
@@ -111,8 +107,7 @@ namespace EditorServicesCommandSuite.EditorServices
                         labelSelector,
                         helpMessageSelector)
                         .ToArray(),
-                },
-                waitForResponse: true)
+                })
                 .ConfigureAwait(continueOnCapturedContext: false);
 
             if (response == null || response.PromptCancelled)

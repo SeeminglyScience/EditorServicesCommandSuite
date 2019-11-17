@@ -1,7 +1,8 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.PowerShell.EditorServices.Extensions;
-using Microsoft.PowerShell.EditorServices.Protocol.MessageProtocol;
+
+using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
@@ -12,68 +13,80 @@ namespace EditorServicesCommandSuite.EditorServices
         internal MessageService(EditorObject psEditor)
         {
             _psEditor = psEditor ?? throw new ArgumentNullException(nameof(psEditor));
-            Sender = (IMessageSender)_psEditor.Components.Get(typeof(IMessageSender));
+            Sender = (ILanguageServer)_psEditor.Components.GetService(typeof(ILanguageServer));
         }
 
-        internal IMessageSender Sender { get; }
+        internal ILanguageServer Sender { get; }
 
-        internal void SendEvent<TParams, TRegistrationOptions>(
-            NotificationType<TParams, TRegistrationOptions> eventType,
-            TParams eventParams)
+        internal void SendEvent<TRequest>(
+            ActionMessage<TRequest> eventType,
+            TRequest eventParams)
+        {
+            Sender.SendNotification(eventType.Method, eventParams);
+        }
+
+        internal async Task SendEventAsync<TRequest>(
+            ActionMessage<TRequest> eventType,
+            TRequest eventParams)
+        {
+            await Task.Run(() => Sender.SendNotification(eventType.Method, eventParams))
+                .ConfigureAwait(false);
+        }
+
+        internal TResponse SendRequest<TRequest, TResponse>(
+            FuncMessage<TRequest, TResponse> requestType,
+            TRequest requestParams)
+        {
+            return Sender.SendRequest<TRequest, TResponse>(requestType.Method, requestParams)
+                .ConfigureAwait(continueOnCapturedContext: false)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        internal async Task<TResponse> SendRequestAsync<TRequest, TResponse>(
+            FuncMessage<TRequest, TResponse> requestType,
+            TRequest requestParams)
+        {
+            return await Sender
+                .SendRequest<TRequest, TResponse>(requestType.Method, requestParams)
+                .ConfigureAwait(continueOnCapturedContext: false);
+        }
+
+        internal TResponse SendRequest<TResponse>(
+            FuncMessage<TResponse> requestType)
+        {
+            return Sender
+                .SendRequest<TResponse>(requestType.Method)
+                .ConfigureAwait(continueOnCapturedContext: false)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        internal async Task<TResponse> SendRequestAsync<TResponse>(
+            FuncMessage<TResponse> requestType)
+        {
+            return await Sender
+                .SendRequest<TResponse>(requestType.Method)
+                .ConfigureAwait(continueOnCapturedContext: false);
+        }
+
+        internal void SendRequest<TRequest>(
+            ActionMessage<TRequest> requestType,
+            TRequest request)
         {
             Sender
-                .SendEventAsync(eventType, eventParams)
+                .SendRequest(requestType.Method, request)
                 .ConfigureAwait(continueOnCapturedContext: false)
                 .GetAwaiter()
                 .GetResult();
         }
 
-        internal async Task SendEventAsync<TParams, TRegistrationOptions>(
-            NotificationType<TParams, TRegistrationOptions> eventType,
-            TParams eventParams)
+        internal async Task SendRequestAsync<TRequest>(
+            ActionMessage<TRequest> requestType,
+            TRequest request)
         {
             await Sender
-                .SendEventAsync(eventType, eventParams)
-                .ConfigureAwait(continueOnCapturedContext: false);
-        }
-
-        internal TResult SendRequest<TParams, TResult, TError, TRegistrationOptions>(
-            RequestType<TParams, TResult, TError, TRegistrationOptions> requestType,
-            TParams requestParams,
-            bool waitForResponse)
-        {
-            return Sender
-                .SendRequestAsync(requestType, requestParams, waitForResponse)
-                .ConfigureAwait(continueOnCapturedContext: false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        internal async Task<TResult> SendRequestAsync<TParams, TResult, TError, TRegistrationOptions>(
-            RequestType<TParams, TResult, TError, TRegistrationOptions> requestType,
-            TParams requestParams,
-            bool waitForResponse)
-        {
-            return await Sender
-                .SendRequestAsync(requestType, requestParams, waitForResponse)
-                .ConfigureAwait(continueOnCapturedContext: false);
-        }
-
-        internal TResult SendRequest<TResult, TError, TRegistrationOptions>(
-            RequestType0<TResult, TError, TRegistrationOptions> requestType0)
-        {
-            return Sender
-                .SendRequestAsync(requestType0)
-                .ConfigureAwait(continueOnCapturedContext: false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        internal async Task<TResult> SendRequestAsync<TResult, TError, TRegistrationOptions>(
-            RequestType0<TResult, TError, TRegistrationOptions> requestType0)
-        {
-            return await Sender
-                .SendRequestAsync(requestType0)
+                .SendRequest(requestType.Method, request)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
     }

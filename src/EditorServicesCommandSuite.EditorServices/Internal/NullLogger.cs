@@ -1,6 +1,5 @@
 using System;
-using Microsoft.PowerShell.EditorServices;
-using Microsoft.PowerShell.EditorServices.Utility;
+using Microsoft.Extensions.Logging;
 
 namespace EditorServicesCommandSuite.EditorServices.Internal
 {
@@ -10,72 +9,55 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
     public class NullLogger : ILogger
     {
         /// <summary>
-        /// Gets a null instance of <see cref="ILogger" /> used for creating instances
-        /// of <see cref="PowerShellContext" />.
+        /// A no-op implemention of <see cref="ILogger.BeginScope" />.
         /// </summary>
-        public static ILogger Instance { get; } = new NullLogger();
+        /// <param name="state">The parameter is not used.</param>
+        /// <typeparam name="TState">The parameter is not used.</typeparam>
+        /// <returns>A no-op implementation of <see cref="IDisposable" />.</returns>
+        public IDisposable BeginScope<TState>(TState state)
+        {
+            return NullDisposable.Value;
+        }
 
         /// <summary>
-        /// Gets the minimum configured log level.
-        /// </summary>
-        LogLevel ILogger.MinimumConfiguredLogLevel { get; }
-
-        /// <summary>
-        /// A no-op implemention of <see cref="ILogger.Write" />.
+        /// A no-op implemention of <see cref="ILogger.BeginScope" />.
         /// </summary>
         /// <param name="logLevel">The parameter is not used.</param>
-        /// <param name="logMessage">The parameter is not used.</param>
-        /// <param name="callerName">The parameter is not used.</param>
-        /// <param name="callerSourceFile">The parameter is not used.</param>
-        /// <param name="callerLineNumber">The parameter is not used.</param>
-        void ILogger.Write(
-            LogLevel logLevel,
-            string logMessage,
-            string callerName,
-            string callerSourceFile,
-            int callerLineNumber)
+        /// <returns><c>false</c>.</returns>
+        public bool IsEnabled(LogLevel logLevel)
         {
+            return false;
         }
 
         /// <summary>
-        /// A no-op implemention of <see cref="ILogger.WriteException" />.
+        /// A no-op implemention of <see cref="ILogger.Log" />.
         /// </summary>
-        /// <param name="errorMessage">The parameter is not used.</param>
-        /// <param name="errorException">The parameter is not used.</param>
-        /// <param name="callerName">The parameter is not used.</param>
-        /// <param name="callerSourceFile">The parameter is not used.</param>
-        /// <param name="callerLineNumber">The parameter is not used.</param>
-        void ILogger.WriteException(
-            string errorMessage,
-            Exception errorException,
-            string callerName,
-            string callerSourceFile,
-            int callerLineNumber)
-        {
-        }
-
-        /// <summary>
-        /// A no-op implemention of <see cref="IDisposable.Dispose" />.
-        /// </summary>
-        void IDisposable.Dispose()
-        {
-        }
-
-        /// <summary>
-        /// A no-op implemention of <see cref="ILogger.WriteHandledException" />.
-        /// </summary>
-        /// <param name="errorMessage">The parameter is not used.</param>
+        /// <param name="logLevel">The parameter is not used.</param>
+        /// <param name="eventId">The parameter is not used.</param>
+        /// <param name="state">The parameter is not used.</param>
         /// <param name="exception">The parameter is not used.</param>
-        /// <param name="callerName">The parameter is not used.</param>
-        /// <param name="callerSourceFile">The parameter is not used.</param>
-        /// <param name="callerLineNumber">The parameter is not used.</param>
-        void ILogger.WriteHandledException(
-            string errorMessage,
+        /// <param name="formatter">The parameter is not used.</param>
+        /// <typeparam name="TState">The parameter is not used.</typeparam>
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
             Exception exception,
-            string callerName,
-            string callerSourceFile,
-            int callerLineNumber)
+            Func<TState, Exception, string> formatter)
         {
+        }
+
+        private class NullDisposable : IDisposable
+        {
+            public static readonly NullDisposable Value = new NullDisposable();
+
+            private NullDisposable()
+            {
+            }
+
+            public void Dispose()
+            {
+            }
         }
     }
 }

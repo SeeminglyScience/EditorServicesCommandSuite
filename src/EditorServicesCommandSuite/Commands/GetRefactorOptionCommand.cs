@@ -8,9 +8,14 @@ namespace EditorServicesCommandSuite.Commands
     /// <summary>
     /// Provides the implementation for the "Get-RefactorOption" cmdlet.
     /// </summary>
-    [Cmdlet(VerbsCommon.Get, "RefactorOption")]
+    [Cmdlet(VerbsCommon.Get, "RefactorOption", DefaultParameterSetName = ByNameParameterSet)]
+    [OutputType(typeof(RefactorProviderInfo))]
     public class GetRefactorOptionCommand : PSCmdlet
     {
+        private const string ByNameParameterSet = "ByName";
+
+        private const string ByIdParameterSet = "ById";
+
         private readonly HashSet<string> _alreadyReturned = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         private RefactorProviderInfo[] _infos;
@@ -20,11 +25,21 @@ namespace EditorServicesCommandSuite.Commands
         /// <summary>
         /// Gets or sets the name(s) of providers to return.
         /// </summary>
-        [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, Position = 0)]
+        [Parameter(
+            ValueFromPipeline = true,
+            ValueFromPipelineByPropertyName = true,
+            Position = 0,
+            ParameterSetName = ByNameParameterSet)]
         [SupportsWildcards]
         [ValidateNotNullOrEmpty]
         [ArgumentCompleter(typeof(RefactorNameCompleter))]
         public string[] Name { get; set; }
+
+        /// <summary>
+        /// Gets or sets the ID of the provider to return.
+        /// </summary>
+        [Parameter(ParameterSetName = ByIdParameterSet, Mandatory = true)]
+        public string Id { get; set; }
 
         /// <summary>
         /// Gets or sets the target refactor kind.
@@ -56,6 +71,20 @@ namespace EditorServicesCommandSuite.Commands
         /// </summary>
         protected override void ProcessRecord()
         {
+            if (Id != null)
+            {
+                foreach (RefactorProviderInfo info in _infos)
+                {
+                    if (Id == info.Id)
+                    {
+                        WriteObject(info);
+                        return;
+                    }
+                }
+
+                return;
+            }
+
             if (Name == null)
             {
                 foreach (RefactorProviderInfo info in _infos)
@@ -89,24 +118,24 @@ namespace EditorServicesCommandSuite.Commands
             WildcardPattern pattern = null,
             string name = null)
         {
-            if (_targetType != null && !info.Targets.HasFlag(_targetType.Value))
+            if (_targetType != null && (info.Targets & _targetType.Value) == 0)
             {
                 return;
             }
 
             if (pattern == null)
             {
-                if (name != null && !info.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase))
+                if (name != null && !info.DisplayName.Equals(name, StringComparison.CurrentCultureIgnoreCase))
                 {
                     return;
                 }
             }
-            else if (!pattern.IsMatch(info.Name))
+            else if (!pattern.IsMatch(info.DisplayName))
             {
                 return;
             }
 
-            if (!_alreadyReturned.Add(info.Name))
+            if (!_alreadyReturned.Add(info.DisplayName))
             {
                 return;
             }

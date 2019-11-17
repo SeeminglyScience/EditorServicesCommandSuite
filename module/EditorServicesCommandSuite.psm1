@@ -34,11 +34,20 @@ function Import-CommandSuite {
 
         Register-EditorCommand @registerEditorCommandSplat
 
+        $alreadyLoadedCommands = [System.Collections.Generic.HashSet[string]]::new()
+        $psEditor.GetCommands() | ForEach-Object {
+            $null = $alreadyLoadedCommands.Add($PSItem.Name)
+        }
+
         Get-RefactorOption | ForEach-Object {
+            if ($alreadyLoadedCommands.Contains($PSItem.Id)) {
+                return
+            }
+
             $registerEditorCommandSplat = @{
-                Name        = $PSItem.Command.Name
-                DisplayName = $PSItem.Name
-                ScriptBlock = [scriptblock]::Create($PSItem.Command.Name)
+                Name        = $PSItem.Id
+                DisplayName = $PSItem.DisplayName
+                ScriptBlock = [scriptblock]::Create($PSItem.Id)
             }
 
             Register-EditorCommand @registerEditorCommandSplat
@@ -58,6 +67,7 @@ function Invoke-DocumentRefactor {
         } catch [OperationCanceledException] {
             # Do nothing. This should only be when a menu selection is cancelled, which I'm
             # equating to ^C
+            $null = $null
         } catch {
             $PSCmdlet.WriteError($PSItem)
         }
@@ -65,6 +75,11 @@ function Invoke-DocumentRefactor {
 }
 
 New-Alias -Name Add-CommandToManifest -Value Register-CommandExport -Force
+
+# Allow the user to opt out of automatic editor command registration on module import.
+if (1 -ne $env:ESCS_REQUIRE_EXPLICIT_IMPORT) {
+    Import-CommandSuite
+}
 
 # Export only the functions using PowerShell standard verb-noun naming.
 # Be sure to list each exported functions in the FunctionsToExport field of the module manifest file.

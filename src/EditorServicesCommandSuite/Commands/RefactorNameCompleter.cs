@@ -50,7 +50,7 @@ namespace EditorServicesCommandSuite.Commands
 
             var pattern = new WildcardPattern(wordToComplete + "*", WildcardOptions.IgnoreCase);
             return GetRefactorOptions()
-                .Where(i => pattern.IsMatch(i.Name))
+                .Where(i => pattern.IsMatch(i.DisplayName))
                 .Select(ToCompletionResult);
         }
 
@@ -101,8 +101,8 @@ namespace EditorServicesCommandSuite.Commands
         private static CompletionResult ToCompletionResult(RefactorProviderInfo info)
         {
             return new CompletionResult(
-                info.Name,
-                info.Name,
+                info.DisplayName,
+                info.DisplayName,
                 CompletionResultType.ParameterValue,
                 info.Description);
         }
