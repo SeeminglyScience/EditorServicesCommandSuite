@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -13,7 +15,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     [Refactor(VerbsData.ConvertTo, "FunctionDefinition")]
     [RefactorConfiguration(typeof(ExtractFunctionSettings))]
-    internal class ExtractFunctionRefactor : SelectionRefactor
+    internal class ExtractFunctionRefactor : RefactorProvider
     {
         private static readonly ExtractFunctionDestinationInfo[] s_destinationInfo =
         {
@@ -45,6 +47,95 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         public override string Description { get; } = ExtractFunctionStrings.ProviderDisplayDescription;
 
+        public override ImmutableArray<CodeAction> SupportedActions => ImmutableArray.Create(
+            CodeAction.Inactive(CodeActionIds.ExtractFunction, "Extract function"),
+            CodeAction.Inactive(CodeActionIds.ExtractFunction, "Extract function - to begin block"),
+            CodeAction.Inactive(CodeActionIds.ExtractFunction, "Extract function - to {0}.ps1"));
+
+        private string DefaultFunctionName => "Invoke-Function";
+
+        private CodeAction DefaultCodeAction => SupportedActions[0];
+
+        private CodeAction ToBeginBlockCodeAction => SupportedActions[1];
+
+        private CodeAction ToFileCodeAction => SupportedActions[2];
+
+        public override async Task ComputeCodeActions(DocumentContextBase context)
+        {
+            if (!context.SelectionExtent.HasRange())
+            {
+                return;
+            }
+
+            async Task Register(CodeAction source, ExtractFunctionDestination destination)
+            {
+                await context.RegisterCodeActionAsync(
+                    source.With(
+                        factory: ExtractFunctionAsync,
+                        state: (destination, DefaultFunctionName, default(string))))
+                        .ConfigureAwait(false);
+            }
+
+            await Register(DefaultCodeAction, ExtractFunctionDestination.Inline).ConfigureAwait(false);
+            await Register(ToBeginBlockCodeAction, ExtractFunctionDestination.Begin).ConfigureAwait(false);
+        }
+
+        public override async Task Invoke(DocumentContextBase context)
+        {
+            ExtractFunctionSettings config = context.GetConfiguration<ExtractFunctionSettings>();
+            ExtractFunctionDestination destination = config.Type;
+
+            if (destination == ExtractFunctionDestination.Prompt)
+            {
+                var availableDestinations = s_destinationInfo;
+                if (_workspace.IsUntitledWorkspace())
+                {
+                    availableDestinations = new ExtractFunctionDestinationInfo[]
+                    {
+                        s_destinationInfo[0],
+                        s_destinationInfo[1],
+                    };
+                }
+
+                destination = (await _ui.ShowChoicePromptAsync(
+                    ExtractFunctionStrings.SelectDestinationCaption,
+                    ExtractFunctionStrings.SelectDestinationMessage,
+                    s_destinationInfo,
+                    info => info.DisplayMessage,
+                    info => info.HelpMessage)
+                    .ConfigureAwait(false))
+                    .Destination;
+            }
+
+            string functionName = config.FunctionName;
+            if (string.IsNullOrWhiteSpace(functionName))
+            {
+                functionName = await _ui.ShowInputPromptAsync(
+                    ExtractFunctionStrings.FunctionNamePromptCaption,
+                    ExtractFunctionStrings.FunctionNamePromptMessage)
+                    .ConfigureAwait(false);
+            }
+
+            string filePath = config.FilePath;
+            if (string.IsNullOrWhiteSpace(config.FilePath) &&
+                destination == ExtractFunctionDestination.NewFile)
+            {
+                filePath = await _ui.ShowInputPromptAsync(
+                    string.Concat(functionName, StringLiterals.ScriptFileExtension),
+                    ExtractFunctionStrings.NewFilePathMessage)
+                    .ConfigureAwait(false);
+
+                ResolveFileName(ref filePath, functionName);
+            }
+
+            await ProcessActionForInvoke(
+                context,
+                DefaultCodeAction.With(
+                    ExtractFunctionAsync,
+                    (destination, functionName, filePath)))
+                .ConfigureAwait(false);
+        }
+
         internal static async Task<IEnumerable<DocumentEdit>> GetEdits(
             DocumentContextBase request,
             string functionName,
@@ -65,70 +156,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     Selection = request.SelectionExtent,
                     UI = ui,
                     NewFilePath = newFilePath,
-                });
-        }
-
-        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(
-            DocumentContextBase request,
-            IScriptExtent extent)
-        {
-            ExtractFunctionSettings config = request.GetConfiguration<ExtractFunctionSettings>();
-            ExtractFunctionDestination destination = config.Type;
-
-            if (destination == ExtractFunctionDestination.Prompt)
-            {
-                var availableDestinations = s_destinationInfo;
-                if (_workspace.IsUntitledWorkspace())
-                {
-                    availableDestinations = new ExtractFunctionDestinationInfo[]
-                    {
-                        s_destinationInfo[0],
-                        s_destinationInfo[1],
-                    };
-                }
-
-                destination = (await _ui.ShowChoicePromptAsync(
-                    ExtractFunctionStrings.SelectDestinationCaption,
-                    ExtractFunctionStrings.SelectDestinationMessage,
-                    s_destinationInfo,
-                    info => info.DisplayMessage,
-                    info => info.HelpMessage))
-                    .Destination;
-            }
-
-            string functionName = config.FunctionName;
-            if (string.IsNullOrWhiteSpace(functionName))
-            {
-                functionName = await _ui.ShowInputPromptAsync(
-                    ExtractFunctionStrings.FunctionNamePromptCaption,
-                    ExtractFunctionStrings.FunctionNamePromptMessage);
-            }
-
-            string filePath = config.FilePath;
-            if (string.IsNullOrWhiteSpace(config.FilePath) &&
-                destination == ExtractFunctionDestination.NewFile)
-            {
-                filePath = await _ui.ShowInputPromptAsync(
-                    string.Concat(functionName, StringLiterals.ScriptFileExtension),
-                    ExtractFunctionStrings.NewFilePathMessage);
-
-                ResolveFileName(ref filePath, functionName);
-            }
-
-            return await GetEdits(
-                new ExtractFunctionArguments()
-                {
-                    ClosestAst = request.Ast,
-                    CurrentToken = request.Token,
-                    Destination = destination,
-                    PipelineThread = request.PipelineThread,
-                    FunctionName = functionName,
-                    RootAst = request.RootAst,
-                    Selection = extent,
-                    UI = _ui,
-                    NewFilePath = filePath,
-                    NewFileAst = string.IsNullOrEmpty(filePath) ? null : GetScriptBlockAst(filePath),
-                });
+                }).ConfigureAwait(false);
         }
 
         private static async Task<IEnumerable<DocumentEdit>> GetEdits(ExtractFunctionArguments args)
@@ -138,7 +166,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 await SelectionVariableAnalysisVisitor.ProcessSelection(
                     args.RootAst,
                     args.Selection,
-                    args.PipelineThread);
+                    args.PipelineThread)
+                    .ConfigureAwait(false);
 
             IScriptExtent restrictedSelection = PositionUtilities.NewScriptExtent(
                 args.Selection,
@@ -175,12 +204,12 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             writer.FinishWriting();
             if (args.Destination == ExtractFunctionDestination.Begin)
             {
-                return await ExtractToBegin(args, writer);
+                return await ExtractToBegin(args, writer).ConfigureAwait(false);
             }
 
             if (args.Destination == ExtractFunctionDestination.NewFile)
             {
-                return await ExtractToNewFile(args, writer);
+                return await ExtractToNewFile(args, writer).ConfigureAwait(false);
             }
 
             return writer.Edits;
@@ -200,7 +229,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             if (parentNamedBlock.Unnamed)
             {
-                await args.UI.ShowErrorMessageOrThrowAsync(Error.CannotExtractFromUnnamed);
+                await args.UI
+                    .ShowErrorMessageOrThrowAsync(Error.CannotExtractFromUnnamed)
+                    .ConfigureAwait(false);
             }
 
             WriteToBegin(
@@ -369,16 +400,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             writer.WriteLines(2);
         }
 
-        private ScriptBlockAst GetScriptBlockAst(string filePath)
-        {
-            _workspace.TryGetFileContext(
-                filePath,
-                force: true,
-                out Tuple<ScriptBlockAst, Token[]> context);
-
-            return context.Item1;
-        }
-
         private void ResolveFileName(ref string filePath, string functionName)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -412,6 +433,32 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     filePath,
                     out _,
                     out filePath);
+            }
+        }
+
+        private async Task ExtractFunctionAsync(
+            DocumentContextBase context,
+            ExtractFunctionDestination destination,
+            string functionName,
+            string filePath)
+        {
+            var args = new ExtractFunctionArguments()
+            {
+                    ClosestAst = context.Ast,
+                    CurrentToken = context.Token,
+                    Destination = destination,
+                    PipelineThread = context.PipelineThread,
+                    FunctionName = functionName,
+                    RootAst = context.RootAst,
+                    Selection = context.SelectionExtent,
+                    UI = _ui,
+                    NewFilePath = filePath,
+            };
+
+            IEnumerable<DocumentEdit> edits = await GetEdits(args).ConfigureAwait(false);
+            foreach (WorkspaceChange change in WorkspaceChange.EditDocuments(edits))
+            {
+                await context.RegisterWorkspaceChangeAsync(change).ConfigureAwait(false);
             }
         }
 

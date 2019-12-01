@@ -31,15 +31,15 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         private readonly string _fileName;
 
+        private readonly MemoryStream _originalDocument;
+
+        private readonly byte[] _originalBuffer;
+
         private int? _pendingIndent;
 
         private bool _isWritePending;
 
         private long _lastPositionSet;
-
-        private MemoryStream _originalDocument;
-
-        private byte[] _originalBuffer;
 
         public DocumentEditWriter()
             : this(string.Empty)
@@ -106,15 +106,15 @@ namespace EditorServicesCommandSuite.CodeGeneration
             }
         }
 
-        public virtual void StartWriting(int startOffset, int endOffset)
+        public virtual void StartWriting(int startOffset, int? endOffset)
         {
             SetPosition(startOffset);
-            if (startOffset >= endOffset)
+            if (endOffset == null || startOffset >= endOffset)
             {
                 return;
             }
 
-            _implicitOverrideCount = endOffset - startOffset;
+            _implicitOverrideCount = endOffset.Value - startOffset;
         }
 
         public virtual void FinishWriting()
@@ -154,7 +154,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
         internal virtual void PushIndent(int amount = 1)
         {
             _indentStack.Push(Indent);
-            Indent = Indent + amount;
+            Indent += amount;
         }
 
         internal virtual void PopIndent()
@@ -247,7 +247,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             Action<TInput> writer,
             Action separationWriter)
         {
-            if (!source.Any())
+            if (source.Count == 0)
             {
                 return;
             }
@@ -422,8 +422,6 @@ namespace EditorServicesCommandSuite.CodeGeneration
         {
             Flush();
             var reader = new StreamReader(_originalDocument, Encoding);
-            string restOfStream = string.Empty;
-            long currentPosition = 0;
             var edit = new DocumentEdit()
             {
                 FileName = _fileName,
@@ -440,7 +438,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             }
 
             // Save the rest so we can append after write.
-            restOfStream = reader.ReadToEnd();
+            reader.ReadToEnd();
             reader.DiscardBufferedData();
 
             // Write pending changes
@@ -454,8 +452,6 @@ namespace EditorServicesCommandSuite.CodeGeneration
             BaseStream.Position = 0;
             edit.NewValue = baseReader.ReadToEnd();
             baseReader.DiscardBufferedData();
-
-            currentPosition = _originalDocument.Position / _byteOffsetModifier;
 
             // Save the edit and write the append the rest of the stream.
             _isWritePending = false;
@@ -479,7 +475,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 _isWritePending = true;
             }
 
-            if (!_editsToBeReduced.Any())
+            if (_editsToBeReduced.Count == 0)
             {
                 return;
             }
@@ -502,8 +498,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
                     StartOffset = editGroup.Key,
                     EndOffset = highestOverride.EndOffset,
                     OriginalValue = highestOverride.OriginalValue,
-                    NewValue = string.Join(
-                        string.Empty,
+                    NewValue = string.Concat(
                         editGroup
                             .OrderBy(edit => edit.Id)
                             .Select(edit => edit.NewValue)),
@@ -532,8 +527,8 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         private async Task BaseWriteAsync(Func<Task> writer)
         {
-            await WriteIndentIfPendingAsync();
-            await writer();
+            await WriteIndentIfPendingAsync().ConfigureAwait(false);
+            await writer().ConfigureAwait(false);
             _isWritePending = true;
         }
 
@@ -560,12 +555,12 @@ namespace EditorServicesCommandSuite.CodeGeneration
         {
             if (writer != null)
             {
-                await writer();
+                await writer().ConfigureAwait(false);
             }
 
             // If we use base.WriteLineAsync here (or in the delegate) it'll call out to our
             // Write method. This causes pending indents to be written unnecessarily.
-            await WriteAsync(CoreNewLine);
+            await WriteAsync(CoreNewLine).ConfigureAwait(false);
             _isWritePending = true;
             _pendingIndent = Indent;
         }
@@ -581,7 +576,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             _pendingIndent = null;
             for (var i = 1; i <= indent; i++)
             {
-                await WriteAsync(_coreTab);
+                await WriteAsync(_coreTab).ConfigureAwait(false);
             }
         }
 
@@ -594,7 +589,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         public override void WriteLine(char value) => BaseWriteLine(() => base.Write(value));
 
-        public override void WriteLine(params char[] buffer) => BaseWriteLine(() => base.Write(buffer));
+        public override void WriteLine(char[] buffer) => BaseWriteLine(() => base.Write(buffer));
 
         public override void WriteLine(char[] buffer, int index, int count) => BaseWriteLine(() => base.Write(buffer, index, count));
 
@@ -630,7 +625,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         public override void Write(char value) => BaseWrite(() => base.Write(value));
 
-        public override void Write(params char[] buffer) => BaseWrite(() => base.Write(buffer));
+        public override void Write(char[] buffer) => BaseWrite(() => base.Write(buffer));
 
         public override void Write(char[] buffer, int index, int count) => BaseWrite(() => base.Write(buffer, index, count));
 

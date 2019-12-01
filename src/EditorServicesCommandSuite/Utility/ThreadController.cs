@@ -15,7 +15,7 @@ namespace EditorServicesCommandSuite.Utility
 
         private readonly BlockingCollection<IThreadExecutionRequest> _requestQueue;
 
-        private int _threadId;
+        private readonly int _threadId;
 
         internal ThreadController(EngineIntrinsics engine, PSCmdlet cmdlet)
         {
@@ -233,7 +233,7 @@ namespace EditorServicesCommandSuite.Utility
             Debug.Assert(!IsControllingCurrentThread(), "Already on controlled thread");
             var request = RequestFactory.Create(action, cancellationToken);
             _requestQueue.Add(request);
-            await request.GetResult();
+            await request.GetResult().ConfigureAwait(false);
         }
 
         internal async Task InvokeAsync(
@@ -244,7 +244,7 @@ namespace EditorServicesCommandSuite.Utility
             Debug.Assert(!IsControllingCurrentThread(), "Already on controlled thread");
             var request = RequestFactory.Create(action, _engine, cancellationToken);
             _requestQueue.Add(request);
-            await request.GetResult();
+            await request.GetResult().ConfigureAwait(false);
         }
 
         internal async Task InvokeAsync(
@@ -255,7 +255,7 @@ namespace EditorServicesCommandSuite.Utility
             Debug.Assert(!IsControllingCurrentThread(), "Already on controlled thread");
             var request = RequestFactory.Create(action, _cmdlet, cancellationToken);
             _requestQueue.Add(request);
-            await request.GetResult();
+            await request.GetResult().ConfigureAwait(false);
         }
 
         internal async Task InvokeAsync(
@@ -266,7 +266,7 @@ namespace EditorServicesCommandSuite.Utility
             Debug.Assert(!IsControllingCurrentThread(), "Already on controlled thread");
             var request = RequestFactory.Create(action, _engine, _cmdlet, cancellationToken);
             _requestQueue.Add(request);
-            await request.GetResult();
+            await request.GetResult().ConfigureAwait(false);
         }
 
         internal async Task<TResult> InvokeAsync<TResult>(
@@ -277,7 +277,7 @@ namespace EditorServicesCommandSuite.Utility
             Debug.Assert(!IsControllingCurrentThread(), "Already on controlled thread");
             var request = RequestFactory.Create(func, cancellationToken);
             _requestQueue.Add(request);
-            return await request.GetResult();
+            return await request.GetResult().ConfigureAwait(false);
         }
 
         internal async Task<TResult> InvokeAsync<TResult>(
@@ -288,7 +288,7 @@ namespace EditorServicesCommandSuite.Utility
             Debug.Assert(!IsControllingCurrentThread(), "Already on controlled thread");
             var request = RequestFactory.Create(func, _engine, cancellationToken);
             _requestQueue.Add(request);
-            return await request.GetResult();
+            return await request.GetResult().ConfigureAwait(false);
         }
 
         internal async Task<TResult> InvokeAsync<TResult>(
@@ -299,7 +299,7 @@ namespace EditorServicesCommandSuite.Utility
             Debug.Assert(!IsControllingCurrentThread(), "Already on controlled thread");
             var request = RequestFactory.Create(func, _cmdlet, cancellationToken);
             _requestQueue.Add(request);
-            return await request.GetResult();
+            return await request.GetResult().ConfigureAwait(false);
         }
 
         internal async Task<TResult> InvokeAsync<TResult>(
@@ -310,7 +310,7 @@ namespace EditorServicesCommandSuite.Utility
             Debug.Assert(!IsControllingCurrentThread(), "Already on controlled thread");
             var request = RequestFactory.Create(func, _engine, _cmdlet, cancellationToken);
             _requestQueue.Add(request);
-            return await request.GetResult();
+            return await request.GetResult().ConfigureAwait(false);
         }
 
         private bool IsControllingCurrentThread() => _threadId == Thread.CurrentThread.ManagedThreadId;

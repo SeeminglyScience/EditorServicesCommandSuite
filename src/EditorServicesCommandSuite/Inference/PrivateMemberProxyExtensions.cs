@@ -72,8 +72,7 @@ namespace EditorServicesCommandSuite.Inference
 
             foreach (Attribute attribute in scriptBlock.Attributes)
             {
-                OutputTypeAttribute outputTypeAttribute = attribute as OutputTypeAttribute;
-                if (outputTypeAttribute == null)
+                if (!(attribute is OutputTypeAttribute outputTypeAttribute))
                 {
                     continue;
                 }
@@ -146,7 +145,7 @@ namespace EditorServicesCommandSuite.Inference
             ParameterExpression scriptBlock,
             ParameterExpression sessionState)
         {
-            Debug.Assert(false, "Failed to create SetSessionStateDelegate, something changed.");
+            Debug.Fail("Failed to create SetSessionStateDelegate, something changed.");
             return Expression.Lambda<Action<ScriptBlock, SessionState>>(
                 Expression.Empty(),
                 scriptBlock,

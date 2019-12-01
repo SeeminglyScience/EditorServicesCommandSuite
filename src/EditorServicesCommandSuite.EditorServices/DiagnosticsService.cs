@@ -33,7 +33,8 @@ namespace EditorServicesCommandSuite.EditorServices
                 "Path",
                 path,
                 pipelineThread,
-                cancellationToken);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
 
         public async Task<IEnumerable<DiagnosticMarker>> GetDiagnosticsFromContentsAsync(
@@ -50,7 +51,8 @@ namespace EditorServicesCommandSuite.EditorServices
                 "ScriptDefinition",
                 contents,
                 pipelineThread,
-                cancellationToken);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
 
         private static DiagnosticMarker ToDiagnosticMarker(PSObject marker)
@@ -83,7 +85,7 @@ namespace EditorServicesCommandSuite.EditorServices
                                 .Invoke<PSObject>()
                                 .Select(ToDiagnosticMarker);
                     }
-                });
+                }).ConfigureAwait(false);
         }
     }
 }

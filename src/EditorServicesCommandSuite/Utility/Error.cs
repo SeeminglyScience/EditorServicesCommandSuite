@@ -8,6 +8,11 @@ namespace EditorServicesCommandSuite.Utility
 {
     internal static class Error
     {
+        public static PSArgumentOutOfRangeException OutOfRange(string paramName)
+        {
+            return new PSArgumentOutOfRangeException(paramName);
+        }
+
         public static PSArgumentException TypeNotFound(string typeName)
         {
             return new PSArgumentException(
@@ -82,7 +87,7 @@ namespace EditorServicesCommandSuite.Utility
             return new PSArgumentException(AddModuleQualificationStrings.CommandNameRequired);
         }
 
-        public static PSInvalidOperationException CmdletRequired(string refactorProvider)
+        public static PSInvalidOperationException CmdletRequired()
         {
             return new PSInvalidOperationException(AddModuleQualificationStrings.PSCmdletRequired);
         }

@@ -1,6 +1,8 @@
 using System;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+using System.Threading;
+using System.Threading.Tasks;
 using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Internal
@@ -84,8 +86,11 @@ namespace EditorServicesCommandSuite.Internal
             {
                 workspacePath = GetWorkspacePath();
             }
-            catch (System.Exception)
+#pragma warning disable RCS1075
+            catch (Exception)
+#pragma warning restore RCS1075
             {
+                // Treat any exception as an untitled workspace.
             }
 
             if (string.IsNullOrEmpty(workspacePath))
@@ -96,13 +101,10 @@ namespace EditorServicesCommandSuite.Internal
             }
 
             string unresolvedPath = Engine.SessionState.Path.Combine(workspacePath, path);
-
-            ProviderInfo provider;
-            PSDriveInfo psdrive;
             resolvedPath = Engine.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
                 unresolvedPath,
-                out provider,
-                out psdrive);
+                out _,
+                out _);
 
             doesExist = Engine.SessionState.InvokeProvider.Item.Exists(unresolvedPath);
             return true;
@@ -158,6 +160,21 @@ namespace EditorServicesCommandSuite.Internal
 
             fileContext = GetFileContext(path);
             return fileContext != null;
+        }
+
+        public virtual Task DeleteFileAsync(string path, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public virtual Task MoveFileAsync(string path, string destination, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public virtual Task RenameFileAsync(string path, string newName, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading.Tasks;
+
 using EditorServicesCommandSuite.Internal;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
@@ -25,37 +26,29 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         string Description { get; }
 
         /// <summary>
-        /// Gets the type of object the option can target.
+        /// Gets the code actions that this refactor provider supports.
         /// </summary>
-        RefactorKind Kind { get; }
+        ImmutableArray<CodeAction> SupportedActions { get; }
 
         /// <summary>
-        /// Requests edits from the refactor provider based on document context.
+        /// Determines which code actions (if any) are applicable to the
+        /// current context and registers them against <see paramref="context" />.
         /// </summary>
-        /// <param name="request">The context of the current document.</param>
+        /// <param name="context">The context for the code action request.</param>
         /// <returns>
-        /// A <see cref="Task" /> object representing the asynchronus operation. The Result property
-        /// will contain the requested edits.
+        /// A task that represents the asynchronous code action request.
         /// </returns>
-        Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request);
+        Task ComputeCodeActions(DocumentContextBase context);
 
         /// <summary>
-        /// Determines if the provider is applicable.
+        /// Processes code actions in the context of an invoked command. This method
+        /// should implement any logic specific to the cmdletized version of this
+        /// refactor provider.
         /// </summary>
-        /// <param name="request">The context of the current document.</param>
+        /// <param name="context">The context for the command invocation.</param>
         /// <returns>
-        /// A value indicating whether the provider is applicable.
+        /// A task that represents the asynchronous invocation.
         /// </returns>
-        bool CanRefactorTarget(DocumentContextBase request);
-
-        /// <summary>
-        /// Attempts to obtain context specific refactor information.
-        /// </summary>
-        /// <param name="request">The context of the current document.</param>
-        /// <param name="info">The context specific refactor information if successful.</param>
-        /// <returns>
-        /// A value indicating whether refactor information was able to be obtained.
-        /// </returns>
-        bool TryGetRefactorInfo(DocumentContextBase request, out IRefactorInfo info);
+        Task Invoke(DocumentContextBase context);
     }
 }

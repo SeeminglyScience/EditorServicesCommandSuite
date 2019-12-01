@@ -62,12 +62,7 @@ namespace EditorServicesCommandSuite.Commands
 
         private static CommandSuiteSettingInfo[] GetSettingsCache()
         {
-            if (s_settingCache != null)
-            {
-                return s_settingCache;
-            }
-
-            return s_settingCache = Settings.GetAllSettings().ToArray();
+            return s_settingCache ?? (s_settingCache = Settings.GetAllSettings().ToArray());
         }
 
         private Func<CommandSuiteSettingInfo, bool> GetFilterDelegate(

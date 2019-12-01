@@ -44,16 +44,11 @@ namespace EditorServicesCommandSuite.Internal
         {
             get
             {
-                if (_error != null)
-                {
-                    return _error;
-                }
-
-                return _error = new ErrorRecord(
+                return _error ?? (_error = new ErrorRecord(
                     this,
                     nameof(RefactorStrings.NoCommandSuiteInstance),
                     ErrorCategory.ObjectNotFound,
-                    null);
+                    null));
             }
         }
     }

@@ -37,7 +37,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         /// <summary>
         /// Gets the type of language elements that the refactor can target.
         /// </summary>
-        public RefactorKind Targets => _provider.Kind;
+        public RefactorKind Targets => default;
 
         /// <summary>
         /// Gets the command that invokes this refactor option.

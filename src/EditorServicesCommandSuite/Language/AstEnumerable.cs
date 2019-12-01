@@ -13,7 +13,7 @@ namespace EditorServicesCommandSuite.Language
     /// ASTs than the traditional method but it generates significantly less allocations thanks
     /// to utilizing an <see cref="ArrayPool{T}" /> internally.
     /// </summary>
-    internal class AstEnumerable : IEnumerable<Ast>
+    internal sealed class AstEnumerable : IEnumerable<Ast>
     {
         private const int MinimumDefaultBuffer = 1024;
 

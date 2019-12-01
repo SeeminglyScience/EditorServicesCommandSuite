@@ -35,12 +35,12 @@ namespace EditorServicesCommandSuite.Inference
         {
             if (defaultValue != null)
             {
-                return (await ast.GetInferredTypesAsync(pipelineThread, cancellationToken, includeNonPublic))
+                return (await ast.GetInferredTypesAsync(pipelineThread, cancellationToken, includeNonPublic).ConfigureAwait(false))
                     .DefaultIfEmpty(defaultValue)
                     .FirstOrDefault();
             }
 
-            return (await ast.GetInferredTypesAsync(pipelineThread, cancellationToken, includeNonPublic))
+            return (await ast.GetInferredTypesAsync(pipelineThread, cancellationToken, includeNonPublic).ConfigureAwait(false))
                 .FirstOrDefault();
         }
 
@@ -51,12 +51,13 @@ namespace EditorServicesCommandSuite.Inference
             bool includeNonPublic = false)
         {
             return await pipelineThread.InvokeAsync(
-                () => Inference.AstTypeInference.InferTypeOf(
+                () => AstTypeInference.InferTypeOf(
                     ast,
                     pipelineThread,
                     includeNonPublic,
                     cancellationToken),
-                cancellationToken);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
 
         internal static async Task<IEnumerable<MemberInfo>> GetInferredMembersAsync(
@@ -91,11 +92,11 @@ namespace EditorServicesCommandSuite.Inference
                         TypeInferenceRuntimePermissions.AllowSafeEval,
                         includeNonPublic,
                         cancellationToken),
-                    cancellationToken);
+                    cancellationToken)
+                    .ConfigureAwait(false);
             }
 
-            StringConstantExpressionAst memberNameConstant = ast.Member as StringConstantExpressionAst;
-            if (memberNameConstant == null)
+            if (!(ast.Member is StringConstantExpressionAst memberNameConstant))
             {
                 return Array.Empty<MemberInfo>();
             }

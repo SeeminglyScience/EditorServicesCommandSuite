@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -12,7 +15,7 @@ using EditorServicesCommandSuite.Utility;
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     [Refactor(VerbsCommon.Set, "RuleSuppression")]
-    internal class SuppressAnalyzerMessageRefactor : AstRefactorProvider<Ast>
+    internal class SuppressAnalyzerMessageRefactor : RefactorProvider
     {
         private static readonly HashSet<string> s_paramBlockOnlyRules = new HashSet<string>()
         {
@@ -34,32 +37,51 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         public override string Description { get; } = SuppressAnalyzerMessageStrings.ProviderDisplayDescription;
 
-        internal override bool CanRefactorTarget(DocumentContextBase request, Ast ast)
+        public override ImmutableArray<CodeAction> SupportedActions { get; } = ImmutableArray.Create(
+            CodeAction.Inactive(CodeActionIds.SuppressDiagnostics, "Suppress warning '{0}'"));
+
+        public override async Task ComputeCodeActions(DocumentContextBase context)
         {
-            if (string.IsNullOrWhiteSpace(ast.Extent.StartScriptPosition.GetFullScript()))
+            if (string.IsNullOrWhiteSpace(context.Ast.Extent.StartScriptPosition.GetFullScript()))
             {
-                return false;
+                return;
             }
 
-            // TODO: Find a better way to test this.
-            return GetMarkersAsync(request).GetAwaiter().GetResult().Any(
-                marker => marker.Extent.ContainsOffset(request.SelectionExtent.EndOffset));
+            IEnumerable<DiagnosticMarker> markers = await GetMarkersAsync(context).ConfigureAwait(false);
+            foreach (DiagnosticMarker marker in markers)
+            {
+                if (marker.Extent.ContainsOffset(context.SelectionExtent.EndOffset))
+                {
+                    await context.RegisterCodeActionAsync(CreateAction(marker)).ConfigureAwait(false);
+                }
+            }
         }
 
-        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request, Ast ast)
+        private static async Task SuppressMarker(DocumentContextBase context, DiagnosticMarker marker)
         {
-            var markers = (await GetMarkersAsync(request))
-                .Where(marker => marker.Extent.ContainsOffset(request.SelectionExtent.EndOffset))
-                .GroupBy(marker => marker.RuleName)
-                .Select(markerGroup => markerGroup.First());
-
-            return new SuppressHelper()
+            var helper = new SuppressHelper()
             {
-                Markers = markers,
-                Writer = new PowerShellScriptWriter(request.RootAst),
-                Context = request,
-            }
-            .CreateEdits();
+                Context = context,
+                Markers = new[] { marker },
+                Writer = new PowerShellScriptWriter(context.RootAst),
+            };
+
+            helper.CreateEdits();
+            await context.RegisterWorkspaceChangeAsync(
+                helper.Writer.CreateWorkspaceChange(context))
+                .ConfigureAwait(false);
+        }
+
+        private CodeAction CreateAction(DiagnosticMarker marker)
+        {
+            var sourceAction = SupportedActions[0];
+            return sourceAction.With(
+                SuppressMarker,
+                marker,
+                title: string.Format(
+                    CultureInfo.CurrentCulture,
+                    sourceAction.Title,
+                    marker.RuleSuppressionId));
         }
 
         private async Task<IEnumerable<DiagnosticMarker>> GetMarkersAsync(DocumentContextBase request)
@@ -70,13 +92,15 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return await _analysisContext.GetDiagnosticsFromContentsAsync(
                     request.RootAst.Extent.Text,
                     request.PipelineThread,
-                    request.CancellationToken);
+                    request.CancellationToken)
+                    .ConfigureAwait(false);
             }
 
             return await _analysisContext.GetDiagnosticsFromPathAsync(
                 request.RootAst.Extent.File,
                 request.PipelineThread,
-                request.CancellationToken);
+                request.CancellationToken)
+                .ConfigureAwait(false);
         }
 
         private class SuppressHelper
@@ -250,12 +274,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
                 var tokenAtStatementStart = Context.Token.At(_parentStatementAst).Value;
 
-                if (tokenAtStatementStart.TokenFlags.HasFlag(TokenFlags.StatementDoesntSupportAttributes))
-                {
-                    return false;
-                }
-
-                return true;
+                return (tokenAtStatementStart.TokenFlags & TokenFlags.StatementDoesntSupportAttributes) == 0;
             }
         }
     }

@@ -17,7 +17,7 @@ namespace EditorServicesCommandSuite.Internal
     [EditorBrowsable(EditorBrowsableState.Never)]
     public class RefactorCmdletAdapter : CmdletAdapter<object>
     {
-        private static ConcurrentDictionary<IDocumentRefactorProvider, RefactorConfigurationAttribute> s_configCache =
+        private static readonly ConcurrentDictionary<IDocumentRefactorProvider, RefactorConfigurationAttribute> s_configCache =
             new ConcurrentDictionary<IDocumentRefactorProvider, RefactorConfigurationAttribute>();
 
         private readonly CancellationTokenSource _isStopping = new CancellationTokenSource();
@@ -128,7 +128,8 @@ namespace EditorServicesCommandSuite.Internal
                             .GetDocumentContextAsync(
                                 psCmdlet,
                                 _isStopping.Token,
-                                threadController);
+                                threadController)
+                                .ConfigureAwait(false);
 
                     if (configAttribute != null)
                     {
@@ -142,9 +143,7 @@ namespace EditorServicesCommandSuite.Internal
                             context);
                     }
 
-                    await CommandSuite.Instance.Documents.WriteDocumentEditsAsync(
-                        await _provider.RequestEdits(context),
-                        context.CancellationToken);
+                    await _provider.Invoke(context).ConfigureAwait(false);
                 });
 
             threadController.GiveControl(refactorRequest, _isStopping.Token);

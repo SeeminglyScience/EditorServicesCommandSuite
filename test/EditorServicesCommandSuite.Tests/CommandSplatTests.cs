@@ -10,6 +10,8 @@ namespace EditorServicesCommandSuite.Tests
 {
     public class CommandSplatTests
     {
+        private readonly MockedRefactorService _refactorService = new MockedRefactorService(new CommandSplatRefactor(null));
+
         [Fact]
         public async void DoesNothingWithNoParameters()
         {
@@ -207,7 +209,6 @@ namespace EditorServicesCommandSuite.Tests
                     allParameters: true));
         }
 
-
         [Fact]
         public async void AllParameters_HandlesParameterSet_GivenUnresolvableParameter()
         {
@@ -351,7 +352,6 @@ namespace EditorServicesCommandSuite.Tests
                     mandatoryParameters: true));
         }
 
-
         [Fact]
         public async void MandatoryParameters_HandlesParameterSet_GivenUnresolvableParameter()
         {
@@ -407,18 +407,24 @@ namespace EditorServicesCommandSuite.Tests
                     : mandatoryParameters ? AdditionalParameterTypes.Mandatory
                     : AdditionalParameterTypes.None;
 
-            return await MockContext.GetRefactoredTextAsync(
+            var config = new CommandSplatRefactorSettings()
+            {
+                AdditionalParameters = includedTypes,
+                ExcludeHints = noHints,
+                NewLineAfterHashtable = newLineAfterHashtable,
+                VariableName = variableName,
+            };
+
+            return await _refactorService.GetRefactoredString(
                 testString,
-                context => CommandSplatRefactor.GetEdits(
-                    variableName,
+                context => CommandSplatRefactor.SplatCommandAsync(
+                    context,
                     context.Ast.FindParent<CommandAst>(),
                     includedTypes,
-                    newLineAfterHashtable,
-                    noHints,
-                    context.PipelineThread,
-                    context.CancellationToken),
-                withRunspace: true,
-                cancellationToken);
+                    null),
+                cancellationToken: cancellationToken,
+                configuration: config,
+                requiresRunspace: true);
         }
     }
 }

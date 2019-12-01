@@ -39,7 +39,7 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
 
             Documents = new DocumentService(workspace, Messages);
             DocumentContext = new ContextService(workspace, Messages);
-            Workspace = new WorkspaceService(engine, workspace);
+            Workspace = new WorkspaceService(engine, workspace, Messages);
         }
 
         internal static new CommandSuite Instance => s_instance;
@@ -65,7 +65,7 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
 
         /// <summary>
         /// Gets the interface for getting information about the users current
-        /// state in an open document. (e.g. cursor position, selection, etc)
+        /// state in an open document (e.g. cursor position, selection, etc).
         /// </summary>
         internal override DocumentContextProvider DocumentContext { get; }
 

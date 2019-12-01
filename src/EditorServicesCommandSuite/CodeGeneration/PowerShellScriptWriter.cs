@@ -25,9 +25,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         private readonly HashSet<string> _pendingUsingWrites = new HashSet<string>();
 
-        private ScriptBlockAst _ast;
-
-        private DocumentContextBase _context;
+        private readonly ScriptBlockAst _ast;
 
         private bool? _shouldDropNamespaces;
 
@@ -73,7 +71,6 @@ namespace EditorServicesCommandSuite.CodeGeneration
         public PowerShellScriptWriter(DocumentContextBase context, string fileName)
             : base(GetDocumentText(context.RootAst), fileName)
         {
-            _context = context;
             _ast = context.RootAst;
         }
 
@@ -96,7 +93,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             Flush();
             CreateDocumentEditsImpl(overwriteCount);
 
-            if (!_pendingUsingWrites.Any())
+            if (_pendingUsingWrites.Count == 0)
             {
                 return;
             }
@@ -126,7 +123,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
                     Kind = UsingStatementKind.Namespace,
                 });
 
-            if (!namespaces.Any())
+            if (namespaces.Count == 0)
             {
                 return false;
             }
@@ -154,15 +151,15 @@ namespace EditorServicesCommandSuite.CodeGeneration
             return true;
         }
 
-        public override void StartWriting(int startOffset, int endOffset)
+        public override void StartWriting(int startOffset, int? endOffset = null)
         {
             SetPosition(startOffset);
-            if (startOffset >= endOffset)
+            if (endOffset == null || startOffset >= endOffset)
             {
                 return;
             }
 
-            _implicitOverrideCount = endOffset - startOffset;
+            _implicitOverrideCount = endOffset.Value - startOffset;
         }
 
         public void StartWriting(IScriptPosition startPosition, int endOffset)
@@ -196,11 +193,9 @@ namespace EditorServicesCommandSuite.CodeGeneration
             StartWriting(ast.Extent.StartScriptPosition, ast.Extent.EndOffset);
         }
 
-        public void SetPosition(int offset, bool atEnd = false)
+        public override void SetPosition(int offset)
         {
-            SetPosition(
-                _ast.Extent.StartScriptPosition.CloneWithNewOffset(offset),
-                atEnd);
+            SetPosition(_ast.Extent.StartScriptPosition.CloneWithNewOffset(offset));
         }
 
         internal void SetPosition(LinkedListNode<Token> token, bool atEnd = false)
@@ -221,11 +216,10 @@ namespace EditorServicesCommandSuite.CodeGeneration
         internal void SetPosition(IScriptExtent extent, bool atEnd = false)
         {
             SetPosition(
-                atEnd ? extent.EndScriptPosition : extent.StartScriptPosition,
-                atEnd);
+                atEnd ? extent.EndScriptPosition : extent.StartScriptPosition);
         }
 
-        internal void SetPosition(IScriptPosition position, bool atEnd = false)
+        internal void SetPosition(IScriptPosition position)
         {
             base.SetPosition(position.Offset);
             Indent = 0;
@@ -240,7 +234,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
                     .Substring(index, TabString.Length)
                     .Equals(TabString, StringComparison.Ordinal))
             {
-                index = index + TabString.Length;
+                index += TabString.Length;
                 Indent++;
             }
         }
@@ -571,7 +565,8 @@ namespace EditorServicesCommandSuite.CodeGeneration
             bool forAttribute = false,
             bool allowNonPublic = false,
             bool skipGenericArgs = false,
-            bool strictTypes = false)
+            bool strictTypes = false,
+            bool? shouldDropNamespaces = null)
         {
             Type reflectionType = type.Type ?? typeof(object);
             if (!MemberUtil.IsTypeExpressible(reflectionType))
@@ -620,7 +615,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 Write(
                     MemberUtil.GetTypeNameForLiteral(
                         reflectionType,
-                        dropNamespaces: ShouldDropNamespaces,
+                        dropNamespaces: shouldDropNamespaces ?? ShouldDropNamespaces,
                         out string[] droppedNamespaces,
                         forAttribute,
                         skipGenericArgs));
@@ -765,26 +760,28 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         internal void WriteUsingStatement(string name, UsingStatementKind kind)
         {
-            char[] kindSymbol;
-            switch (kind)
+            char[] kindSymbol = kind switch
             {
-                case UsingStatementKind.Assembly:
-                    kindSymbol = Symbols.Assembly;
-                    break;
-                case UsingStatementKind.Module:
-                    kindSymbol = Symbols.Module;
-                    break;
-                case UsingStatementKind.Namespace:
-                    kindSymbol = Symbols.Namespace;
-                    break;
-                default:
-                    throw new InvalidOperationException();
-            }
+                UsingStatementKind.Assembly => Symbols.Assembly,
+                UsingStatementKind.Module => Symbols.Module,
+                UsingStatementKind.Namespace => Symbols.Namespace,
+                _ => throw new InvalidOperationException(),
+            };
 
             Write(Using);
             Write(Space);
             Write(kindSymbol);
             Write(name);
+        }
+
+        internal WorkspaceChange CreateWorkspaceChange(DocumentContextBase context)
+        {
+            return CreateWorkspaceChange(context.Document);
+        }
+
+        internal WorkspaceChange CreateWorkspaceChange(string document)
+        {
+            return WorkspaceChange.EditDocument(document, Edits);
         }
 
         private static string GetDocumentText(Ast ast)

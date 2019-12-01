@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Utility;
 
@@ -22,15 +23,14 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             _providers.Remove(provider.Name);
         }
 
-        internal IEnumerable<IRefactorInfo> GetRefactorOptions(DocumentContextBase request)
+        internal async Task<CodeAction[]> GetCodeActionsAsync(DocumentContextBase context)
         {
-            foreach (var provider in _providers.Values.OrderBy(p => p.Kind))
+            foreach (IDocumentRefactorProvider provider in _providers.Values)
             {
-                if (provider.TryGetRefactorInfo(request, out IRefactorInfo info))
-                {
-                    yield return info;
-                }
+                await provider.ComputeCodeActions(context).ConfigureAwait(false);
             }
+
+            return await context.FinalizeCodeActions().ConfigureAwait(false);
         }
 
         internal IDocumentRefactorProvider GetProvider(string typeName)

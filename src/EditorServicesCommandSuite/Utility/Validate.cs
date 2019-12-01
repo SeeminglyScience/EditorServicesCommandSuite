@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace EditorServicesCommandSuite.Utility
 {
-    internal class Validate
+    internal static class Validate
     {
         public static void Is<T>(string parameterName, T valueToCheck, Func<T, bool> predicate, string messageToThrow)
         {

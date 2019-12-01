@@ -206,7 +206,7 @@ namespace EditorServicesCommandSuite.Commands
 
         private void ProcessGrouping(IGrouping<string, CommandSuiteSettingInfo> group, int level = 1)
         {
-            if (group.Key == string.Empty)
+            if (group.Key?.Length == 0)
             {
                 _writer.WriteEachWithSeparator(
                     group.ToArray(),
@@ -253,19 +253,13 @@ namespace EditorServicesCommandSuite.Commands
             }
 
             string directory = System.IO.Path.GetDirectoryName(Path);
-            if (!(Directory.Exists(directory) ||
-                PathUtils.TryCreateDirectoryForValidate(this, directory, canWhatIf: true)))
-            {
-                return false;
-            }
-
-            return true;
+            return Directory.Exists(directory) ||
+                PathUtils.TryCreateDirectoryForValidate(this, directory, canWhatIf: true);
         }
 
         private bool ShouldOpenFile()
         {
-            RuntimeDefinedParameter parameter;
-            if (!_dynamicParameters.TryGetValue(OpenParameterName, out parameter))
+            if (!_dynamicParameters.TryGetValue(OpenParameterName, out RuntimeDefinedParameter parameter))
             {
                 return false;
             }

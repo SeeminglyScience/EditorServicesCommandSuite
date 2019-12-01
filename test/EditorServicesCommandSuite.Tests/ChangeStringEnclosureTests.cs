@@ -1,12 +1,16 @@
-﻿using System.Management.Automation.Language;
+﻿using System;
+using System.Management.Automation.Language;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using Xunit;
+using static EditorServicesCommandSuite.CodeGeneration.Refactors.ChangeStringEnclosureRefactor;
 
 namespace EditorServicesCommandSuite.Tests
 {
     public class ChangeStringEnclosureTests
     {
+        private readonly MockedRefactorService _refactorService = new MockedRefactorService(new ChangeStringEnclosureRefactor());
+
         [Theory]
         [InlineData("\"testing\"", (int)StringEnclosureType.Expandable)]
         [InlineData("'testing'", (int)StringEnclosureType.Literal)]
@@ -69,13 +73,23 @@ namespace EditorServicesCommandSuite.Tests
             StringEnclosureType current,
             StringEnclosureType selected)
         {
-            return await MockContext.GetRefactoredTextAsync(
+            static StringEnclosureInfo GetInfo(StringEnclosureType type) => type switch
+            {
+                StringEnclosureType.BareWord => StringEnclosureInfo.BareWord,
+                StringEnclosureType.Expandable => StringEnclosureInfo.Expandable,
+                StringEnclosureType.ExpandableHereString => StringEnclosureInfo.ExpandableHereString,
+                StringEnclosureType.Literal => StringEnclosureInfo.Literal,
+                StringEnclosureType.LiteralHereString => StringEnclosureInfo.LiteralHereString,
+                _ => throw new ArgumentOutOfRangeException(nameof(type)),
+            };
+
+            return await _refactorService.GetRefactoredString(
                 testString,
-                context => ChangeStringEnclosureRefactor.GetEdits(
-                    context.RootAst,
-                    (StringToken)context.Token.Value,
-                    current,
-                    selected));
+                context => ChangeStringEnclosureRefactor.ProcessCodeActionAsync(
+                    context,
+                    GetInfo(selected),
+                    GetInfo(current),
+                    (StringToken)context.Token.Value));
         }
     }
 }

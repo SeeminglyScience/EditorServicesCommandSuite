@@ -27,8 +27,7 @@ namespace EditorServicesCommandSuite.Utility
                 return true;
             }
 
-            var index = 0;
-            while (index != -1)
+            for (int index = 0; index != -1; index++)
             {
                 index = source.IndexOf(value[0], index);
                 if (index == -1)
@@ -55,8 +54,6 @@ namespace EditorServicesCommandSuite.Utility
                 {
                     return true;
                 }
-
-                index++;
             }
 
             return false;

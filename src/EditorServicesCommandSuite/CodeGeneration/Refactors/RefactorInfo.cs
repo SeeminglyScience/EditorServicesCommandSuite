@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
-    internal class RefactorInfo<TTarget> : IRefactorInfo
+    internal class RefactorInfo<TTarget>
         where TTarget : class
     {
         internal RefactorInfo(IDocumentRefactorProvider provider, DocumentContextBase request, TTarget target)
@@ -23,10 +24,5 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         internal DocumentContextBase Request { get; }
 
         internal TTarget Target { get; }
-
-        public async Task<IEnumerable<DocumentEdit>> GetDocumentEdits()
-        {
-            return await Provider.RequestEdits(Request);
-        }
     }
 }

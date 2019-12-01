@@ -132,4 +132,7 @@
   <data name="BareWordTypeDisplayName" xml:space="preserve">
     <value>None</value>
   </data>
+  <data name="RefactorStringTypeDescription" xml:space="preserve">
+    <value>Use {0}.</value>
+  </data>
 </root>

@@ -94,12 +94,7 @@ namespace EditorServicesCommandSuite.Internal
             {
                 get
                 {
-                    if (_selectionExtent == null)
-                    {
-                        return Empty.Extent.Untitled;
-                    }
-
-                    return _selectionExtent;
+                    return _selectionExtent ?? Empty.Extent.Untitled;
                 }
             }
 
@@ -107,12 +102,7 @@ namespace EditorServicesCommandSuite.Internal
             {
                 get
                 {
-                    if (_cursorPosition == null)
-                    {
-                        return Empty.Position.Untitled;
-                    }
-
-                    return _cursorPosition;
+                    return _cursorPosition ?? Empty.Position.Untitled;
                 }
             }
 
@@ -120,12 +110,7 @@ namespace EditorServicesCommandSuite.Internal
             {
                 get
                 {
-                    if (!_cancellationToken.HasValue)
-                    {
-                        return CancellationToken.None;
-                    }
-
-                    return _cancellationToken.Value;
+                    return _cancellationToken ?? CancellationToken.None;
                 }
             }
 

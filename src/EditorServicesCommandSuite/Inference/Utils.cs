@@ -7,8 +7,7 @@ namespace EditorServicesCommandSuite.Inference
     {
         internal static object Base(object obj)
         {
-            PSObject pso = obj as PSObject;
-            if (pso == null)
+            if (!(obj is PSObject pso))
             {
                 return obj;
             }

@@ -5,12 +5,12 @@
     <CodeAnalysisRuleSet>..\EditorServicesCommandSuite\EditorServicesCommandSuite.ruleset</CodeAnalysisRuleSet>
     <Configurations>Debug;Release;Test</Configurations>
     <RunCodeAnalysis>true</RunCodeAnalysis>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>preview</LangVersion>
     <TargetFrameworks>netstandard2.0;netcoreapp2.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
     <AdditionalFiles Include="..\EditorServicesCommandSuite\stylecop.json" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" />
     <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">

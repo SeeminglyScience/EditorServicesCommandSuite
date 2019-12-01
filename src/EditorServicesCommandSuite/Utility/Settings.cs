@@ -9,19 +9,19 @@ using EditorServicesCommandSuite.Internal;
 
 namespace EditorServicesCommandSuite.Utility
 {
-    internal class Settings : IDisposable
+    internal sealed class Settings : IDisposable
     {
         internal const string SettingFileName = "ESCSSettings.psd1";
 
         internal const string SettingFileExtension = ".psd1";
 
-        private static string[] s_defaultFunctionPaths =
+        private static readonly string[] s_defaultFunctionPaths =
         {
             @".\module\Public",
             @".\module\Private",
         };
 
-        private static Lazy<Settings> s_instance = new Lazy<Settings>(CreateDefault);
+        private static readonly Lazy<Settings> s_instance = new Lazy<Settings>(CreateDefault);
 
         private Settings(
             string workspaceSettingFile,
@@ -100,23 +100,19 @@ namespace EditorServicesCommandSuite.Utility
 
         internal static string GetPathFromScope(SettingsScope scope)
         {
-            switch (scope)
+            return scope switch
             {
-                case SettingsScope.Machine:
-                    return Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                        "EditorServicesCommandSuite",
-                        "ESCSSettings.psd1");
-                case SettingsScope.User:
-                    return Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        "EditorServicesCommandSuite",
-                        "ESCSSettings.psd1");
-                case SettingsScope.Workspace:
-                    return GetWorkspaceSettingsPath();
-            }
-
-            return string.Empty;
+                SettingsScope.Machine => Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "EditorServicesCommandSuite",
+                    "ESCSSettings.psd1"),
+                SettingsScope.User => Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "EditorServicesCommandSuite",
+                    "ESCSSettings.psd1"),
+                SettingsScope.Workspace => GetWorkspaceSettingsPath(),
+                _ => string.Empty,
+            };
         }
 
         internal static void SetSetting<TValue>(string key, TValue value)
@@ -176,7 +172,7 @@ namespace EditorServicesCommandSuite.Utility
                 return LanguagePrimitives.TryConvertTo<TResult>(rawValue, out value);
             }
 
-            value = default(TResult);
+            value = default;
             return false;
         }
 
@@ -204,8 +200,7 @@ namespace EditorServicesCommandSuite.Utility
 
         private static string GetWorkspaceSettingsPath()
         {
-            CommandSuite commandSuite;
-            if (!CommandSuite.TryGetInstance(out commandSuite))
+            if (!CommandSuite.TryGetInstance(out CommandSuite commandSuite))
             {
                 return string.Empty;
             }

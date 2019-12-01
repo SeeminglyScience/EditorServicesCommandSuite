@@ -6,7 +6,7 @@ namespace EditorServicesCommandSuite.Language
 {
     internal class UsingDescription
     {
-        private static Dictionary<UsingStatementKind, TokenKind> s_kindMap =
+        private static readonly Dictionary<UsingStatementKind, TokenKind> s_kindMap =
             new Dictionary<UsingStatementKind, TokenKind>()
             {
                 { UsingStatementKind.Assembly, TokenKind.Assembly },

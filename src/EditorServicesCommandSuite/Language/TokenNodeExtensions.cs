@@ -335,17 +335,22 @@ namespace EditorServicesCommandSuite.Language
 
             public IEnumerator<LinkedListNode<Token>> GetEnumerator()
             {
-                switch (_mode)
+                return _mode switch
                 {
-                    case EnumerationMode.At:
-                        return new TokenNodeAtEnumerator(_targetOffset, _initialNode, _moveBack);
-                    case EnumerationMode.AtOrBefore:
-                        return new TokenNodeAtOrBeforeEnumerator(_targetOffset, _initialNode, _moveBack);
-                    case EnumerationMode.AtOrAfter:
-                        return new TokenNodeAtOrAfterEnumerator(_targetOffset, _initialNode, _moveBack);
-                    default:
-                        return new TokenNodeEnumerator(_initialNode, _moveBack);
-                }
+                    EnumerationMode.At => new TokenNodeAtEnumerator(
+                        _targetOffset,
+                        _initialNode,
+                        _moveBack),
+                    EnumerationMode.AtOrBefore => new TokenNodeAtOrBeforeEnumerator(
+                        _targetOffset,
+                        _initialNode,
+                        _moveBack),
+                    EnumerationMode.AtOrAfter => new TokenNodeAtOrAfterEnumerator(
+                        _targetOffset,
+                        _initialNode,
+                        _moveBack),
+                    _ => new TokenNodeEnumerator(_initialNode, _moveBack),
+                };
             }
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

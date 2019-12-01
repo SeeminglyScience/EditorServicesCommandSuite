@@ -9,7 +9,7 @@ using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
-    internal class ConfigureRefactorBinder : CallSiteBinder
+    internal sealed class ConfigureRefactorBinder : CallSiteBinder
     {
         private static readonly MethodInfo s_tryGetSetting =
             typeof(Settings).GetMethod(

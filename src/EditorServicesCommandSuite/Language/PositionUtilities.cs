@@ -30,7 +30,7 @@ namespace EditorServicesCommandSuite.Language
                 {
                     if ((i + 1) < text.Length && text[i + 1] == '\n')
                     {
-                        i += 1;
+                        i++;
                     }
 
                     lineStartMap.Add(i + 1);

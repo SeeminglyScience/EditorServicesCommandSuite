@@ -8,6 +8,8 @@ namespace EditorServicesCommandSuite.Tests
 {
     public class NameUnnamedBlockTests
     {
+        private readonly MockedRefactorService _refactorService = new MockedRefactorService(new NameUnnamedBlockRefactor());
+
         [Fact]
         public async void NamesUnnamedBlock()
         {
@@ -59,10 +61,12 @@ namespace EditorServicesCommandSuite.Tests
 
         private async Task<string> GetRefactoredTextAsync(string testString)
         {
-            return await MockContext.GetRefactoredTextAsync(
+            return await _refactorService.GetRefactoredString(
                 testString,
-                context => NameUnnamedBlockRefactor.GetEdits(
-                    context.Ast.FindParent<NamedBlockAst>(maxDepth: int.MaxValue)));
+                context => NameUnnamedBlockRefactor.ComputeUnnamedBlockNaming(
+                    context,
+                    context.Ast.FindParent<NamedBlockAst>(maxDepth: int.MaxValue)))
+                .ConfigureAwait(false);
         }
     }
 }

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -14,73 +16,90 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     [Refactor(VerbsCommon.Add, "SurroundingExpression")]
     [RefactorConfiguration(typeof(SurroundSelectedLinesSettings))]
-    internal class SurroundSelectedLinesRefactor : SelectionRefactor
+    internal class SurroundSelectedLinesRefactor : RefactorProvider
     {
         private static readonly SurroundOption[] s_options = InitializeOptions();
 
         private readonly IRefactorUI _ui;
 
-        private readonly IRefactorNavigation _navigation;
-
-        internal SurroundSelectedLinesRefactor(IRefactorUI ui, IRefactorNavigation navigation)
+        internal SurroundSelectedLinesRefactor(IRefactorUI ui)
         {
-            this._ui = ui;
-            this._navigation = navigation;
+            _ui = ui;
         }
 
         public override string Name { get; } = SurroundSelectedLinesStrings.ProviderDisplayName;
 
         public override string Description { get; } = SurroundSelectedLinesStrings.ProviderDisplayDescription;
 
-        internal static Task<IEnumerable<DocumentEdit>> GetEdits(
-            ScriptBlockAst rootAst,
-            ExpressionSurroundType type,
-            ref IScriptExtent extent)
+        public override ImmutableArray<CodeAction> SupportedActions { get; } =
+            ImmutableArray.Create(
+                CodeAction.Inactive(CodeActionIds.SurroundSelectedLines, "Wrap selection in {0} - {1}", rank: 50));
+
+        public override async Task ComputeCodeActions(DocumentContextBase context)
         {
-            return GetEdits(
-                rootAst,
-                s_options.First(option => option.Type == type),
-                ref extent);
+            IScriptExtent selectionExtent = context.SelectionExtent;
+            if (selectionExtent.StartOffset == selectionExtent.EndOffset)
+            {
+                return;
+            }
+
+            foreach (SurroundOption option in s_options)
+            {
+                await context.RegisterCodeActionAsync(CreateAction(option, selectionExtent))
+                    .ConfigureAwait(false);
+            }
         }
 
-        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request, IScriptExtent extent)
+        public override async Task Invoke(DocumentContextBase context)
         {
-            var config = request.GetConfiguration<SurroundSelectedLinesSettings>();
-            SurroundOption optionChoice;
-            if (config.SurroundType != ExpressionSurroundType.Prompt)
+            var config = context.GetConfiguration<SurroundSelectedLinesSettings>();
+            if (config.SurroundType == ExpressionSurroundType.Prompt)
             {
-                optionChoice = s_options.First(option => option.Type == config.SurroundType);
-            }
-            else
-            {
-                // Displays: "<name> - <open> <close>"
-                optionChoice = await _ui.ShowChoicePromptAsync(
-                    SurroundSelectedLinesStrings.SurroundStatementTypeMenuCaption,
-                    SurroundSelectedLinesStrings.SurroundStatementTypeMenuMessage,
-                    s_options,
-                    option =>
-                        new StringBuilder()
-                            .Append(option.Name)
-                            .Append(Space, Dash, Space)
-                            .Append(option.Open)
-                            .Append(Space)
-                            .Append(option.Close)
-                            .ToString());
+                await base.Invoke(context).ConfigureAwait(false);
+                return;
             }
 
+            SurroundOption foundOption = Array.Find(s_options, o => o.Type == config.SurroundType);
+            if (foundOption == null)
+            {
+                await _ui.ShowErrorMessageOrThrowAsync(
+                    Error.OutOfRange,
+                    nameof(config.SurroundType))
+                    .ConfigureAwait(false);
+
+                return;
+            }
+
+            await ProcessActionForInvoke(
+                context,
+                CreateAction(foundOption, context.SelectionExtent))
+                .ConfigureAwait(false);
+        }
+
+        private static async Task SurroundSelectedLinesAsync(
+            DocumentContextBase context,
+            SurroundOption option,
+            IScriptExtent selection)
+        {
+            var newSelection = selection;
             IEnumerable<DocumentEdit> edits = await GetEdits(
-                request.RootAst,
-                optionChoice,
-                ref extent);
+                context.RootAst,
+                option,
+                ref newSelection)
+                .ConfigureAwait(false);
 
-            if (optionChoice.RelativeCursorOffset != null)
+            await context.RegisterWorkspaceChangeAsync(
+                WorkspaceChange.EditDocument(
+                    context.Document,
+                    edits))
+                .ConfigureAwait(false);
+
+            if (newSelection.StartOffset != selection.StartOffset || newSelection.EndOffset != selection.EndOffset)
             {
-                request.SetCursorPosition(
-                    extent.StartLineNumber,
-                    extent.StartColumnNumber + optionChoice.RelativeCursorOffset.Value);
+                await context.RegisterWorkspaceChangeAsync(
+                    WorkspaceChange.SetContext(newSelection))
+                    .ConfigureAwait(false);
             }
-
-            return edits;
         }
 
         private static SurroundOption[] InitializeOptions()
@@ -122,7 +141,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     shouldEnterFrame: false),
                 SurroundOption.Create(
                     ExpressionSurroundType.DollarParenExpression,
-                    @"$(",
+                    "$(",
                     ")",
                     SurroundSelectedLinesStrings.Subexpression,
                     shouldEnterFrame: false),
@@ -187,6 +206,21 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             writer.WriteIndentNormalizedLines(selectedLines.Text);
             writer.FrameClose();
             writer.Write(close);
+        }
+
+        private CodeAction CreateAction(
+            SurroundOption option,
+            IScriptExtent selectionExtent)
+        {
+            var baseAction = SupportedActions[0];
+            return baseAction.With(
+                SurroundSelectedLinesAsync,
+                state: (option, selectionExtent),
+                title: string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    option.Name,
+                    baseAction.Title,
+                    string.Join(Space.ToString(), option.Open, option.Close)));
         }
 
         private class SurroundOption

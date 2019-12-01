@@ -23,7 +23,7 @@ namespace EditorServicesCommandSuite.Language
 
                 _config = new UsingStatementsConfiguration();
                 Settings.Main.Changed +=
-                    (e, args) => _config = new UsingStatementsConfiguration();
+                    (_, __) => _config = new UsingStatementsConfiguration();
 
                 return _config;
             }
@@ -71,13 +71,13 @@ namespace EditorServicesCommandSuite.Language
 
         private class UsingStatementsConfiguration : RefactorConfiguration
         {
-            [DefaultFromSettingAttribute("UsingStatements.SeparateGroupsWithNewLine", Default = "$true")]
+            [DefaultFromSetting("UsingStatements.SeparateGroupsWithNewLine", Default = "$true")]
             public bool SeparateGroupsWithNewLine { get; set; } = true;
 
-            [DefaultFromSettingAttribute("UsingStatements.SystemNamespaceFirst", Default = "$true")]
+            [DefaultFromSetting("UsingStatements.SystemNamespaceFirst", Default = "$true")]
             public bool SystemNamespaceFirst { get; set; } = true;
 
-            [DefaultFromSettingAttribute("UsingStatements.UsingKindOrder", Default = "'Assembly', 'Module', 'Namespace'")]
+            [DefaultFromSetting("UsingStatements.UsingKindOrder", Default = "'Assembly', 'Module', 'Namespace'")]
             public UsingStatementKind[] UsingKindOrder { get; set; } = new UsingStatementKind[]
             {
                 UsingStatementKind.Assembly,

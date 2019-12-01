@@ -36,7 +36,10 @@ namespace EditorServicesCommandSuite.Internal
                 throw exceptionGenerator();
             }
 
-            await ui.ShowErrorMessageAsync(exceptionGenerator().Message, waitForResponse: false);
+            await ui.ShowErrorMessageAsync(
+                exceptionGenerator().Message,
+                waitForResponse: false)
+                .ConfigureAwait(false);
             throw new PipelineStoppedException();
         }
 
@@ -69,7 +72,10 @@ namespace EditorServicesCommandSuite.Internal
                 throw exceptionGenerator(arg0);
             }
 
-            await ui.ShowErrorMessageAsync(exceptionGenerator(arg0).Message, waitForResponse: false);
+            await ui.ShowErrorMessageAsync(
+                exceptionGenerator(arg0).Message,
+                waitForResponse: false)
+                .ConfigureAwait(false);
             throw new PipelineStoppedException();
         }
 
@@ -107,7 +113,10 @@ namespace EditorServicesCommandSuite.Internal
                 throw exceptionGenerator(arg0, arg1);
             }
 
-            await ui.ShowErrorMessageAsync(exceptionGenerator(arg0, arg1).Message, waitForResponse: false);
+            await ui.ShowErrorMessageAsync(
+                exceptionGenerator(arg0, arg1).Message,
+                waitForResponse: false)
+                .ConfigureAwait(false);
             throw new PipelineStoppedException();
         }
 

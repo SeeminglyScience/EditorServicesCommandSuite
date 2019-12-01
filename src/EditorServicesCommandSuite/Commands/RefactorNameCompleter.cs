@@ -61,8 +61,7 @@ namespace EditorServicesCommandSuite.Commands
                 return s_providerInfoCache;
             }
 
-            CommandSuite suite;
-            if (!CommandSuite.TryGetInstance(out suite))
+            if (!CommandSuite.TryGetInstance(out CommandSuite suite))
             {
                 var exception = new NoCommandSuiteInstanceException();
                 errorContext?.ThrowTerminatingError(

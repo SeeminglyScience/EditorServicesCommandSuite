@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -15,7 +16,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     [Refactor(VerbsData.Expand, "MemberExpression")]
     [RefactorConfiguration(typeof(ExpandMemberExpressionSettings))]
-    internal class ExpandMemberExpressionRefactor : AstRefactorProvider<MemberExpressionAst>
+    internal class ExpandMemberExpressionRefactor : RefactorProvider
     {
         private readonly IRefactorUI _ui;
 
@@ -27,6 +28,54 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         public override string Name { get; } = ExpandMemberExpressionStrings.ProviderDisplayName;
 
         public override string Description { get; } = ExpandMemberExpressionStrings.ProviderDisplayDescription;
+
+        public override ImmutableArray<CodeAction> SupportedActions { get; } = ImmutableArray.Create(
+            CodeAction.Inactive(CodeActionIds.ExpandMemberExpression, "Expand method invocation"),
+            CodeAction.Inactive(CodeActionIds.ExpandMemberExpression, "Expand method invocation - include non-public"));
+
+        private CodeAction DefaultCodeAction => SupportedActions[0];
+
+        private CodeAction IncludeNonPublicCodeAction => SupportedActions[1];
+
+        public override async Task ComputeCodeActions(DocumentContextBase context)
+        {
+            if (!context.Ast.TryFindParent(maxDepth: 3, out InvokeMemberExpressionAst invokeMember))
+            {
+                return;
+            }
+
+            await context.RegisterCodeActionAsync(
+                DefaultCodeAction.With(
+                    ExpandMemberExpressionAsync,
+                    (invokeMember, _ui, false)))
+                .ConfigureAwait(false);
+
+            await context.RegisterCodeActionAsync(
+                IncludeNonPublicCodeAction.With(
+                    ExpandMemberExpressionAsync,
+                    (invokeMember, _ui, true)))
+                .ConfigureAwait(false);
+        }
+
+        public override async Task Invoke(DocumentContextBase context)
+        {
+            if (!context.Ast.TryFindParent(maxDepth: 3, out InvokeMemberExpressionAst invokeMember))
+            {
+                return;
+            }
+
+            var config = context.GetConfiguration<ExpandMemberExpressionSettings>();
+            CodeAction codeAction = config.AllowNonPublicMembers.IsPresent
+                ? IncludeNonPublicCodeAction
+                : DefaultCodeAction;
+
+            await ProcessActionForInvoke(
+                context,
+                codeAction.With(
+                    ExpandMemberExpressionAsync,
+                    (invokeMember, _ui, config.AllowNonPublicMembers.IsPresent)))
+                    .ConfigureAwait(false);
+        }
 
         internal static Task<IEnumerable<DocumentEdit>> GetEdits(
             MemberExpressionAst ast,
@@ -120,38 +169,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 .Complete();
             expr.FinishWriting();
             return Task.FromResult(expr.Edits);
-        }
-
-        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(
-            DocumentContextBase request,
-            MemberExpressionAst ast)
-        {
-            ExpandMemberExpressionSettings config = request.GetConfiguration<ExpandMemberExpressionSettings>();
-            MemberInfo[] inferredMembers =
-                    (await ast.GetInferredMembersAsync(
-                        request.PipelineThread,
-                        skipArgumentCheck: true,
-                        includeNonPublic: config.AllowNonPublicMembers.IsPresent,
-                        request.CancellationToken))
-                    .ToArray();
-
-            if (inferredMembers.Length == 0)
-            {
-                await _ui.ShowErrorMessageOrThrowAsync(
-                    Error.CannotInferMember,
-                    ast.Member);
-            }
-
-            MemberInfo chosenMember = await _ui.ShowChoicePromptAsync(
-                ExpandMemberExpressionStrings.OverloadChoiceCaption,
-                ExpandMemberExpressionStrings.OverloadChoiceMessage,
-                inferredMembers,
-                GetDescriptionForMember);
-
-            return await GetEdits(
-                ast,
-                chosenMember,
-                request.Token.At(ast.Expression, atEnd: true).Next.Value);
         }
 
         private static void WritePublicMethod(PowerShellScriptWriter expr, MethodBase method)
@@ -279,8 +296,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             // Build a display string similar to:
             // 1 - MethodName(ParameterType parameterName, ParameterType2 parameterName2)
             var sb = new StringBuilder(member.Name);
-            MethodBase method = member as MethodBase;
-            if (method == null)
+            if (!(member is MethodBase method))
             {
                 return sb.ToString();
             }
@@ -309,6 +325,51 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             }
 
             return sb.Append(Symbols.ParenClose).ToString();
+        }
+
+        private static async Task ExpandMemberExpressionAsync(
+            DocumentContextBase context,
+            InvokeMemberExpressionAst invokeMember,
+            IRefactorUI ui,
+            bool includeNonPublic)
+        {
+            ExpandMemberExpressionSettings config = context.GetConfiguration<ExpandMemberExpressionSettings>();
+            MemberInfo[] inferredMembers =
+                    (await invokeMember.GetInferredMembersAsync(
+                        context.PipelineThread,
+                        skipArgumentCheck: true,
+                        includeNonPublic: includeNonPublic,
+                        context.CancellationToken)
+                        .ConfigureAwait(false))
+                    .ToArray();
+
+            if (inferredMembers.Length == 0)
+            {
+                await ui.ShowErrorMessageOrThrowAsync(
+                    Error.CannotInferMember,
+                    invokeMember.Member)
+                    .ConfigureAwait(false);
+                return;
+            }
+
+            MemberInfo chosenMember = await ui.ShowChoicePromptAsync(
+                ExpandMemberExpressionStrings.OverloadChoiceCaption,
+                ExpandMemberExpressionStrings.OverloadChoiceMessage,
+                inferredMembers,
+                GetDescriptionForMember)
+                .ConfigureAwait(false);
+
+            IEnumerable<DocumentEdit> edits = await GetEdits(
+                invokeMember,
+                chosenMember,
+                context.Token.At(invokeMember.Expression, atEnd: true).Next.Value)
+                .ConfigureAwait(false);
+
+            await context.RegisterWorkspaceChangeAsync(
+                WorkspaceChange.EditDocument(
+                    context.Document,
+                    edits))
+                .ConfigureAwait(false);
         }
     }
 }

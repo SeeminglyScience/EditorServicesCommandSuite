@@ -51,11 +51,67 @@ namespace EditorServicesCommandSuite.Language
                 && extentToTest.EndColumnNumber <= startExtent.StartColumnNumber);
         }
 
+        public static bool IsBefore(this IScriptPosition positionToTest, IScriptExtent startExtent)
+        {
+            return positionToTest.IsBefore(startExtent.StartScriptPosition);
+        }
+
+        public static bool IsBefore(this IScriptPosition positionToTest, IScriptPosition startPosition)
+        {
+            if (positionToTest.LineNumber < startPosition.LineNumber)
+            {
+                return true;
+            }
+
+            return positionToTest.LineNumber == startPosition.LineNumber
+                && positionToTest.ColumnNumber < startPosition.ColumnNumber;
+        }
+
+        public static bool IsBeforeOrEqualTo(this IScriptPosition positionToTest, IScriptPosition other)
+        {
+            return positionToTest.IsEqualTo(other) || positionToTest.IsBefore(other);
+        }
+
         public static bool IsAfter(this IScriptExtent extentToTest, IScriptExtent endExtent)
         {
             return extentToTest.StartLineNumber > endExtent.EndLineNumber
                 || (extentToTest.StartLineNumber == endExtent.EndLineNumber
                 && extentToTest.StartColumnNumber >= endExtent.EndColumnNumber);
+        }
+
+        public static bool IsAfter(this IScriptPosition positionToTest, IScriptExtent endExtent)
+        {
+            return positionToTest.IsAfter(endExtent.EndScriptPosition);
+        }
+
+        public static bool IsAfter(this IScriptPosition positionToTest, IScriptPosition endPosition)
+        {
+            if (positionToTest.LineNumber > endPosition.LineNumber)
+            {
+                return true;
+            }
+
+            return positionToTest.LineNumber == endPosition.LineNumber
+                && positionToTest.ColumnNumber > endPosition.ColumnNumber;
+        }
+
+        public static bool IsAfterOrEqualTo(this IScriptPosition positionToTest, IScriptPosition other)
+        {
+            return positionToTest.IsAfter(other) || positionToTest.IsEqualTo(other);
+        }
+
+        public static bool IsWithin(this IScriptExtent extentToTest, IScriptExtent bounds)
+        {
+            var isOutsideOf = extentToTest.StartScriptPosition.IsBefore(bounds.StartScriptPosition)
+                || extentToTest.EndScriptPosition.IsAfter(bounds.EndScriptPosition);
+
+            return !isOutsideOf;
+        }
+
+        public static bool IsEqualTo(this IScriptPosition positionToTest, IScriptPosition other)
+        {
+            return positionToTest.ColumnNumber == other.ColumnNumber
+                && positionToTest.LineNumber == other.LineNumber;
         }
 
         public static IScriptExtent JoinExtents(this IEnumerable<IScriptExtent> extents)
@@ -96,6 +152,11 @@ namespace EditorServicesCommandSuite.Language
         {
             return extent.ContainsOffset(extentToTest.StartOffset)
                 && extent.ContainsOffset(extentToTest.EndOffset);
+        }
+
+        public static bool HasRange(this IScriptExtent extent)
+        {
+            return extent.StartOffset != extent.EndOffset;
         }
     }
 }

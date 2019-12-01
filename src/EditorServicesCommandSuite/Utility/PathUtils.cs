@@ -37,7 +37,7 @@ namespace EditorServicesCommandSuite.Utility
             path = cmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
                 path,
                 out ProviderInfo provider,
-                out PSDriveInfo drive);
+                out _);
 
             if (!provider.Name.Equals(FileSystemProvider.ProviderName, StringComparison.Ordinal))
             {

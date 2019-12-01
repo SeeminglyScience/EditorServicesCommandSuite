@@ -8,7 +8,7 @@ namespace EditorServicesCommandSuite.PSReadLine.Internal
     /// Provides a central entry point for interacting with a PSReadLine based command
     /// suite session.
     /// </summary>
-    public class CommandSuite : EditorServicesCommandSuite.Internal.CommandSuite
+    public sealed class CommandSuite : EditorServicesCommandSuite.Internal.CommandSuite
     {
         private readonly PSReadLineNavigationService _navigation;
 
@@ -39,7 +39,7 @@ namespace EditorServicesCommandSuite.PSReadLine.Internal
 
         /// <summary>
         /// Gets the interface for getting information about the users current
-        /// state in an open document. (e.g. cursor position, selection, etc)
+        /// state in an open document (e.g. cursor position, selection, etc).
         /// </summary>
         internal override DocumentContextProvider DocumentContext { get; }
 

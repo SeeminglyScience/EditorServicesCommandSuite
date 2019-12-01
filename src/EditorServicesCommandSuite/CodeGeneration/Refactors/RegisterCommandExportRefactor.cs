@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -11,7 +12,7 @@ using EditorServicesCommandSuite.Utility;
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     [Refactor(VerbsLifecycle.Register, "CommandExport")]
-    internal class RegisterCommandExportRefactor : AstRefactorProvider<Ast>
+    internal class RegisterCommandExportRefactor : RefactorProvider
     {
         private static readonly string[] s_fieldNameRanks =
         {
@@ -39,19 +40,46 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private readonly IRefactorWorkspace _workspace;
 
-        private readonly IRefactorUI _ui;
-
-        internal RegisterCommandExportRefactor(IRefactorWorkspace workspace, IRefactorUI ui)
+        internal RegisterCommandExportRefactor(IRefactorWorkspace workspace)
         {
             _workspace = workspace;
-            _ui = ui;
         }
 
         public override string Name => RegisterCommandExportStrings.ProviderDisplayName;
 
         public override string Description => RegisterCommandExportStrings.ProviderDisplayDescription;
 
-        internal static async Task<IEnumerable<DocumentEdit>> GetEdits(
+        public override ImmutableArray<CodeAction> SupportedActions { get; } = ImmutableArray.Create(
+            CodeAction.Inactive(CodeActionIds.RegisterCommandExport, "Add command to module manifest"));
+
+        public override async Task ComputeCodeActions(DocumentContextBase context)
+        {
+            if (!context.Ast.TryFindParent(maxDepth: 1, out FunctionDefinitionAst function))
+            {
+                return;
+            }
+
+            if (!ManifestInfo.TryGetWorkspaceManifest(_workspace, out ManifestInfo manifest))
+            {
+                return;
+            }
+
+            foreach (string exportedFunction in manifest.FunctionsToExport)
+            {
+                if (exportedFunction.Equals(function.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+
+            await context.RegisterCodeActionAsync(
+                SupportedActions[0].With(
+                    RegisterCommandExport,
+                    (function.Name, manifest.Ast, manifest.FilePath)))
+                .ConfigureAwait(false);
+        }
+
+        internal static IEnumerable<DocumentEdit> GetEdits(
             string functionName,
             Ast manifestAst,
             string manifestPath)
@@ -71,7 +99,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             var writer = new PowerShellScriptWriter(manifestAst, manifestPath);
             if (functionsToExport == null)
             {
-                return await AddAsNewField(writer, hashtable, functionName);
+                return AddAsNewField(writer, hashtable, functionName);
             }
 
             return ManifestFieldAppender.GetEdits(
@@ -80,57 +108,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 functionName);
         }
 
-        internal override bool CanRefactorTarget(DocumentContextBase request, Ast ast)
-        {
-            FunctionDefinitionAst parentFunction = request.RelatedAsts
-                .OfType<FunctionDefinitionAst>()
-                .FirstOrDefault();
-
-            if (parentFunction == null)
-            {
-                return false;
-            }
-
-            ManifestInfo manifest;
-            if (!ManifestInfo.TryGetWorkspaceManifest(_workspace, out manifest))
-            {
-                return false;
-            }
-
-            foreach (string exportedFunction in manifest.FunctionsToExport)
-            {
-                if (exportedFunction.Equals(parentFunction.Name, StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request, Ast ast)
-        {
-            ManifestInfo manifestInfo;
-            if (!ManifestInfo.TryGetWorkspaceManifest(_workspace, out manifestInfo))
-            {
-                await _ui.ShowErrorMessageOrThrowAsync(Error.ManifestRequired);
-            }
-
-            FunctionDefinitionAst function = request.RelatedAsts.OfType<FunctionDefinitionAst>().FirstOrDefault();
-            if (function == null)
-            {
-                await _ui.ShowErrorMessageOrThrowAsync(Error.CannotFindAst, nameof(FunctionDefinitionAst));
-            }
-
-            if (Array.IndexOf(manifestInfo.FunctionsToExport, function.Name) != -1)
-            {
-                await _ui.ShowErrorMessageOrThrowAsync(Error.FunctionAlreadyExported, function.Name);
-            }
-
-            return await GetEdits(function.Name, manifestInfo.Ast, manifestInfo.FilePath);
-        }
-
-        private static Task<IEnumerable<DocumentEdit>> AddAsNewField(
+        private static IEnumerable<DocumentEdit> AddAsNewField(
             PowerShellScriptWriter writer,
             HashtableAst hashtable,
             string functionName)
@@ -167,7 +145,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 () => writer.WriteStringExpression(StringConstantType.SingleQuoted, functionName));
 
             writer.CreateDocumentEdits();
-            return Task.FromResult(writer.Edits);
+            return writer.Edits;
         }
 
         private static string GetKeyString(ExpressionAst keyAst)
@@ -178,6 +156,22 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             }
 
             return string.Empty;
+        }
+
+        private static async Task RegisterCommandExport(
+            DocumentContextBase context,
+            string name,
+            Ast manifestAst,
+            string manifestFilePath)
+        {
+            IEnumerable<DocumentEdit> edits = GetEdits(
+                name,
+                manifestAst,
+                manifestFilePath);
+
+            await context.RegisterWorkspaceChangeAsync(
+                WorkspaceChange.EditDocument(manifestFilePath, edits))
+                .ConfigureAwait(false);
         }
 
         private class ManifestFieldMatchingStringVisitor : AstVisitor

@@ -11,9 +11,10 @@ namespace EditorServicesCommandSuite.Utility
 {
     internal abstract class PowerShellDataFile
     {
-        private bool _needsInitialization = true;
+        private readonly Dictionary<string, ExpressionAst> _values =
+            new Dictionary<string, ExpressionAst>(StringComparer.OrdinalIgnoreCase);
 
-        private Dictionary<string, ExpressionAst> _values = new Dictionary<string, ExpressionAst>(StringComparer.OrdinalIgnoreCase);
+        private bool _needsInitialization = true;
 
         private FileSystemWatcher _watcher;
 
@@ -69,34 +70,24 @@ namespace EditorServicesCommandSuite.Utility
 
             foreach (Tuple<ExpressionAst, StatementAst> pair in hashtable.KeyValuePairs)
             {
-                var constant = pair.Item1 as StringConstantExpressionAst;
-                if (constant == null)
+                if (!(pair.Item1 is StringConstantExpressionAst constant))
                 {
                     continue;
                 }
 
-                var pipeline = pair.Item2 as PipelineAst;
-                if (pipeline == null || pipeline.PipelineElements.Count != 1)
+                if (!(pair.Item2 is PipelineAst pipeline) || pipeline.PipelineElements.Count != 1)
                 {
                     _values.Remove(constant.Value);
                     continue;
                 }
 
-                var commandExpression = pipeline.PipelineElements[0] as CommandExpressionAst;
-                if (commandExpression == null)
+                if (!(pipeline.PipelineElements[0] is CommandExpressionAst commandExpression))
                 {
                     _values.Remove(constant.Value);
                     continue;
                 }
 
-                if (_values.ContainsKey(constant.Value))
-                {
-                    _values[constant.Value] = commandExpression.Expression;
-                }
-                else
-                {
-                    _values.Add(constant.Value, commandExpression.Expression);
-                }
+                _values[constant.Value] = commandExpression.Expression;
             }
 
             _needsInitialization = false;
@@ -105,8 +96,7 @@ namespace EditorServicesCommandSuite.Utility
         protected TResult[] GetArrayField<TResult>(string fieldName)
         {
             EnsureInitialized();
-            ExpressionAst expression;
-            if (!_values.TryGetValue(fieldName, out expression))
+            if (!_values.TryGetValue(fieldName, out ExpressionAst expression))
             {
                 return Array.Empty<TResult>();
             }
@@ -117,10 +107,9 @@ namespace EditorServicesCommandSuite.Utility
         protected TResult GetField<TResult>(string fieldName)
         {
             EnsureInitialized();
-            ExpressionAst expression;
-            if (!_values.TryGetValue(fieldName, out expression))
+            if (!_values.TryGetValue(fieldName, out ExpressionAst expression))
             {
-                return default(TResult);
+                return default;
             }
 
             return UnwrapExpression<TResult>(expression);
@@ -207,17 +196,17 @@ namespace EditorServicesCommandSuite.Utility
             {
                 // IOE will be thrown if the expression cannot safely be evaluated like if it contains
                 // a variable.
-                return default(TResult);
+                return default;
             }
         }
 
         private FileSystemWatcher CreateWatcher()
         {
-            var watcher = new FileSystemWatcher(
-                Path.GetDirectoryName(FilePath),
-                Path.GetFileName(FilePath));
+            var watcher = new FileSystemWatcher(Path.GetDirectoryName(FilePath), Path.GetFileName(FilePath))
+            {
+                NotifyFilter = NotifyFilters.LastWrite,
+            };
 
-            watcher.NotifyFilter = NotifyFilters.LastWrite;
             watcher.Changed += OnManifestModified;
             watcher.Created += OnManifestModified;
             watcher.Deleted += OnManifestModified;

@@ -19,9 +19,9 @@ namespace EditorServicesCommandSuite.Commands
 
         private const string AllParameterSets = "__AllParameterSets";
 
-        private CommandSuiteSettingInfo[] _settings;
+        private readonly HashSet<string> _alreadyProcessed = new HashSet<string>();
 
-        private HashSet<string> _alreadyProcessed = new HashSet<string>();
+        private CommandSuiteSettingInfo[] _settings;
 
         /// <summary>
         /// Gets or sets the name of the setting to get.

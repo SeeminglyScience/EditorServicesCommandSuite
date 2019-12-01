@@ -1,10 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Host;
+using System.Threading;
 using System.Threading.Tasks;
+using EditorServicesCommandSuite.CodeGeneration;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Utility;
 
@@ -59,17 +59,7 @@ namespace EditorServicesCommandSuite.Internal
         }
 
         internal InternalNavigationService InternalNavigation
-        {
-            get
-            {
-                if (_navigation != null)
-                {
-                    return _navigation;
-                }
-
-                return _navigation = new InternalNavigationService(GetNavigationServiceImpl());
-            }
-        }
+            => _navigation ?? (_navigation = new InternalNavigationService(GetNavigationServiceImpl()));
 
         internal RefactorService Refactors { get; }
 
@@ -97,7 +87,7 @@ namespace EditorServicesCommandSuite.Internal
 
         /// <summary>
         /// Gets the interface for getting information about the users current
-        /// state in an open document. (e.g. cursor position, selection, etc)
+        /// state in an open document (e.g. cursor position, selection, etc).
         /// </summary>
         internal abstract DocumentContextProvider DocumentContext { get; }
 
@@ -124,33 +114,6 @@ namespace EditorServicesCommandSuite.Internal
         }
 
         /// <summary>
-        /// Registers PowerShell based refactor providers to the refactor list.
-        /// </summary>
-        /// <param name="session">
-        /// The <see cref="SessionState" /> where the refactor functions are loaded.
-        /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void ImportSessionRefactors(SessionState session)
-        {
-            IEnumerable<CommandInfo> functions = session.InvokeCommand.GetCommands(
-                "*",
-                CommandTypes.Function,
-                nameIsPattern: true)
-                .Where(function =>
-                {
-                    return function.ModuleName.Equals(session.Module.Name, StringComparison.Ordinal)
-                        && ((FunctionInfo)function).ScriptBlock.Attributes
-                            .Any(a => a is ScriptBasedRefactorProviderAttribute);
-                });
-
-            foreach (CommandInfo function in functions)
-            {
-                Refactors.RegisterProvider(
-                    new PowerShellRefactorProvider((FunctionInfo)function));
-            }
-        }
-
-        /// <summary>
         /// Requests refactor options based on the current state of the host editor.
         /// </summary>
         /// <param name="cmdlet">The <see cref="PSCmdlet" /> to use for context.</param>
@@ -165,7 +128,9 @@ namespace EditorServicesCommandSuite.Internal
                     await DocumentContext.GetDocumentContextAsync(
                         cmdlet,
                         cancellationToken,
-                        threadController)));
+                        threadController)
+                        .ConfigureAwait(false))
+                    .ConfigureAwait(false));
 
             threadController.GiveControl(refactorRequest, cancellationToken);
         }
@@ -188,27 +153,23 @@ namespace EditorServicesCommandSuite.Internal
         {
             Validate.IsNotNull(nameof(cmdlet), cmdlet);
             Validate.IsNotNull(nameof(request), request);
-            var refactors = new List<IRefactorInfo>();
-            foreach (var refactor in Refactors.GetRefactorOptions(request))
-            {
-                refactors.Add(refactor);
-            }
-
-            if (!refactors.Any())
+            CodeAction[] actions = await Refactors.GetCodeActionsAsync(request).ConfigureAwait(false);
+            if (actions == null || actions.Length == 0)
             {
                 return;
             }
 
-            var selectedRefactor = await UI.ShowChoicePromptAsync(
+            CodeAction selectedAction = await UI.ShowChoicePromptAsync(
                 RefactorStrings.SelectRefactorCaption,
                 RefactorStrings.SelectRefactorMessage,
-                refactors.ToArray(),
-                item => item.Name,
-                item => item.Description);
+                actions,
+                item => item.Title)
+                .ConfigureAwait(false);
 
-            await Documents.WriteDocumentEditsAsync(
-                await selectedRefactor.GetDocumentEdits(),
-                request.CancellationToken);
+            await selectedAction.ComputeChanges(request).ConfigureAwait(false);
+            WorkspaceChange[] changes = await request.FinalizeWorkspaceChanges().ConfigureAwait(false);
+
+            await ProcessWorkspaceChanges(changes, request.CancellationToken).ConfigureAwait(false);
 
             if (request.SelectionRange != null)
             {
@@ -217,7 +178,8 @@ namespace EditorServicesCommandSuite.Internal
                     request.SelectionRange.Item2,
                     request.SelectionRange.Item3,
                     request.SelectionRange.Item4,
-                    request.CancellationToken);
+                    request.CancellationToken)
+                    .ConfigureAwait(false);
             }
         }
 
@@ -229,14 +191,38 @@ namespace EditorServicesCommandSuite.Internal
             Refactors.RegisterProvider(new ImplementAbstractMethodsRefactor(UI));
             Refactors.RegisterProvider(new DropNamespaceRefactor());
             Refactors.RegisterProvider(new CommandSplatRefactor(UI));
-            Refactors.RegisterProvider(new ChangeStringEnclosureRefactor(UI));
-            Refactors.RegisterProvider(new SurroundSelectedLinesRefactor(UI, Navigation));
+            Refactors.RegisterProvider(new ChangeStringEnclosureRefactor());
+            Refactors.RegisterProvider(new SurroundSelectedLinesRefactor(UI));
             Refactors.RegisterProvider(new SuppressAnalyzerMessageRefactor(Diagnostics));
             Refactors.RegisterProvider(new AddModuleQualificationRefactor(UI, Workspace));
             Refactors.RegisterProvider(new ExpandMemberExpressionRefactor(UI));
             Refactors.RegisterProvider(new ExtractFunctionRefactor(UI, Workspace));
             Refactors.RegisterProvider(new NameUnnamedBlockRefactor());
-            Refactors.RegisterProvider(new RegisterCommandExportRefactor(Workspace, UI));
+            Refactors.RegisterProvider(new RegisterCommandExportRefactor(Workspace));
+        }
+
+        internal async Task ProcessWorkspaceChanges(WorkspaceChange[] changes, CancellationToken cancellationToken = default)
+        {
+            foreach (WorkspaceChange change in changes)
+            {
+                switch (change.Type)
+                {
+                    case WorkspaceChangeType.Edit:
+                    {
+                        await Documents.WriteDocumentEditsAsync(
+                            change.Edits,
+                            cancellationToken)
+                            .ConfigureAwait(false);
+                        break;
+                    }
+
+                    case WorkspaceChangeType.Delete: break;
+                    case WorkspaceChangeType.Move: break;
+                    case WorkspaceChangeType.New: break;
+                    case WorkspaceChangeType.Rename: break;
+                    default: throw new ArgumentOutOfRangeException(nameof(change.Type));
+                }
+            }
         }
 
         /// <summary>

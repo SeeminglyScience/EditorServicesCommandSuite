@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -15,7 +16,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     [Refactor(VerbsData.ConvertTo, "SplatExpression")]
     [RefactorConfiguration(typeof(CommandSplatRefactorSettings))]
-    internal class CommandSplatRefactor : AstRefactorProvider<CommandAst>
+    internal class CommandSplatRefactor : RefactorProvider
     {
         private const string DefaultSplatVariable = "splat";
 
@@ -37,60 +38,86 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         public override string Description { get; } = CommandSplatStrings.ProviderDisplayDescription;
 
+        public override ImmutableArray<CodeAction> SupportedActions { get; } = ImmutableArray.Create(
+            CodeAction.Inactive(CodeActionIds.CommandSplat, "Use splat expression"),
+            CodeAction.Inactive(CodeActionIds.CommandSplatAllParameters, "Use splat expression - add all parameters"),
+            CodeAction.Inactive(CodeActionIds.CommandSplatMandatoryParameters, "Use splat expression - add mandatory parameters"));
+
         internal IRefactorUI UI { get; }
 
-        internal static async Task<IEnumerable<DocumentEdit>> GetEdits(
-            string variableName,
-            CommandAst commandAst,
-            AdditionalParameterTypes includedParameterTypes,
-            bool newLineAfterHashtable,
-            bool excludeHints,
-            ThreadController pipelineThread,
-            CancellationToken cancellationToken,
-            IRefactorUI ui = null)
-        {
-            StaticBindingResult bindingResult = await pipelineThread.InvokeAsync(
-                () => StaticParameterBinder.BindCommand(commandAst, resolve: true));
+        private CodeAction DefaultSplatCodeAction => SupportedActions[0];
 
-            return await GetEdits(
-                new CommandSplatArguments(
-                    pipelineThread,
-                    ui,
-                    bindingResult,
-                    commandAst,
-                    variableName,
-                    includedParameterTypes,
-                    excludeHints,
-                    newLineAfterHashtable,
-                    cancellationToken));
+        private CodeAction SplatAllParametersCodeAction => SupportedActions[1];
+
+        private CodeAction SplatMandatoryParametersCodeAction => SupportedActions[2];
+
+        public override async Task ComputeCodeActions(DocumentContextBase context)
+        {
+            if (!context.Ast.TryFindParent(maxDepth: 3, out CommandAst command))
+            {
+                return;
+            }
+
+            bool hasSplattableArgs = false;
+            foreach (CommandElementAst commandElement in command.CommandElements.Skip(1))
+            {
+                if (commandElement is VariableExpressionAst variable && variable.Splatted)
+                {
+                    continue;
+                }
+
+                hasSplattableArgs = true;
+            }
+
+            if (hasSplattableArgs)
+            {
+                await context.RegisterCodeActionAsync(
+                    CreateCodeAction(command, AdditionalParameterTypes.None))
+                    .ConfigureAwait(false);
+            }
+
+            await context.RegisterCodeActionAsync(
+                CreateCodeAction(command, AdditionalParameterTypes.Mandatory))
+                .ConfigureAwait(false);
+
+            await context.RegisterCodeActionAsync(
+                CreateCodeAction(command, AdditionalParameterTypes.All))
+                .ConfigureAwait(false);
         }
 
-        internal override bool CanRefactorTarget(DocumentContextBase request, CommandAst ast)
+        internal static async Task SplatCommandAsync(
+            DocumentContextBase context,
+            CommandAst command,
+            AdditionalParameterTypes parameterTypes,
+            IRefactorUI ui)
         {
-            return
-                ast.CommandElements.Count > 1 &&
-                !ast.CommandElements.Any(
-                    element =>
-                        element is VariableExpressionAst variable
-                        && variable.Splatted);
-        }
+            StaticBindingResult bindingResult = await context.PipelineThread.InvokeAsync(
+                () => StaticParameterBinder.BindCommand(command, resolve: true))
+                .ConfigureAwait(false);
 
-        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request, CommandAst ast)
-        {
-            var config = request.GetConfiguration<CommandSplatRefactorSettings>();
-            var splatVariable = string.IsNullOrWhiteSpace(config.VariableName)
-                ? GetSplatVariableName(ast.CommandElements.First())
+            var config = context.GetConfiguration<CommandSplatRefactorSettings>();
+            string splatVariable = string.IsNullOrWhiteSpace(config.VariableName)
+                ? GetSplatVariableName(command.CommandElements[0])
                 : config.VariableName;
 
-            return await GetEdits(
-                splatVariable,
-                ast,
-                config.AdditionalParameters,
-                config.NewLineAfterHashtable,
-                config.ExcludeHints,
-                request.PipelineThread,
-                request.CancellationToken,
-                UI);
+            IEnumerable<DocumentEdit> edits = await GetEdits(
+                new CommandSplatArguments(
+                    context.PipelineThread,
+                    ui,
+                    bindingResult,
+                    command,
+                    splatVariable,
+                    parameterTypes,
+                    config.ExcludeHints,
+                    config.NewLineAfterHashtable,
+                    context.CancellationToken))
+                    .ConfigureAwait(false);
+
+            await context.RegisterWorkspaceChangeAsync(
+                WorkspaceChange.EditDocument(
+                    context.Document,
+                    edits))
+                .ConfigureAwait(false);
         }
 
         private static async Task<(List<Parameter>, List<StaticBindingError>)> ProcessBindingResult(
@@ -108,7 +135,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 await AddAdditionalParameters(
                     args,
                     commandName,
-                    parameterList);
+                    parameterList)
+                    .ConfigureAwait(false);
             }
 
             List<StaticBindingError> unresolvedPositionalArgs = new List<StaticBindingError>();
@@ -156,7 +184,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             List<Parameter> parameterList;
             List<StaticBindingError> unresolvedPositionalArgs;
             (parameterList, unresolvedPositionalArgs) =
-                await ProcessBindingResult(args, commandName);
+                await ProcessBindingResult(args, commandName).ConfigureAwait(false);
 
             if (parameterList.Count == 0)
             {
@@ -216,7 +244,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     string.Format(
                         CultureInfo.CurrentCulture,
                         CommandSplatStrings.CouldNotResolvePositionalArgument,
-                        positionalParameter.CommandElement.Extent.Text));
+                        positionalParameter.CommandElement.Extent.Text))
+                    .ConfigureAwait(false);
             }
 
             splatWriter.CloseHashtable();
@@ -246,7 +275,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             {
                 await args.UI.ShowErrorMessageOrThrowAsync(
                     Error.InvalidOperation,
-                    globalError.BindingException.Message);
+                    globalError.BindingException.Message)
+                    .ConfigureAwait(false);
             }
 
             // Need to also get parameter from the main thread as the getter will marshal the call
@@ -261,13 +291,14 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     {
                         CommandInfo cmd = engine.InvokeCommand.GetCommand(commandName, CommandTypes.All);
                         return (cmd, cmd.Parameters, cmd.ParameterSets);
-                    });
+                    }).ConfigureAwait(false);
 
             if (commandInfo == null)
             {
                 await args.UI.ShowErrorMessageOrThrowAsync(
                     Error.CommandNotFound,
-                    commandName);
+                    commandName)
+                    .ConfigureAwait(false);
             }
 
             string parameterSetName = ResolveParameterSet(args.BindingResult, commandInfo, parameterSets);
@@ -284,8 +315,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     continue;
                 }
 
-                ParameterSetMetadata setMetadata;
-                if (!(parameter.ParameterSets.TryGetValue(parameterSetName, out setMetadata) ||
+                if (!(parameter.ParameterSets.TryGetValue(parameterSetName, out ParameterSetMetadata setMetadata) ||
                     parameter.ParameterSets.TryGetValue(ParameterAttribute.AllParameterSets, out setMetadata)))
                 {
                     continue;
@@ -358,7 +388,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return false;
         }
 
-        private string GetSplatVariableName(CommandElementAst element)
+        private static string GetSplatVariableName(CommandElementAst element)
         {
             var nameConstant = element as StringConstantExpressionAst;
             if (element == null)
@@ -388,6 +418,23 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return
                 char.ToLower(variableName[0])
                 + variableName.Substring(1);
+        }
+
+        private CodeAction CreateCodeAction(
+            CommandAst command,
+            AdditionalParameterTypes parameterTypes)
+        {
+            CodeAction action = parameterTypes switch
+            {
+                AdditionalParameterTypes.All => SplatAllParametersCodeAction,
+                AdditionalParameterTypes.Mandatory => SplatMandatoryParametersCodeAction,
+                AdditionalParameterTypes.None => DefaultSplatCodeAction,
+                _ => throw new PSArgumentOutOfRangeException(nameof(parameterTypes)),
+            };
+
+            return action.With(
+                factory: SplatCommandAsync,
+                state: (command, parameterTypes, UI));
         }
 
         private struct CommandSplatArguments

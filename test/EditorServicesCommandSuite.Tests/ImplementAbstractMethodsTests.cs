@@ -13,6 +13,8 @@ namespace EditorServicesCommandSuite.Tests
 {
     public class ImplementAbstractMethodsTests
     {
+        private readonly MockedRefactorService _refactorService = new MockedRefactorService(new ImplementAbstractMethodsRefactor(null));
+
         [Fact]
         public async void AddsASingleMethod()
         {
@@ -73,23 +75,22 @@ namespace EditorServicesCommandSuite.Tests
             string testString,
             params MemberDescription[] implementableMembers)
         {
-            return await MockContext.GetRefactoredTextAsync(
+            return await _refactorService.GetRefactoredString(
                 testString,
-                context => Task.FromResult(
-                    ImplementAbstractMethodsRefactor.GetEdits(
-                        context.Ast.FindParent<TypeDefinitionAst>(),
-                        context.Ast.FindParent<TypeConstraintAst>(),
-                        context.Token,
-                        implementableMembers)));
+                context => ImplementAbstractMethodsRefactor.AddMethodImplementations(
+                    context,
+                    implementableMembers.ToImmutableArray(),
+                    context.Ast.FindParent<TypeDefinitionAst>()))
+                .ConfigureAwait(false);
         }
 
         private class MemberOfType : MemberDescription
         {
+            private readonly List<ParameterDescription> _parameters = new List<ParameterDescription>();
+
             private string _name;
 
             private MemberTypes? _memberType;
-
-            private List<ParameterDescription> _parameters = new List<ParameterDescription>();
 
             private PSTypeName _returnType;
 

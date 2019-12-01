@@ -5,11 +5,8 @@ using EditorServicesCommandSuite.Internal;
 
 namespace EditorServicesCommandSuite.Utility
 {
-    internal class ManifestInfo : PowerShellDataFile
+    internal sealed class ManifestInfo : PowerShellDataFile
     {
-        private static readonly ConcurrentDictionary<string, ManifestInfo> s_manifestCache =
-            new ConcurrentDictionary<string, ManifestInfo>();
-
         private ManifestInfo(string resolvedPath)
             : base(resolvedPath)
         {
@@ -73,9 +70,9 @@ namespace EditorServicesCommandSuite.Utility
                 return false;
             }
 
-            manifestInfo = GetOrCreate<ManifestInfo>(
+            manifestInfo = GetOrCreate(
                 manifestPath,
-                path => new ManifestInfo(manifestPath));
+                _ => new ManifestInfo(manifestPath));
 
             return true;
         }

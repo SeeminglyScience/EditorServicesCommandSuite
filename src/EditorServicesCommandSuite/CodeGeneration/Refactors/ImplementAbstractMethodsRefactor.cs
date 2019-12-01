@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -12,7 +13,7 @@ using EditorServicesCommandSuite.Utility;
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     [Refactor(VerbsData.Expand, "TypeImplementation")]
-    internal class ImplementAbstractMethodsRefactor : AstRefactorProvider<TypeConstraintAst>
+    internal class ImplementAbstractMethodsRefactor : RefactorProvider
     {
         internal ImplementAbstractMethodsRefactor(IRefactorUI ui)
         {
@@ -23,7 +24,58 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         public override string Description { get; } = ImplementAbstractMethodsStrings.ProviderDisplayDescription;
 
+        public override ImmutableArray<CodeAction> SupportedActions { get; }
+            = ImmutableArray.Create(
+                CodeAction.Inactive(CodeActionIds.ImplementVirtualMethods, "Implement Abstract Class"),
+                CodeAction.Inactive(CodeActionIds.ImplementVirtualMethods, "Generate overrides..."));
+
         internal IRefactorUI UI { get; }
+
+        private CodeAction AbstractCodeAction => SupportedActions[0];
+
+        private CodeAction OverridesCodeAction => SupportedActions[1];
+
+        public override async Task ComputeCodeActions(DocumentContextBase context)
+        {
+            if (!(context.Ast is TypeConstraintAst ast))
+            {
+                return;
+            }
+
+            if (!(ast.Parent is TypeDefinitionAst typeDefinition))
+            {
+                return;
+            }
+
+            Type type = ast.TypeName.GetReflectionType();
+            if (type == null)
+            {
+                return;
+            }
+
+            // Needs optimization.
+            var virtualMethods = MemberUtil.GetVirtualMethods(type, abstractOnly: false)
+                .Except(typeDefinition.Members.ToMemberDescriptions())
+                .ToImmutableArray();
+
+            if (virtualMethods.Length > 0)
+            {
+                await context.RegisterCodeActionAsync(
+                    OverridesCodeAction.With(AddMethodImplementations, (virtualMethods, typeDefinition)))
+                    .ConfigureAwait(false);
+            }
+
+            var abstractMethods = MemberUtil.GetVirtualMethods(type, abstractOnly: true)
+                .Except(typeDefinition.Members.ToMemberDescriptions())
+                .ToImmutableArray();
+
+            if (abstractMethods.Length > 0)
+            {
+                await context.RegisterCodeActionAsync(
+                    AbstractCodeAction.With(AddMethodImplementations, (abstractMethods, typeDefinition)))
+                    .ConfigureAwait(false);
+            }
+        }
 
         internal static IEnumerable<DocumentEdit> GetEdits(
             TypeDefinitionAst parentTypeDefinition,
@@ -59,57 +111,22 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return writer.Edits;
         }
 
-        internal override bool CanRefactorTarget(DocumentContextBase request, TypeConstraintAst ast)
+        internal static async Task AddMethodImplementations(
+            DocumentContextBase context,
+            ImmutableArray<MemberDescription> virtualMethods,
+            TypeDefinitionAst typeDefinition)
         {
-            var typeDefinition = ast.Parent as TypeDefinitionAst;
-            if (typeDefinition == null)
-            {
-                return false;
-            }
+            IEnumerable<DocumentEdit> edits = GetEdits(
+                typeDefinition,
+                (TypeConstraintAst)context.Ast,
+                context.Token,
+                virtualMethods);
 
-            Type type = ast.TypeName.GetReflectionType();
-            if (type == null)
-            {
-                return false;
-            }
-
-            return MemberUtil
-                .GetAbstractMethods(type)
-                .Except(typeDefinition.Members.ToMemberDescriptions())
-                .Any();
-        }
-
-        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(DocumentContextBase request, TypeConstraintAst ast)
-        {
-            var parentTypeDefinition = ast.FindParent<TypeDefinitionAst>();
-            var source = ast.TypeName.GetReflectionType();
-            if (source == null)
-            {
-                await UI.ShowErrorMessageOrThrowAsync(
-                    Error.TypeNotFound,
-                    ast.TypeName.Name);
-
-                return Enumerable.Empty<DocumentEdit>();
-            }
-
-            if (!MemberUtil.IsTypeImplementable(source))
-            {
-                await UI.ShowErrorMessageOrThrowAsync(
-                    Error.InvalidTypeForPowerShellBase,
-                    source.ToString());
-
-                return Enumerable.Empty<DocumentEdit>();
-            }
-
-            IEnumerable<MemberDescription> implementableMembers = MemberUtil
-                .GetAbstractMethods(source)
-                .Except(parentTypeDefinition.Members.ToMemberDescriptions());
-
-            return GetEdits(
-                parentTypeDefinition,
-                ast,
-                request.Token,
-                implementableMembers);
+            await context.RegisterWorkspaceChangeAsync(
+                WorkspaceChange.EditDocument(
+                    context.Document,
+                    edits))
+                .ConfigureAwait(false);
         }
     }
 }

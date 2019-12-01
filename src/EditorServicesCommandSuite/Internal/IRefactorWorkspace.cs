@@ -1,5 +1,7 @@
 using System;
 using System.Management.Automation.Language;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EditorServicesCommandSuite.Internal
 {
@@ -56,5 +58,50 @@ namespace EditorServicesCommandSuite.Internal
             string path,
             bool force,
             out Tuple<ScriptBlockAst, Token[]> fileContext);
+
+        /// <summary>
+        /// Deletes the requested file.
+        /// </summary>
+        /// <param name="path">The file to be deleted.</param>
+        /// <param name="cancellationToken">
+        /// The token to monitor for cancellation requests.
+        /// </param>
+        /// <returns>
+        /// A task that represents the asynchronous delete operation.
+        /// </returns>
+        Task DeleteFileAsync(string path, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Moves the requested file.
+        /// </summary>
+        /// <param name="path">The file to moved.</param>
+        /// <param name="destination">
+        /// The location the file should be moved to. This should be the
+        /// directory it will be moved to, not the full final path. The
+        /// directory must exist.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// The token to monitor for cancellation requests.
+        /// </param>
+        /// <returns>
+        /// A task that represents the asynchronous move operation.
+        /// </returns>
+        Task MoveFileAsync(string path, string destination, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Renames the request file.
+        /// </summary>
+        /// <param name="path">The file to be renamed.</param>
+        /// <param name="newName">
+        /// The new file name. This should be the file name only,
+        /// not the full final path.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// The token to monitor for cancellation requests.
+        /// </param>
+        /// <returns>
+        /// A task that represents the asynchronous rename operation.
+        /// </returns>
+        Task RenameFileAsync(string path, string newName, CancellationToken cancellationToken);
     }
 }

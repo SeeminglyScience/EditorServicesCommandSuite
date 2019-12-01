@@ -213,7 +213,7 @@ task DoPublish {
     Publish-Module -Name $ReleasePath -NuGetApiKey $apiKey -Confirm
 }
 
-task ResGen -Jobs AssertPSResGen, ResGenImpl
+task ResGen -Jobs AssertDotNet, AssertPSResGen, ResGenImpl
 
 task Build -Jobs Clean, AssertDependencies, ResGen, BuildManaged, BuildRefactorModule, CopyToRelease, BuildDocs
 

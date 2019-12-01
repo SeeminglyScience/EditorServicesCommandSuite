@@ -9,7 +9,7 @@ namespace EditorServicesCommandSuite.Utility
     {
         public static readonly MatchCollection MatchCollection = Regex.Matches(string.Empty, "z");
 
-        internal class ScriptAst : ScriptBlockAst
+        internal sealed class ScriptAst : ScriptBlockAst
         {
             internal static readonly ScriptAst Untitled = Create(string.Empty);
 
@@ -45,7 +45,7 @@ namespace EditorServicesCommandSuite.Utility
             }
         }
 
-        internal class Extent : IScriptExtent
+        internal sealed class Extent : IScriptExtent
         {
             public static readonly Extent Untitled = new Extent(string.Empty);
 
@@ -94,7 +94,7 @@ namespace EditorServicesCommandSuite.Utility
             }
         }
 
-        internal class Position : IScriptPosition
+        internal sealed class Position : IScriptPosition
         {
             public static readonly Position Untitled = new Position(string.Empty);
 

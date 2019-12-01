@@ -52,11 +52,11 @@ namespace EditorServicesCommandSuite.Utility
 
         internal event EventHandler Changed;
 
-        private string FilePath { get; set; }
+        private string FilePath { get; }
+
+        private FileSystemWatcher Watcher { get; }
 
         private Hashtable RawSettings { get; set; }
-
-        private FileSystemWatcher Watcher { get; set; }
 
         public void Dispose()
         {
@@ -129,7 +129,7 @@ namespace EditorServicesCommandSuite.Utility
             }
 
             var ast = Parser.ParseFile(FilePath, out _, out ParseError[] errors);
-            if (errors.Any())
+            if (errors.Length > 0)
             {
                 RawSettings = s_emptyHashtable;
             }

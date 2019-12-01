@@ -58,8 +58,7 @@ namespace EditorServicesCommandSuite.Language
             // Look for CommonParameters that create variables (e.g. OutVariable)
             for (var i = 0; i < commandAst.CommandElements.Count; i++)
             {
-                CommandParameterAst commandParameter = commandAst.CommandElements[i] as CommandParameterAst;
-                if (commandParameter == null)
+                if (!(commandAst.CommandElements[i] is CommandParameterAst commandParameter))
                 {
                     continue;
                 }
@@ -81,8 +80,7 @@ namespace EditorServicesCommandSuite.Language
                     argument = commandAst.CommandElements[i];
                 }
 
-                StringConstantExpressionAst constant = argument as StringConstantExpressionAst;
-                if (constant == null)
+                if (!(argument is StringConstantExpressionAst constant))
                 {
                     continue;
                 }
@@ -175,7 +173,8 @@ namespace EditorServicesCommandSuite.Language
                     details.InferredType = await variable.GetInferredTypeAsync(
                         pipelineThread,
                         cancellationToken,
-                        defaultValue: s_objectPSType);
+                        defaultValue: s_objectPSType)
+                        .ConfigureAwait(false);
                     continue;
                 }
 
@@ -186,7 +185,8 @@ namespace EditorServicesCommandSuite.Language
                         await variable.GetInferredTypeAsync(
                             pipelineThread,
                             cancellationToken,
-                            defaultValue: s_objectPSType)));
+                            defaultValue: s_objectPSType)
+                            .ConfigureAwait(false)));
             }
 
             return parameterDetails;

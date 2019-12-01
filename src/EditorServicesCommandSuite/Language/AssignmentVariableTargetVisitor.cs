@@ -3,7 +3,7 @@ using System.Management.Automation.Language;
 
 namespace EditorServicesCommandSuite.Language
 {
-    internal class AssignmentVariableTargetVisitor : AstVisitor
+    internal sealed class AssignmentVariableTargetVisitor : AstVisitor
     {
         private readonly List<VariableExpressionAst> _variables = new List<VariableExpressionAst>();
 

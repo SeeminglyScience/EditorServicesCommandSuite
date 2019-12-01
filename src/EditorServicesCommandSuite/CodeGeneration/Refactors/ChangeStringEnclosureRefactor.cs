@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -15,92 +17,105 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
     [Refactor(VerbsData.Convert, "StringExpression")]
     [RefactorConfiguration(typeof(ChangeStringEnclosureConfiguration))]
-    internal class ChangeStringEnclosureRefactor : TokenRefactorProvider<StringToken>
+    internal partial class ChangeStringEnclosureRefactor : RefactorProvider
     {
-        private static readonly StringEnclosureInfo[] s_enclosures = new StringEnclosureInfo[]
-        {
-            new StringEnclosureInfo(StringEnclosureType.Expandable, DoubleQuote, DoubleQuote),
-            new StringEnclosureInfo(StringEnclosureType.ExpandableHereString, ExpandableHereStringOpen, ExpandableHereStringClose),
-            new StringEnclosureInfo(StringEnclosureType.Literal, SingleQuote, SingleQuote),
-            new StringEnclosureInfo(StringEnclosureType.LiteralHereString, LiteralHereStringOpen, LiteralHereStringClose),
-        };
-
-        private static readonly StringEnclosureInfo s_bareword =
-            new StringEnclosureInfo(StringEnclosureType.BareWord, string.Empty, string.Empty);
-
-        private static readonly char[] s_atSymbolSingleOrDoubleQuote = { SingleQuote, DoubleQuote, At };
-
-        private readonly IRefactorUI _ui;
-
-        internal ChangeStringEnclosureRefactor(IRefactorUI ui)
-        {
-            _ui = ui;
-        }
-
         public override string Name => ChangeStringEnclosureStrings.ProviderDisplayName;
 
         public override string Description => ChangeStringEnclosureStrings.ProviderDisplayDescription;
 
-        internal static Task<IEnumerable<DocumentEdit>> GetEdits(
-            ScriptBlockAst rootAst,
-            StringToken token,
-            StringEnclosureType current,
-            StringEnclosureType selected,
-            ExpandableStringExpressionAst ast = null)
+        public override ImmutableArray<CodeAction> SupportedActions { get; } = ImmutableArray.Create<CodeAction>(
+            new MyCodeAction(StringEnclosureInfo.Expandable),
+            new MyCodeAction(StringEnclosureInfo.ExpandableHereString),
+            new MyCodeAction(StringEnclosureInfo.Literal),
+            new MyCodeAction(StringEnclosureInfo.LiteralHereString));
+
+        private MyCodeAction ExpandableCodeAction => (MyCodeAction)SupportedActions[0];
+
+        private MyCodeAction ExpandableHereStringCodeAction => (MyCodeAction)SupportedActions[1];
+
+        private MyCodeAction LiteralCodeAction => (MyCodeAction)SupportedActions[2];
+
+        private MyCodeAction LiteralHereStringCodeAction => (MyCodeAction)SupportedActions[3];
+
+        public override async Task Invoke(DocumentContextBase context)
         {
-            StringEnclosureInfo currentInfo = current == StringEnclosureType.BareWord
-                ? s_bareword
-                : s_enclosures.Single(info => info.Type == current);
+            var config = context.GetConfiguration<ChangeStringEnclosureConfiguration>();
+            if (!(context.Token.Value is StringToken token))
+            {
+                return;
+            }
 
-            StringEnclosureInfo selectedInfo = selected == StringEnclosureType.BareWord
-                ? s_bareword
-                : s_enclosures.Single(info => info.Type == selected);
-
-            return GetEdits(
-                rootAst,
-                token,
-                currentInfo,
-                selectedInfo);
-        }
-
-        internal override bool CanRefactorToken(DocumentContextBase request, StringToken token)
-        {
-            return !token.TokenFlags.HasFlag(TokenFlags.CommandName)
-                || token.Text.IndexOfAny(s_atSymbolSingleOrDoubleQuote) == 0;
-        }
-
-        internal override async Task<IEnumerable<DocumentEdit>> RequestEdits(
-            DocumentContextBase request,
-            StringToken token)
-        {
-            var config = request.GetConfiguration<ChangeStringEnclosureConfiguration>();
-            StringEnclosureInfo current = s_enclosures
-                .Where(e => token.Extent.Text.StartsWith(e.Open))
-                .DefaultIfEmpty(s_bareword)
-                .First();
-
-            StringEnclosureInfo selected;
             if (config.Type == StringEnclosureType.Prompt)
             {
-                selected = await _ui.ShowChoicePromptAsync(
-                    ChangeStringEnclosureStrings.EnclosureTypeMenuCaption,
-                    ChangeStringEnclosureStrings.EnclosureTypeMenuMessage,
-                    s_enclosures
-                        .Concat(new StringEnclosureInfo[] { s_bareword })
-                        .Where(e => e != current).ToArray(),
-                    GetEnclosureDescription);
-            }
-            else
-            {
-                selected = s_enclosures.Single(e => e.Type == config.Type);
+                await base.Invoke(context).ConfigureAwait(false);
+                return;
             }
 
-            return await GetEdits(
-                request.RootAst,
+            StringEnclosureInfo current = DetectCurrentType(token) ?? StringEnclosureInfo.BareWord;
+            MyCodeAction GetCodeAction(StringEnclosureType type)
+            {
+                return type switch
+                {
+                    StringEnclosureType.Expandable => ExpandableCodeAction,
+                    StringEnclosureType.ExpandableHereString => ExpandableHereStringCodeAction,
+                    StringEnclosureType.Literal => LiteralCodeAction,
+                    StringEnclosureType.LiteralHereString => LiteralHereStringCodeAction,
+                    _ => throw new ArgumentOutOfRangeException(nameof(type)),
+                };
+            }
+
+            await ProcessActionForInvoke(
+                context,
+                GetCodeAction(config.Type).With(current, token))
+                .ConfigureAwait(false);
+        }
+
+        public override async Task ComputeCodeActions(DocumentContextBase context)
+        {
+            if (!(context.Token.Value is StringToken token) || token.Value.Length < 2)
+            {
+                return;
+            }
+
+            StringEnclosureInfo current = DetectCurrentType(token);
+            if (current == null)
+            {
+                return;
+            }
+
+            foreach (CodeAction action in SupportedActions)
+            {
+                var myAction = (MyCodeAction)action;
+                if (current == myAction.Target)
+                {
+                    continue;
+                }
+
+                await context.RegisterCodeActionAsync(
+                    myAction.With(current, token))
+                    .ConfigureAwait(false);
+            }
+        }
+
+        internal static async Task ProcessCodeActionAsync(
+            DocumentContextBase context,
+            StringEnclosureInfo target,
+            StringEnclosureInfo current,
+            StringToken token)
+        {
+            IEnumerable<DocumentEdit> edits = await GetEdits(
+                context.RootAst,
                 token,
                 current,
-                selected,
-                request.Ast.FindParent<ExpandableStringExpressionAst>());
+                target,
+                context.Ast.FindParent<ExpandableStringExpressionAst>(maxDepth: 3))
+                .ConfigureAwait(false);
+
+            await context.RegisterWorkspaceChangeAsync(
+                WorkspaceChange.EditDocument(
+                    context.Document,
+                    edits))
+                .ConfigureAwait(false);
         }
 
         private static Task<IEnumerable<DocumentEdit>> GetEdits(
@@ -111,8 +126,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             ExpandableStringExpressionAst expandableAst = null)
         {
             var isConvertingToHereString =
-                selected.Open.Contains(Symbols.At)
-                && !current.Open.Contains(Symbols.At);
+                selected.Open.Contains(At)
+                && !current.Open.Contains(At);
 
             var writer = new PowerShellScriptWriter(rootAst);
 
@@ -161,24 +176,34 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return Task.FromResult(writer.Edits);
         }
 
-        private string GetEnclosureDescription(StringEnclosureInfo enclosure)
+        private static StringEnclosureInfo DetectCurrentType(StringToken token)
         {
-            if (enclosure.Type == StringEnclosureType.BareWord)
+            string value = token?.Extent.Text;
+            if (value == null || value.Length < 2)
             {
-                return ChangeStringEnclosureStrings.BareWordTypeDisplayName;
+                return null;
             }
 
-            return new StringBuilder()
-                .Append(enclosure.Open)
-                .Append(Space)
-                .Append(enclosure.Close)
-                .Append(SpaceEnclosedDash)
-                .Append(enclosure.Type)
-                .ToString();
+            return value[0] switch
+            {
+                SingleQuote => StringEnclosureInfo.Literal,
+                DoubleQuote => StringEnclosureInfo.Expandable,
+                At => value[1] switch
+                {
+                    SingleQuote => StringEnclosureInfo.LiteralHereString,
+                    DoubleQuote => StringEnclosureInfo.ExpandableHereString,
+                    _ => null,
+#pragma warning disable SA1513
+                },
+#pragma warning restore SA1513
+                _ => null,
+            };
         }
 
         private class FormatExpressionConversionHelper
         {
+            private readonly Dictionary<char, int> _duplicateIndexMap = new Dictionary<char, int>();
+
             private IScriptExtent[] _nestedExtents;
 
             private bool _first = true;
@@ -194,8 +219,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             private bool[] _wasParenClose;
 
             private char[] _expression;
-
-            private Dictionary<char, int> _duplicateIndexMap = new Dictionary<char, int>();
 
             internal bool IsSourceHereString { get; set; }
 
@@ -447,39 +470,44 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             }
         }
 
-        private class StringEnclosureInfo
+        private class MyCodeAction : CodeAction
         {
-            internal StringEnclosureInfo(
-                StringEnclosureType type,
-                char open,
-                char close)
-                : this(type, open.ToString(), close.ToString())
+            public MyCodeAction(
+                StringEnclosureInfo target,
+                StringEnclosureInfo current = null,
+                StringToken token = null)
             {
+                Target = target;
+                Current = current;
+                Token = token;
             }
 
-            internal StringEnclosureInfo(
-                StringEnclosureType type,
-                char[] open,
-                char[] close)
-                : this(type, new string(open), new string(close))
+            public override string Title => string.Format(
+                CultureInfo.CurrentCulture,
+                ChangeStringEnclosureStrings.RefactorStringTypeDescription,
+                Target.Description);
+
+            public override string Id => CodeActionIds.ChangeStringEnclosure;
+
+            internal StringEnclosureInfo Target { get; }
+
+            internal StringEnclosureInfo Current { get; }
+
+            internal StringToken Token { get; }
+
+            public override Task ComputeChanges(DocumentContextBase context)
             {
+                return ProcessCodeActionAsync(
+                    context,
+                    Target,
+                    Current,
+                    Token);
             }
 
-            internal StringEnclosureInfo(
-                StringEnclosureType type,
-                string open,
-                string close)
+            internal MyCodeAction With(StringEnclosureInfo current, StringToken token)
             {
-                Type = type;
-                Open = open;
-                Close = close;
+                return new MyCodeAction(Target, current, token);
             }
-
-            internal StringEnclosureType Type { get; set; }
-
-            internal string Open { get; set; }
-
-            internal string Close { get; set; }
         }
     }
 }

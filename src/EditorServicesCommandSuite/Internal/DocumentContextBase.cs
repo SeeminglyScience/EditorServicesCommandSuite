@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
+using System.Threading.Tasks;
+using EditorServicesCommandSuite.CodeGeneration;
 using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Internal
@@ -14,6 +17,10 @@ namespace EditorServicesCommandSuite.Internal
     internal abstract class DocumentContextBase
     {
         internal readonly PSCmdlet _psCmdlet;
+
+        private readonly ConcurrentCollection<WorkspaceChange> _changes = new ConcurrentCollection<WorkspaceChange>();
+
+        private readonly ConcurrentCollection<CodeAction> _actions = new ConcurrentCollection<CodeAction>();
 
         internal DocumentContextBase(
             ScriptBlockAst rootAst,
@@ -91,6 +98,8 @@ namespace EditorServicesCommandSuite.Internal
         internal virtual Tuple<int, int, int, int> SelectionRange { get; set; }
 
         internal virtual ThreadController PipelineThread { get; set; }
+
+        internal virtual string Document => Ast.Extent.File;
 
         /// <summary>
         /// Retrieves the configuration that the refactor provider should use.
@@ -180,6 +189,26 @@ namespace EditorServicesCommandSuite.Internal
                 endColumn);
 
             return true;
+        }
+
+        internal virtual async Task RegisterCodeActionAsync(CodeAction codeAction)
+        {
+            await _actions.AddAsync(codeAction, CancellationToken).ConfigureAwait(false);
+        }
+
+        internal virtual async Task RegisterWorkspaceChangeAsync(WorkspaceChange change)
+        {
+            await _changes.AddAsync(change, CancellationToken).ConfigureAwait(false);
+        }
+
+        internal virtual async Task<CodeAction[]> FinalizeCodeActions()
+        {
+            return await _actions.ToArray(CancellationToken).ConfigureAwait(false);
+        }
+
+        internal virtual async Task<WorkspaceChange[]> FinalizeWorkspaceChanges()
+        {
+            return await _changes.ToArray(CancellationToken).ConfigureAwait(false);
         }
     }
 }
