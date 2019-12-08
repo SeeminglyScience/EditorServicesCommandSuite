@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+using EditorServicesCommandSuite.Language;
 
 namespace EditorServicesCommandSuite.Utility
 {
@@ -47,6 +48,39 @@ namespace EditorServicesCommandSuite.Utility
                     CultureInfo.CurrentCulture,
                     RefactorStrings.CannotFindAst,
                     astType));
+        }
+
+        public static NodeNotFoundException TokenNotFound(object criteria = null)
+        {
+            return new NodeNotFoundException(
+                LanguageStrings.TokenNotFound,
+                innerException: null,
+                nameof(LanguageStrings.TokenNotFound),
+                criteria);
+        }
+
+        public static NodeNotFoundException TokenKindNotFound(TokenKind kind)
+        {
+            return new NodeNotFoundException(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    LanguageStrings.TokenKindNotFound,
+                    kind),
+                innerException: null,
+                nameof(LanguageStrings.TokenKindNotFound),
+                kind);
+        }
+
+        public static NodeNotFoundException TokenPositionNotFound(object position)
+        {
+            return new NodeNotFoundException(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    LanguageStrings.TokenPositionNotFound,
+                    position),
+                innerException: null,
+                nameof(LanguageStrings.TokenPositionNotFound),
+                position);
         }
 
         public static PSInvalidOperationException ManifestRequired()
