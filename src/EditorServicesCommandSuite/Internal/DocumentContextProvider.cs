@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
@@ -123,7 +123,10 @@ namespace EditorServicesCommandSuite.Internal
                 return new DocumentContext(
                     builder.Ast.FindRootAst(),
                     builder.Ast.FindAstAt(builder.CursorPosition),
-                    new LinkedList<Token>(builder.Tokens).First.AtOrBefore(builder.CursorPosition),
+                    new TokenCollection(builder.Tokens.AsMemory()).First
+                        .FindNextOrSelf()
+                        .ClosestTo(builder.CursorPosition)
+                        .GetResult(),
                     builder.SelectionExtent,
                     builder._cmdlet,
                     builder._cancellationToken ?? CancellationToken.None,

@@ -80,7 +80,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         internal static IEnumerable<DocumentEdit> GetEdits(
             TypeDefinitionAst parentTypeDefinition,
             TypeConstraintAst typeConstraint,
-            LinkedListNode<Token> currentToken,
+            TokenNode currentToken,
             IEnumerable<MemberDescription> implementableMembers)
         {
             var writer = new PowerShellScriptWriter(typeConstraint);
@@ -95,7 +95,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             {
                 writer.SetPosition(
                     currentToken
-                        .FindNext(token => token.Value.Kind == TokenKind.LCurly)
+                        .FindNext()
+                        .OfKind(TokenKind.LCurly)
+                        .GetResult()
                         .Value
                         .Extent,
                     atEnd: true);

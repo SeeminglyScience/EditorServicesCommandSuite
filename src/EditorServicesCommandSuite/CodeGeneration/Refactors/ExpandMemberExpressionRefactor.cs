@@ -362,7 +362,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             IEnumerable<DocumentEdit> edits = await GetEdits(
                 invokeMember,
                 chosenMember,
-                context.Token.At(invokeMember.Expression, atEnd: true).Next.Value)
+                context.Token.FindNext().AfterEndOf(invokeMember.Expression).GetResult().Value)
                 .ConfigureAwait(false);
 
             await context.RegisterWorkspaceChangeAsync(

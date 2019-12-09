@@ -199,12 +199,16 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     return;
                 }
 
-                var entryToken = Context.Token.At(sbAst);
-                if (entryToken?.Value == null)
+                bool foundToken = Context.Token
+                    .FindNext()
+                    .ContainingStartOf(sbAst)
+                    .TryGetResult(out TokenNode entryToken);
+
+                if (foundToken)
                 {
                     Writer.SetPosition(sbAst);
                 }
-                else if (entryToken.Value.Kind == TokenKind.LCurly)
+                else if (entryToken.Kind == TokenKind.LCurly)
                 {
                     Writer.SetPosition(entryToken, atEnd: true);
                     Writer.FrameOpen();
@@ -224,7 +228,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
                 WriteMarkers(markers);
                 Writer.WriteParamBlock();
-                if (entryToken == null || IsFollowedByBlankLine(entryToken))
+                if (!foundToken || IsFollowedByBlankLine(entryToken))
                 {
                     Writer.WriteLine();
                     return;
@@ -233,19 +237,16 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 Writer.WriteLines(2);
             }
 
-            private bool IsFollowedByBlankLine(LinkedListNode<Token> node)
+            private bool IsFollowedByBlankLine(TokenNode node)
             {
-                return node
-                    .EnumerateNext()
-                    .TakeWhile(token => token.Value.Kind == TokenKind.NewLine)
-                    .Count() > 1;
+                return node.TryGetNext(out node) && node.Kind == TokenKind.NewLine
+                    && node.TryGetNext(out node) && node.Kind == TokenKind.NewLine;
             }
 
             private bool IsFollowedByBlankLine(Ast ast)
             {
-                return Context.Token.StartAtEndOf(ast)
-                    .TakeWhile(token => token.Value.Kind == TokenKind.NewLine)
-                    .Count() > 1;
+                return Context.Token.FindNext().AfterEndOf(ast).TryGetResult(out TokenNode node)
+                    && IsFollowedByBlankLine(node);
             }
 
             private void WriteMarkers(IEnumerable<DiagnosticMarker> markers)
@@ -272,7 +273,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     return false;
                 }
 
-                var tokenAtStatementStart = Context.Token.At(_parentStatementAst).Value;
+                Token tokenAtStatementStart = Context.Token
+                    .FindNext()
+                    .ContainingStartOf(_parentStatementAst)
+                    .GetResult()
+                    .Value;
 
                 return (tokenAtStatementStart.TokenFlags & TokenFlags.StatementDoesntSupportAttributes) == 0;
             }

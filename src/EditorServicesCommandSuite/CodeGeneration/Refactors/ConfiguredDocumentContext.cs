@@ -1,8 +1,8 @@
-using System.Collections.Generic;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
 using EditorServicesCommandSuite.Internal;
+using EditorServicesCommandSuite.Language;
 using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
@@ -46,7 +46,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             TConfiguration configuration,
             ScriptBlockAst rootAst,
             Ast currentAst,
-            LinkedListNode<Token> currentToken,
+            TokenNode currentToken,
             IScriptExtent selectionExtent,
             PSCmdlet cmdlet,
             CancellationToken cancellationToken,
