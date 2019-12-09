@@ -4,6 +4,7 @@ using System.Management.Automation;
 using System.Management.Automation.Host;
 using System.Threading;
 using System.Threading.Tasks;
+
 using EditorServicesCommandSuite.CodeGeneration;
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Utility;
@@ -199,6 +200,7 @@ namespace EditorServicesCommandSuite.Internal
             Refactors.RegisterProvider(new ExtractFunctionRefactor(UI, Workspace));
             Refactors.RegisterProvider(new NameUnnamedBlockRefactor());
             Refactors.RegisterProvider(new RegisterCommandExportRefactor(Workspace));
+            Refactors.RegisterProvider(new FormatMethodArgumentsRefactor());
         }
 
         internal async Task ProcessWorkspaceChanges(WorkspaceChange[] changes, CancellationToken cancellationToken = default)
