@@ -88,19 +88,41 @@ namespace EditorServicesCommandSuite.Language
         {
             if (_searchFailed) return this;
             (int startOffset, int endOffset) = range;
-
-            Containing(startOffset);
-            if (_searchFailed) return this;
             _stopper += (in TokenNode node, ref bool stopSearch) =>
             {
-                var token = node.Value;
-                if (token == null || stopSearch || token.Extent.StartOffset > endOffset)
+                if (stopSearch || node.IsDefault)
                 {
                     stopSearch = true;
                     return;
                 }
+
+                if (_direction == TokenFinderDirection.Next)
+                {
+                    if (node.Value.Extent.EndOffset > endOffset)
+                    {
+                        stopSearch = true;
+                    }
+
+                    return;
+                }
+
+                if (_direction == TokenFinderDirection.Previous)
+                {
+                    if (node.Value.Extent.StartOffset < startOffset)
+                    {
+                        stopSearch = true;
+                    }
+
+                    return;
+                }
             };
 
+            return this;
+        }
+
+        public TokenFinder IncludeSelf()
+        {
+            _includeSelf = true;
             return this;
         }
 
