@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -306,7 +305,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         }
 
         private static void WriteToBegin(
-            LinkedListNode<Token> closestToken,
+            TokenNode closestToken,
             PowerShellScriptWriter writer,
             Action bodyWriter,
             NamedBlockAst parentBlock)
@@ -325,8 +324,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             {
                 writer.SetPosition(
                     closestToken
-                        .AtOrBefore(beginBlock)
-                        .FindNext(t => t.Value.Kind == TokenKind.LCurly),
+                        .FindNext()
+                        .ClosestToStartOf(beginBlock)
+                        .Then().OfKind(TokenKind.LCurly)
+                        .GetResult(),
                     atEnd: true);
                 writer.PushIndent();
                 writer.WriteLine();
@@ -472,7 +473,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             internal Ast ClosestAst;
 
-            internal LinkedListNode<Token> CurrentToken;
+            internal TokenNode CurrentToken;
 
             internal ExtractFunctionDestination Destination;
 

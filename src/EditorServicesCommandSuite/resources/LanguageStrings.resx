@@ -132,4 +132,7 @@
   <data name="SimpleRangeFormat" xml:space="preserve">
     <value>{{ Start: {0}, End: {1} }}</value>
   </data>
+  <data name="DefaultTokenNodeValueAccess" xml:space="preserve">
+    <value>This operation cannot be performed on a default instance of TokenNode. Consider initializing the instance, or checking the TokenNode.IsDefault property.</value>
+  </data>
 </root>

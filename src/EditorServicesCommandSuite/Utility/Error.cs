@@ -50,6 +50,15 @@ namespace EditorServicesCommandSuite.Utility
                     astType));
         }
 
+        public static NodeNotFoundException AttemptedAccessDefaultTokenNode()
+        {
+            return new NodeNotFoundException(
+                LanguageStrings.DefaultTokenNodeValueAccess,
+                innerException: null,
+                nameof(LanguageStrings.DefaultTokenNodeValueAccess),
+                target: null);
+        }
+
         public static NodeNotFoundException TokenNotFound(object criteria = null)
         {
             return new NodeNotFoundException(

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -63,7 +62,9 @@ namespace EditorServicesCommandSuite.Tests
             DocumentContextBase context = new DocumentContext(
                 (ScriptBlockAst)ast,
                 ast.FindAstAt(cursorPosition),
-                new LinkedList<Token>(tokens).First.At(cursorPosition),
+                new TokenCollection(tokens.AsMemory()).First
+                    .FindNextOrSelf().ClosestTo(cursorPosition)
+                    .GetResult(),
                 selection,
                 cmdlet,
                 cancellationToken,

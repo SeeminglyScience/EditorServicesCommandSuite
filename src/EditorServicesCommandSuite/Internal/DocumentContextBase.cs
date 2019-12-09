@@ -1,12 +1,11 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.CodeGeneration;
+using EditorServicesCommandSuite.Language;
 using EditorServicesCommandSuite.Utility;
 
 namespace EditorServicesCommandSuite.Internal
@@ -25,7 +24,7 @@ namespace EditorServicesCommandSuite.Internal
         internal DocumentContextBase(
             ScriptBlockAst rootAst,
             Ast currentAst,
-            LinkedListNode<Token> currentToken,
+            TokenNode currentToken,
             IScriptExtent selectionExtent,
             PSCmdlet psCmdlet,
             CancellationToken cancellationToken,
@@ -70,13 +69,13 @@ namespace EditorServicesCommandSuite.Internal
         internal virtual ImmutableArray<Ast> RelatedAsts { get; }
 
         /// <summary>
-        /// Gets or sets a node in a <see cref="LinkedList{Token}" /> that is the
+        /// Gets or sets a node in a <see cref="TokenCollection" /> that is the
         /// subject of the refactor request.
         /// </summary>
         /// <remarks>
         /// This is most commonly the <see cref="Token" /> closest to the cursor location.
         /// </remarks>
-        internal virtual LinkedListNode<Token> Token { get; set; }
+        internal virtual TokenNode Token { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="IScriptExtent" /> representing the current text

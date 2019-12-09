@@ -16,9 +16,9 @@ namespace EditorServicesCommandSuite.Language
 
         public int Length => _tokens.Length;
 
-        public TokenNode First => IsEmpty ? default : new TokenNode(_tokens, index: 0);
+        public TokenNode First => IsEmpty ? default : TokenNode.Create(_tokens, index: 0);
 
-        public TokenNode Last => IsEmpty ? default : new TokenNode(_tokens, index: _tokens.Length - 1);
+        public TokenNode Last => IsEmpty ? default : TokenNode.Create(_tokens, index: _tokens.Length - 1);
 
         public TokenCollection Slice(int start) => new TokenCollection(_tokens.Slice(start));
 

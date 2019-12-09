@@ -1,4 +1,5 @@
 using System;
+using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Runtime.CompilerServices;
 using EditorServicesCommandSuite.Utility;
@@ -53,9 +54,20 @@ namespace EditorServicesCommandSuite.Language
             }
         }
 
-        public Token Value => IsDefault ? null : Memory.Span[Index];
+        public Token Value
+        {
+            get
+            {
+                if (IsDefault)
+                {
+                    throw Error.AttemptedAccessDefaultTokenNode();
+                }
 
-        public TokenKind Kind => Value?.Kind ?? TokenKind.Unknown;
+                return Memory.Span[Index];
+            }
+        }
+
+        public TokenKind Kind => Value.Kind;
 
         public static implicit operator Token(TokenNode source) => source.Value;
 
@@ -89,6 +101,18 @@ namespace EditorServicesCommandSuite.Language
 
         public override int GetHashCode() => Value?.GetHashCode() ?? 0;
 
+        public bool TryGetPrevious(out TokenNode node)
+        {
+            node = this;
+            return TryMovePrevious(ref node);
+        }
+
+        public bool TryGetNext(out TokenNode node)
+        {
+            node = this;
+            return TryMoveNext(ref node);
+        }
+
         internal static bool TryMovePrevious(ref TokenNode token)
         {
             if (token.Index == 0)
@@ -116,7 +140,11 @@ namespace EditorServicesCommandSuite.Language
 
         internal TokenFinder FindPrevious() => new TokenFinder(this, TokenFinderDirection.Previous);
 
+        internal TokenFinder FindPreviousOrSelf() => new TokenFinder(this, TokenFinderDirection.Previous, includeSelf: true);
+
         internal TokenFinder FindNext() => new TokenFinder(this, TokenFinderDirection.Next);
+
+        internal TokenFinder FindNextOrSelf() => new TokenFinder(this, TokenFinderDirection.Next, includeSelf: true);
 
         private static bool IsValidIndex(ReadOnlyMemory<Token> memory, int index)
         {
