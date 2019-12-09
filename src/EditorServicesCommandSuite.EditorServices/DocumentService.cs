@@ -1,19 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
 
 using EditorServicesCommandSuite.Internal;
 using Microsoft.PowerShell.EditorServices.Handlers;
 using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
 using Microsoft.PowerShell.EditorServices.Services.TextDocument;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 
 using PSWorkspaceService = Microsoft.PowerShell.EditorServices.Services.WorkspaceService;
 
@@ -41,6 +38,7 @@ namespace EditorServicesCommandSuite.EditorServices
                 .GroupBy(e => e.FileName)
                 .OrderByDescending(g => string.IsNullOrEmpty(g.Key));
 
+            var workspaceChanges = new List<WorkspaceEditDocumentChange>();
             foreach (IGrouping<string, DocumentEdit> editGroup in orderedGroups)
             {
                 ScriptFile scriptFile;
@@ -57,27 +55,45 @@ namespace EditorServicesCommandSuite.EditorServices
 
                 // ScriptFile.ClientFilePath isn't always a URI.
                 string clientFilePath = DocumentHelpers.GetPathAsClientPath(scriptFile.ClientFilePath);
-                foreach (var edit in editGroup.OrderByDescending(edit => edit.StartOffset))
+                var textEdits = new List<TextEdit>();
+                foreach (DocumentEdit edit in editGroup)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var request = new InsertTextRequest()
+
+                    var range = new Range
                     {
-                        FilePath = clientFilePath,
-                        InsertText = edit.NewValue,
-                        InsertRange = new Range()
-                        {
-                            Start = ToServerPosition(scriptFile.GetPositionAtOffset((int)edit.StartOffset)),
-                            End = ToServerPosition(scriptFile.GetPositionAtOffset((int)edit.EndOffset)),
-                        },
+                        Start = ToServerPosition(scriptFile.GetPositionAtOffset((int)edit.StartOffset)),
+                        End = ToServerPosition(scriptFile.GetPositionAtOffset((int)edit.EndOffset)),
                     };
 
-                    await _messages
-                        .SendRequestAsync(Messages.InsertText, request)
-                        .ConfigureAwait(false);
+                    var textEdit = new TextEdit
+                    {
+                        NewText = edit.NewValue,
+                        Range = range,
+                    };
 
-                    await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
+                    textEdits.Add(textEdit);
                 }
+
+                var versionedIdentifier = new VersionedTextDocumentIdentifier
+                {
+                    Uri = new Uri(clientFilePath),
+                    Version = default,
+                };
+
+                var textDocumentEdit = new TextDocumentEdit
+                {
+                    Edits = textEdits,
+                    TextDocument = versionedIdentifier,
+                };
+
+                workspaceChanges.Add(new WorkspaceEditDocumentChange(textDocumentEdit));
             }
+
+            var workspaceEdit = new WorkspaceEdit { DocumentChanges = workspaceChanges };
+            await _messages.Sender.Workspace.ApplyEdit(
+                new ApplyWorkspaceEditParams { Edit = workspaceEdit })
+                .ConfigureAwait(false);
         }
 
         internal static Position ToServerPosition(BufferPosition position)
