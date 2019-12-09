@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 using EditorServicesCommandSuite.Internal;
 using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
@@ -17,24 +18,20 @@ namespace EditorServicesCommandSuite.EditorServices
             _messages = messages;
         }
 
-        public async Task ShowWarningMessageAsync(
+        public Task ShowWarningMessageAsync(
             string message,
             bool waitForResponse = false)
         {
-            await _messages.SendRequestAsync(
-                Messages.ShowWarningMessage,
-                message)
-                .ConfigureAwait(continueOnCapturedContext: false);
+            _messages.Sender.Window.ShowWarning(message);
+            return Task.CompletedTask;
         }
 
-        public async Task ShowErrorMessageAsync(
+        public Task ShowErrorMessageAsync(
             string message,
             bool waitForResponse = false)
         {
-            await _messages.SendRequestAsync(
-                Messages.ShowErrorMessage,
-                message)
-                .ConfigureAwait(continueOnCapturedContext: false);
+            _messages.Sender.Window.ShowError(message);
+            return Task.CompletedTask;
         }
 
         public async Task<string> ShowInputPromptAsync(
