@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateNotNull()]
-    [string] $RequiredVersion = '2.0.0-preview.6'
+    [string] $RequiredVersion = '2.0.0-preview.8'
 )
 begin {
     Add-Type -AssemblyName System.IO.Compression
@@ -49,7 +49,7 @@ end {
     $oldSecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol
     try {
         [System.Net.ServicePointManager]::SecurityProtocol = 'Tls, Tls11, Tls12'
-        $downloadUri = "https://github.com/PowerShell/PowerShellEditorServices/releases/download/v$version/PowerShellEditorServices.zip"
+        $downloadUri = "https://github.com/PowerShell/PowerShellEditorServices/releases/download/$version/PowerShellEditorServices.zip"
         Invoke-WebRequest -UseBasicParsing -Uri $downloadUri -OutFile $psesFolder/PowerShellEditorServices.zip
     } finally {
         [System.Net.ServicePointManager]::SecurityProtocol = $oldSecurityProtocol

@@ -3,9 +3,20 @@ Import-Module $PSScriptRoot/EditorServicesCommandSuite.RefactorCmdlets.cdxml
 Update-FormatData -AppendPath $PSScriptRoot/EditorServicesCommandSuite.format.ps1xml
 
 if ($null -ne $psEditor) {
-    Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.EditorServices.dll"
+    if ($PSVersionTable.PSVersion.Major -ge 6) {
+        $psesLoadContext = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(
+            [Microsoft.PowerShell.EditorServices.Services.PowerShellContext.EditorObject].Assembly)
 
-    $CommandSuite = [EditorServicesCommandSuite.EditorServices.Internal.CommandSuite]::GetCommandSuite(
+        $assembly = $psesLoadContext.LoadFromAssemblyPath((
+            Join-Path $PSScriptRoot -ChildPath 'EditorServicesCommandSuite.EditorServices.dll'))
+
+        $type = $assembly.GetType('EditorServicesCommandSuite.EditorServices.Internal.CommandSuite')
+    } else {
+        Add-Type -Path "$PSScriptRoot/EditorServicesCommandSuite.EditorServices.dll"
+        $type = [EditorServicesCommandSuite.EditorServices.Internal.CommandSuite]
+    }
+
+    $CommandSuite = $type::GetCommandSuite(
         $psEditor,
         $ExecutionContext,
         $Host)
