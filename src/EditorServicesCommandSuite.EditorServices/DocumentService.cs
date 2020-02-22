@@ -6,46 +6,47 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using EditorServicesCommandSuite.Internal;
-using Microsoft.PowerShell.EditorServices.Handlers;
-using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
-using Microsoft.PowerShell.EditorServices.Services.TextDocument;
+using Microsoft.PowerShell.EditorServices.Extensions;
+using Microsoft.PowerShell.EditorServices.Extensions.Services;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server;
-
-using PSWorkspaceService = Microsoft.PowerShell.EditorServices.Services.WorkspaceService;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
     internal class DocumentService : IDocumentEditProcessor
     {
-        private readonly PSWorkspaceService _workspace;
+        private readonly IWorkspaceService _workspace;
 
-        private readonly MessageService _messages;
+        private readonly IEditorContextService _context;
 
-        internal DocumentService(PSWorkspaceService workspace, MessageService messages)
+        private readonly ILanguageServerService _messages;
+
+        internal DocumentService(
+            IWorkspaceService workspace,
+            IEditorContextService context,
+            ILanguageServerService messages)
         {
             _workspace = workspace;
+            _context = context;
             _messages = messages;
         }
 
         public async Task WriteDocumentEditsAsync(IEnumerable<DocumentEdit> edits, CancellationToken cancellationToken)
         {
-            ClientEditorContext context = await GetClientContext()
+            ILspCurrentFileContext context = await GetClientContext()
                 .ConfigureAwait(false);
 
             // Order by empty file names first so the first group processed is the current file.
-            IOrderedEnumerable<IGrouping<string, DocumentEdit>> orderedGroups = edits
-                .GroupBy(e => e.FileName)
-                .OrderByDescending(g => string.IsNullOrEmpty(g.Key));
+            IOrderedEnumerable<IGrouping<Uri, DocumentEdit>> orderedGroups = edits
+                .GroupBy(e => e.Uri)
+                .OrderByDescending(g => g.Key == null);
 
             var workspaceChanges = new List<WorkspaceEditDocumentChange>();
-            foreach (IGrouping<string, DocumentEdit> editGroup in orderedGroups)
+            foreach (IGrouping<Uri, DocumentEdit> editGroup in orderedGroups)
             {
-                ScriptFile scriptFile;
+                IEditorScriptFile scriptFile;
                 try
                 {
-                    scriptFile = _workspace.GetFile(
-                        string.IsNullOrEmpty(editGroup.Key) ? context.CurrentFilePath : editGroup.Key);
+                    scriptFile = _workspace.GetFile(editGroup.Key ?? context.Uri);
                 }
                 catch (FileNotFoundException)
                 {
@@ -53,8 +54,6 @@ namespace EditorServicesCommandSuite.EditorServices
                         .ConfigureAwait(false);
                 }
 
-                // ScriptFile.ClientFilePath isn't always a URI.
-                string clientFilePath = DocumentHelpers.GetPathAsClientPath(scriptFile.ClientFilePath);
                 var textEdits = new List<TextEdit>();
                 foreach (DocumentEdit edit in editGroup)
                 {
@@ -77,7 +76,7 @@ namespace EditorServicesCommandSuite.EditorServices
 
                 var versionedIdentifier = new VersionedTextDocumentIdentifier
                 {
-                    Uri = new Uri(clientFilePath),
+                    Uri = editGroup.Key ?? context.Uri,
                     Version = default,
                 };
 
@@ -91,34 +90,33 @@ namespace EditorServicesCommandSuite.EditorServices
             }
 
             var workspaceEdit = new WorkspaceEdit { DocumentChanges = workspaceChanges };
-            await _messages.Sender.Workspace.ApplyEdit(
+            await _messages.ApplyEdit(
                 new ApplyWorkspaceEditParams { Edit = workspaceEdit })
                 .ConfigureAwait(false);
         }
 
-        internal static Position ToServerPosition(BufferPosition position)
+        internal static Position ToServerPosition(LspPosition position)
         {
             return new Position()
             {
                 Line = position.Line - 1,
-                Character = position.Column - 1,
+                Character = position.Character - 1,
             };
         }
 
-        private async Task<ScriptFile> CreateNewFile(
-            ClientEditorContext context,
-            string path,
+        private async Task<IEditorScriptFile> CreateNewFile(
+            ILspCurrentFileContext context,
+            Uri uri,
             CancellationToken cancellationToken)
         {
             // Path parameter doesn't actually do anything currently. The new file will be untitled.
-            await _messages.SendRequestAsync(Messages.NewFile, path)
-                .ConfigureAwait(false);
+            await _context.OpenNewUntitledFileAsync().ConfigureAwait(false);
 
-            ClientEditorContext newContext;
+            ILspCurrentFileContext newContext;
             while (true)
             {
                 newContext = await GetClientContext().ConfigureAwait(false);
-                if (!newContext.CurrentFilePath.Equals(context.CurrentFilePath, StringComparison.OrdinalIgnoreCase))
+                if (newContext.Uri != context.Uri)
                 {
                     break;
                 }
@@ -126,25 +124,13 @@ namespace EditorServicesCommandSuite.EditorServices
                 await Task.Delay(200, cancellationToken).ConfigureAwait(false);
             }
 
-            ScriptFile scriptFile = _workspace.GetFile(newContext.CurrentFilePath);
-            await _messages.SendRequestAsync(
-                Messages.SaveFile,
-                new SaveFileDetails()
-                {
-                    FilePath = scriptFile.ClientFilePath,
-                    NewPath = path,
-                }).ConfigureAwait(false);
+            IEditorScriptFile scriptFile = _workspace.GetFile(newContext.Uri);
+            await _context.SaveFileAsync(scriptFile.Uri, uri).ConfigureAwait(false);
 
             cancellationToken.ThrowIfCancellationRequested();
-            return _workspace.GetFile(path);
+            return _workspace.GetFile(uri);
         }
 
-        private async Task<ClientEditorContext> GetClientContext()
-        {
-            return await _messages.SendRequestAsync(
-                Messages.GetEditorContext,
-                new GetEditorContextRequest())
-                .ConfigureAwait(false);
-        }
+        private Task<ILspCurrentFileContext> GetClientContext() => _context.GetCurrentLspFileContextAsync();
     }
 }

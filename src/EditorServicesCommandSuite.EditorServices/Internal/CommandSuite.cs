@@ -3,12 +3,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Management.Automation;
 using System.Management.Automation.Host;
+
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Utility;
-
-using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
-
-using PSWorkspaceService = Microsoft.PowerShell.EditorServices.Services.WorkspaceService;
+using Microsoft.PowerShell.EditorServices.Extensions;
+using Microsoft.PowerShell.EditorServices.Extensions.Services;
 
 namespace EditorServicesCommandSuite.EditorServices.Internal
 {
@@ -23,6 +22,8 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
 
         private readonly EditorServicesNavigationService _navigation;
 
+        private readonly EditorExtensionServiceProvider _extensionServiceProvider;
+
         private CommandSuite(
             EditorObject psEditor,
             EngineIntrinsics engine,
@@ -30,21 +31,21 @@ namespace EditorServicesCommandSuite.EditorServices.Internal
             : base(engine, host)
         {
             Editor = psEditor;
-            Messages = new MessageService(Editor);
-            UI = new UIService(Messages);
-            _navigation = new EditorServicesNavigationService(Messages);
+            _extensionServiceProvider = psEditor.GetExtensionServiceProvider();
+            IWorkspaceService workspace = _extensionServiceProvider.Workspace;
+            IEditorContextService context = _extensionServiceProvider.EditorContext;
+            ILanguageServerService messages = _extensionServiceProvider.LanguageServer;
+            IEditorUIService ui = _extensionServiceProvider.EditorUI;
+
+            UI = new UIService(messages, ui);
+            _navigation = new EditorServicesNavigationService(context);
             Diagnostics = new DiagnosticsService();
-
-            var workspace = (PSWorkspaceService)psEditor.Components.GetService(typeof(PSWorkspaceService));
-
-            Documents = new DocumentService(workspace, Messages);
-            DocumentContext = new ContextService(workspace, Messages);
-            Workspace = new WorkspaceService(engine, workspace, Messages);
+            Documents = new DocumentService(workspace, context, messages);
+            DocumentContext = new ContextService(workspace, context);
+            Workspace = new WorkspaceService(engine, workspace, messages);
         }
 
         internal static new CommandSuite Instance => s_instance;
-
-        internal MessageService Messages { get; }
 
         internal EditorObject Editor { get; }
 

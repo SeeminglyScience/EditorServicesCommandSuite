@@ -105,7 +105,7 @@ namespace EditorServicesCommandSuite.Inference
                 ? ".ctor"
                 : memberNameConstant.Value;
             InvokeMemberExpressionAst invokeExpression = ast as InvokeMemberExpressionAst;
-            int argumentCount = invokeExpression?.Arguments.Count ?? 0;
+            int argumentCount = invokeExpression?.Arguments?.Count ?? 0;
             bool isStatic = ast.Static && !memberName.EqualsOrdinalIgnoreCase(".ctor");
 
             return EnumerateMembersForInferredTypes();

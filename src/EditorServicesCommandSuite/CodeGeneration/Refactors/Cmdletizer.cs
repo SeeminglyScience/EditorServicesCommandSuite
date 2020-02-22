@@ -107,39 +107,6 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 metadataNode);
         }
 
-        private static string EscapedTypeName(Type type)
-        {
-            string defaultName = type.ToString();
-            if (defaultName.IndexOf('`') == -1)
-            {
-                return defaultName;
-            }
-
-            StringBuilder newName = new StringBuilder(defaultName);
-            int lastBracket = -1;
-            for (var i = defaultName.Length - 1; i <= 0; i--)
-            {
-                if (i == '[')
-                {
-                    lastBracket = i;
-                    continue;
-                }
-
-                if (i == '`')
-                {
-                    if (lastBracket == -1)
-                    {
-                        continue;
-                    }
-
-                    newName.Remove(i, i - lastBracket);
-                    lastBracket = -1;
-                }
-            }
-
-            return newName.ToString();
-        }
-
         private static IEnumerable<Type> GetRefactorProviders()
         {
             return typeof(Cmdletizer)

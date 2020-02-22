@@ -4,10 +4,10 @@ Update-FormatData -AppendPath $PSScriptRoot/EditorServicesCommandSuite.format.ps
 
 if ($null -ne $psEditor) {
     if ($PSVersionTable.PSVersion.Major -ge 6) {
-        $psesLoadContext = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(
-            [Microsoft.PowerShell.EditorServices.Services.PowerShellContext.EditorObject].Assembly)
+        $extensionService = [Microsoft.PowerShell.EditorServices.Extensions.EditorObjectExtensions]::
+            GetExtensionServiceProvider($psEditor)
 
-        $assembly = $psesLoadContext.LoadFromAssemblyPath((
+        $assembly = $extensionService.LoadAssemblyInPsesLoadContext((
             Join-Path $PSScriptRoot -ChildPath 'EditorServicesCommandSuite.EditorServices.dll'))
 
         $type = $assembly.GetType('EditorServicesCommandSuite.EditorServices.Internal.CommandSuite')

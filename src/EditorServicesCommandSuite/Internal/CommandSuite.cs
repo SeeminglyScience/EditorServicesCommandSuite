@@ -201,6 +201,7 @@ namespace EditorServicesCommandSuite.Internal
             Refactors.RegisterProvider(new NameUnnamedBlockRefactor());
             Refactors.RegisterProvider(new RegisterCommandExportRefactor(Workspace));
             Refactors.RegisterProvider(new FormatMethodArgumentsRefactor());
+            Refactors.RegisterProvider(new ChangeNamedBlockKindRefactor());
         }
 
         internal async Task ProcessWorkspaceChanges(WorkspaceChange[] changes, CancellationToken cancellationToken = default)

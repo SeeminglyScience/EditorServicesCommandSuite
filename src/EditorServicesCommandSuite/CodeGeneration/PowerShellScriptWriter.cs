@@ -4,6 +4,8 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Reflection;
+using System.Threading.Tasks;
+
 using EditorServicesCommandSuite.CodeGeneration.Refactors;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Language;
@@ -569,7 +571,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             bool? shouldDropNamespaces = null)
         {
             Type reflectionType = type.Type ?? typeof(object);
-            if (!MemberUtil.IsTypeExpressible(reflectionType))
+            if (!MemberUtil.IsTypeExpressible(reflectionType, skipGenericArgs))
             {
                 if (allowNonPublic)
                 {
@@ -774,6 +776,11 @@ namespace EditorServicesCommandSuite.CodeGeneration
             Write(name);
         }
 
+        internal Task RegisterWorkspaceChangeAsync(DocumentContextBase context)
+        {
+            return context.RegisterWorkspaceChangeAsync(CreateWorkspaceChange(context.Document));
+        }
+
         internal WorkspaceChange CreateWorkspaceChange(DocumentContextBase context)
         {
             return CreateWorkspaceChange(context.Document);
@@ -782,6 +789,11 @@ namespace EditorServicesCommandSuite.CodeGeneration
         internal WorkspaceChange CreateWorkspaceChange(string document)
         {
             return WorkspaceChange.EditDocument(document, Edits);
+        }
+
+        internal void Write(TokenKind kind)
+        {
+            Write(TokenTraits.Text(kind));
         }
 
         private static string GetDocumentText(Ast ast)

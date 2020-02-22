@@ -35,5 +35,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
         public const string SuppressDiagnostics = "EC10012";
 
         public const string WrapSelection = "EC10013";
+
+        public const string ChangeNamedBlockKind = "EC10014";
     }
 }

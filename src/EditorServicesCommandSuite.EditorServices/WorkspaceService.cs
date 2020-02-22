@@ -1,25 +1,25 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading;
 using System.Threading.Tasks;
+
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Utility;
-using Microsoft.PowerShell.EditorServices.Services.TextDocument;
+using Microsoft.PowerShell.EditorServices.Extensions.Services;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server;
-using PSWorkspaceService = Microsoft.PowerShell.EditorServices.Services.WorkspaceService;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
     internal class WorkspaceService : WorkspaceContext
     {
-        private readonly PSWorkspaceService _workspace;
+        private readonly IWorkspaceService _workspace;
 
-        private readonly MessageService _messages;
+        private readonly ILanguageServerService _messages;
 
-        internal WorkspaceService(EngineIntrinsics engine, PSWorkspaceService workspace, MessageService messages)
+        internal WorkspaceService(EngineIntrinsics engine, IWorkspaceService workspace, ILanguageServerService messages)
             : base(engine)
         {
             _workspace = workspace;
@@ -34,7 +34,7 @@ namespace EditorServicesCommandSuite.EditorServices
             }
 
             string fileUri = DocumentHelpers.GetPathAsClientPath(path);
-            await _messages.Sender.Workspace.ApplyEdit(
+            await _messages.ApplyEdit(
                 new ApplyWorkspaceEditParams()
                 {
                     Edit = new WorkspaceEdit()
@@ -114,33 +114,34 @@ namespace EditorServicesCommandSuite.EditorServices
 
         protected override Tuple<ScriptBlockAst, Token[]> GetFileContext(string path)
         {
-            ScriptFile scriptFile = _workspace.GetFile(path);
-            return Tuple.Create(scriptFile.ScriptAst, scriptFile.ScriptTokens);
+            IEditorScriptFile scriptFile = _workspace.GetFile(new Uri(path));
+            return Tuple.Create(scriptFile.Ast, scriptFile.Tokens.ToArray());
         }
 
         private async Task RenameFileImplAsync(string pathUri, string destinationUri)
         {
-            await _messages.Sender.Workspace.ApplyEdit(
-                new ApplyWorkspaceEditParams()
+            var editParams = new ApplyWorkspaceEditParams()
+            {
+                Edit = new WorkspaceEdit()
                 {
-                    Edit = new WorkspaceEdit()
+                    DocumentChanges = new[]
                     {
-                        DocumentChanges = new[]
-                        {
-                            new WorkspaceEditDocumentChange(
-                                new RenameFile()
+                        new WorkspaceEditDocumentChange(
+                            new RenameFile()
+                            {
+                                OldUri = pathUri,
+                                NewUri = destinationUri,
+                                Options = new RenameFileOptions()
                                 {
-                                    OldUri = pathUri,
-                                    NewUri = destinationUri,
-                                    Options = new RenameFileOptions()
-                                    {
-                                        IgnoreIfExists = true,
-                                        Overwrite = false,
-                                    },
-                                }),
-                        },
+                                    IgnoreIfExists = true,
+                                    Overwrite = false,
+                                },
+                            }),
                     },
-                }).ConfigureAwait(false);
+                },
+            };
+
+            await _messages.ApplyEdit(editParams).ConfigureAwait(false);
         }
     }
 }

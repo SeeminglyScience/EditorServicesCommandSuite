@@ -1,28 +1,30 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Globalization;
 using System.Threading.Tasks;
 
 using EditorServicesCommandSuite.Internal;
-using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server;
+using Microsoft.PowerShell.EditorServices.Extensions.Services;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
     internal class UIService : IRefactorUI
     {
-        private readonly MessageService _messages;
+        private readonly ILanguageServerService _messages;
 
-        internal UIService(MessageService messages)
+        private readonly IEditorUIService _ui;
+
+        internal UIService(ILanguageServerService messages, IEditorUIService ui)
         {
             _messages = messages;
+            _ui = ui;
         }
 
         public Task ShowWarningMessageAsync(
             string message,
             bool waitForResponse = false)
         {
-            _messages.Sender.Window.ShowWarning(message);
+            _messages.ShowWarning(message);
             return Task.CompletedTask;
         }
 
@@ -30,7 +32,7 @@ namespace EditorServicesCommandSuite.EditorServices
             string message,
             bool waitForResponse = false)
         {
-            _messages.Sender.Window.ShowError(message);
+            _messages.ShowError(message);
             return Task.CompletedTask;
         }
 
@@ -39,21 +41,17 @@ namespace EditorServicesCommandSuite.EditorServices
             string message,
             bool waitForResponse)
         {
-            ShowInputPromptResponse response = await _messages.SendRequestAsync(
-                Messages.ShowInputPrompt,
-                new ShowInputPromptRequest()
-                {
-                    Name = caption,
-                    Label = message,
-                })
-                .ConfigureAwait(continueOnCapturedContext: false);
+            string combinedMessage = string.IsNullOrEmpty(caption)
+                ? message
+                : $"{caption} - {message}";
 
-            if (response == null || response.PromptCancelled)
+            string response = await _ui.PromptInputAsync(combinedMessage).ConfigureAwait(false);
+            if (response == null)
             {
                 throw new OperationCanceledException();
             }
 
-            return response.ResponseText;
+            return response;
         }
 
         public async Task<TItem> ShowChoicePromptAsync<TItem>(
@@ -61,12 +59,12 @@ namespace EditorServicesCommandSuite.EditorServices
             string message,
             TItem[] items)
         {
-            return await ShowChoicePromptAsync<TItem>(
+            return await ShowChoicePromptAsync(
                 caption,
                 message,
                 items,
-                null,
-                null)
+                labelSelector: null,
+                helpMessageSelector: null)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
 
@@ -76,12 +74,12 @@ namespace EditorServicesCommandSuite.EditorServices
             TItem[] items,
             Func<TItem, string> labelSelector)
         {
-            return await ShowChoicePromptAsync<TItem>(
+            return await ShowChoicePromptAsync(
                 caption,
                 message,
                 items,
                 labelSelector,
-                null)
+                helpMessageSelector: null)
                 .ConfigureAwait(continueOnCapturedContext: false);
         }
 
@@ -92,27 +90,21 @@ namespace EditorServicesCommandSuite.EditorServices
             Func<TItem, string> labelSelector,
             Func<TItem, string> helpMessageSelector)
         {
-            var response = await _messages.SendRequestAsync(
-                Messages.ShowChoicePrompt,
-                new ShowChoicePromptRequest()
-                {
-                    IsMultiChoice = false,
-                    Caption = caption,
-                    Message = message,
-                    Choices = GetChoiceDetails(
-                        items,
-                        labelSelector,
-                        helpMessageSelector)
-                        .ToArray(),
-                })
-                .ConfigureAwait(continueOnCapturedContext: false);
+            string combinedMessage = string.IsNullOrEmpty(caption)
+                ? message
+                : $"{caption} - {message}";
 
-            if (response == null || response.PromptCancelled)
+            var response = await _ui.PromptSelectionAsync(
+                combinedMessage,
+                GetChoiceDetails(items, labelSelector, helpMessageSelector))
+                .ConfigureAwait(false);
+
+            if (response == null)
             {
                 throw new OperationCanceledException();
             }
 
-            return items[GetIndexFromString(response.ResponseText)];
+            return items[GetIndexFromString(response)];
         }
 
         private int GetIndexFromString(string response)
@@ -123,7 +115,7 @@ namespace EditorServicesCommandSuite.EditorServices
                     response.IndexOf(Symbols.Space) + 1)) - 1;
         }
 
-        private IEnumerable<ChoiceDetails> GetChoiceDetails<TItem>(
+        private IReadOnlyList<PromptChoiceDetails> GetChoiceDetails<TItem>(
             TItem[] items,
             Func<TItem, string> labelSelector,
             Func<TItem, string> helpMessageSelector)
@@ -133,22 +125,41 @@ namespace EditorServicesCommandSuite.EditorServices
                 labelSelector = item => item.ToString();
             }
 
-            for (var i = 1; i <= items.Length; i++)
+            var choices = new PromptChoiceDetails[items.Length];
+            for (int i = 0; i < items.Length; i++)
             {
-                yield return new ChoiceDetails()
-                {
-                    Label =
-                        i.ToString()
-                        + Symbols.Space
-                        + Symbols.Dash
-                        + Symbols.Space
-                        + labelSelector(items[i - 1]),
-                    HelpMessage =
-                        helpMessageSelector == null
-                            ? string.Empty
-                            : helpMessageSelector(items[i - 1]),
-                };
+                TItem currentItem = items[i];
+                string label = string.Format(
+                    CultureInfo.CurrentCulture,
+                    "{0} - {1}",
+                    (i + 1).ToString(),
+                    labelSelector(currentItem));
+
+                // Prompt choice details constructor throws when there is a comma in the
+                // label for right now. Currently we replace that with a "full width comma"
+                // (0xFF0C).
+                label = label.Replace(',', '\xFF0C');
+
+                string helpMessage = helpMessageSelector?.Invoke(currentItem) ?? string.Empty;
+
+                choices[i] = new PromptChoiceDetails(label, helpMessage);
             }
+
+            return choices;
+        }
+
+        private class ShowInputPromptRequestArgs
+        {
+            public string Name { get; set; }
+
+            public string Label { get; set; }
+        }
+
+        private class ShowInputPromptResponseBody
+        {
+            public string ResponseText { get; set; }
+
+            public bool PromptCancelled { get; set; }
         }
     }
 }

@@ -1,25 +1,24 @@
+using System.Linq;
 using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
 
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Utility;
-using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
-
-using PSWorkspaceService = Microsoft.PowerShell.EditorServices.Services.WorkspaceService;
+using Microsoft.PowerShell.EditorServices.Extensions.Services;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
     internal class ContextService : DocumentContextProvider
     {
-        private readonly MessageService _messages;
+        private readonly IWorkspaceService _workspace;
 
-        private readonly PSWorkspaceService _workspace;
+        private readonly IEditorContextService _context;
 
-        internal ContextService(PSWorkspaceService workspace, MessageService messages)
+        internal ContextService(IWorkspaceService workspace, IEditorContextService context)
         {
             _workspace = workspace;
-            _messages = messages;
+            _context = context;
         }
 
         internal override string Workspace => _workspace.WorkspacePath;
@@ -29,13 +28,9 @@ namespace EditorServicesCommandSuite.EditorServices
             CancellationToken cancellationToken,
             ThreadController threadController)
         {
-            var context = await _messages.SendRequestAsync(
-                Messages.GetEditorContext,
-                new GetEditorContextRequest())
-                .ConfigureAwait(false);
-
-            var scriptFile = _workspace.GetFile(context.CurrentFilePath);
-            return GetContextBuilder(scriptFile.ScriptAst, scriptFile.ScriptTokens)
+            var context = await _context.GetCurrentLspFileContextAsync().ConfigureAwait(false);
+            var scriptFile = _workspace.GetFile(context.Uri);
+            return GetContextBuilder(scriptFile.Ast, scriptFile.Tokens.ToArray())
                 .AddCursorPosition(
                     (int)context.CursorPosition.Line + 1,
                     (int)context.CursorPosition.Character + 1)

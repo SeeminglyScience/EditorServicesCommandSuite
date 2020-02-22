@@ -1,19 +1,20 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 using EditorServicesCommandSuite.Internal;
-using Microsoft.PowerShell.EditorServices.Services.PowerShellContext;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Microsoft.PowerShell.EditorServices.Extensions;
+using Microsoft.PowerShell.EditorServices.Extensions.Services;
 
 namespace EditorServicesCommandSuite.EditorServices
 {
     internal class EditorServicesNavigationService : NavigationService, INavigationSupportsOpenDocument
     {
-        private readonly MessageService _messages;
+        private readonly IEditorContextService _context;
 
-        internal EditorServicesNavigationService(MessageService messages)
+        internal EditorServicesNavigationService(IEditorContextService context)
         {
-            _messages = messages;
+            _context = context;
         }
 
         public void OpenDocument(string path)
@@ -23,12 +24,9 @@ namespace EditorServicesCommandSuite.EditorServices
 
         public void OpenDocument(string path, CancellationToken cancellationToken)
         {
-            _messages.SendRequest(
-                Messages.OpenFile,
-                new OpenFileDetails()
-                {
-                    FilePath = path,
-                });
+            _context.OpenFileAsync(new Uri(path))
+                .GetAwaiter()
+                .GetResult();
         }
 
         public Task OpenDocumentAsync(string path)
@@ -38,57 +36,26 @@ namespace EditorServicesCommandSuite.EditorServices
 
         public Task OpenDocumentAsync(string path, CancellationToken cancellationToken)
         {
-            return _messages.SendRequestAsync(
-                Messages.OpenFile,
-                new OpenFileDetails()
-                {
-                    FilePath = path,
-                });
+            return _context.OpenFileAsync(new Uri(path));
         }
 
         public override void SetCursorPosition(int line, int column, CancellationToken cancellationToken)
         {
-            _messages.SendRequest(
-                Messages.SetSelection,
-                new SetSelectionRequest()
-                {
-                    SelectionRange = new Range()
-                    {
-                        Start = new Position()
-                        {
-                            Line = line - 1,
-                            Character = column - 1,
-                        },
-                        End = new Position()
-                        {
-                            Line = line - 1,
-                            Character = column - 1,
-                        },
-                    },
-                });
+            _context.SetSelectionAsync(
+                new LspRange(
+                    new LspFilePosition(line - 1, column - 1),
+                    new LspFilePosition(line - 1, column - 1)))
+                .GetAwaiter()
+                .GetResult();
         }
 
         public override async Task SetCursorPositionAsync(int line, int column, CancellationToken cancellationToken)
         {
-            await _messages.SendRequestAsync(
-                Messages.SetSelection,
-                new SetSelectionRequest()
-                {
-                    SelectionRange = new Range()
-                    {
-                        Start = new Position()
-                        {
-                            Line = line - 1,
-                            Character = column - 1,
-                        },
-                        End = new Position()
-                        {
-                            Line = line - 1,
-                            Character = column - 1,
-                        },
-                    },
-                })
-                .ConfigureAwait(continueOnCapturedContext: false);
+            await _context.SetSelectionAsync(
+                new LspRange(
+                    new LspFilePosition(line - 1, column - 1),
+                    new LspFilePosition(line - 1, column - 1)))
+                .ConfigureAwait(false);
         }
 
         public override void SetSelection(
@@ -98,46 +65,21 @@ namespace EditorServicesCommandSuite.EditorServices
             int endColumn,
             CancellationToken cancellationToken)
         {
-            _messages.SendRequest(
-                Messages.SetSelection,
-                new SetSelectionRequest()
-                {
-                    SelectionRange = new Range()
-                    {
-                        Start = new Position()
-                        {
-                            Line = startLine - 1,
-                            Character = startColumn - 1,
-                        },
-                        End = new Position()
-                        {
-                            Line = endLine - 1,
-                            Character = endColumn - 1,
-                        },
-                    },
-                });
+            _context.SetSelectionAsync(
+                new LspRange(
+                    new LspFilePosition(startLine - 1, startColumn - 1),
+                    new LspFilePosition(endLine - 1, endColumn - 1)))
+                .GetAwaiter()
+                .GetResult();
         }
 
         public override async Task SetSelectionAsync(int startLine, int startColumn, int endLine, int endColumn, CancellationToken cancellationToken)
         {
-            await _messages.SendRequestAsync(
-                Messages.SetSelection,
-                new SetSelectionRequest()
-                {
-                    SelectionRange = new Range()
-                    {
-                        Start = new Position()
-                        {
-                            Line = startLine - 1,
-                            Character = startColumn - 1,
-                        },
-                        End = new Position()
-                        {
-                            Line = endLine - 1,
-                            Character = endColumn - 1,
-                        },
-                    },
-                }).ConfigureAwait(false);
+            await _context.SetSelectionAsync(
+                new LspRange(
+                    new LspFilePosition(startLine - 1, startColumn - 1),
+                    new LspFilePosition(endLine - 1, endColumn - 1)))
+                .ConfigureAwait(false);
         }
     }
 }
