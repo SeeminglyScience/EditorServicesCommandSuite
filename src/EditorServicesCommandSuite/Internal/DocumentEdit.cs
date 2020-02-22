@@ -1,3 +1,7 @@
+using System;
+
+using EditorServicesCommandSuite.Utility;
+
 namespace EditorServicesCommandSuite.Internal
 {
     /// <summary>
@@ -31,6 +35,10 @@ namespace EditorServicesCommandSuite.Internal
         /// Gets or sets the name of the file the edit takes place in.
         /// </summary>
         public string FileName { get; set; }
+
+        public Uri Uri => string.IsNullOrEmpty(FileName)
+            ? null
+            : new Uri(DocumentHelpers.GetPathAsClientPath(FileName));
 
         internal int Id { get; } = s_lastId++;
     }

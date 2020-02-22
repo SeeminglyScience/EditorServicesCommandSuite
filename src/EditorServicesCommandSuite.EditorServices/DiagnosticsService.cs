@@ -5,6 +5,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
+
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Utility;
 

@@ -6,6 +6,7 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
+using EditorServicesCommandSuite.Language;
 using EditorServicesCommandSuite.Reflection;
 using EditorServicesCommandSuite.Utility;
 
@@ -36,6 +37,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             {
                 return;
             }
+
+            typeName = FindTargetTypeName(typeName, context.SelectionExtent.StartScriptPosition);
 
             bool hasDot = typeName.Name.Contains(Symbols.Dot);
             Type resolvedType = typeName.GetReflectionType() ?? typeName.GetReflectionAttributeType();
@@ -136,6 +139,44 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             await context
                 .RegisterWorkspaceChangeAsync(writer.CreateWorkspaceChange(context))
                 .ConfigureAwait(false);
+        }
+
+        private static ITypeName FindTargetTypeName(ITypeName typeName, IScriptPosition position)
+        {
+            while (true)
+            {
+                OuterLoop:
+                if (typeName is GenericTypeName generic)
+                {
+                    if (generic.TypeName.Extent.ContainsPosition(position))
+                    {
+                        typeName = generic.TypeName;
+                        continue;
+                    }
+
+                    foreach (ITypeName genericArg in generic.GenericArguments)
+                    {
+                        if (genericArg.Extent.ContainsPosition(position))
+                        {
+                            typeName = genericArg;
+                            goto OuterLoop;
+                        }
+                    }
+
+                    // Position isn't cleanly within any of them, fallback to the
+                    // generic definition.
+                    typeName = generic.TypeName;
+                    continue;
+                }
+
+                if (typeName is ArrayTypeName array)
+                {
+                    typeName = array.ElementType;
+                    continue;
+                }
+
+                return typeName;
+            }
         }
 
         private static CodeAction CreateCodeAction(

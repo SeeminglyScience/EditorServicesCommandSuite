@@ -5,11 +5,13 @@ using System.Text;
 using System.Web;
 using EditorServicesCommandSuite.Internal;
 
-namespace EditorServicesCommandSuite.EditorServices
+namespace EditorServicesCommandSuite.Utility
 {
     internal static class DocumentHelpers
     {
         private const string FileUriPrefix = "file:///";
+
+        internal static string GetPathAsClientPath(Uri uri) => uri?.ToString() ?? string.Empty;
 
         internal static string GetPathAsClientPath(string path)
         {

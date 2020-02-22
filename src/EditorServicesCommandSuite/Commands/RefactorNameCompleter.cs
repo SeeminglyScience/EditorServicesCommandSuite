@@ -72,12 +72,17 @@ namespace EditorServicesCommandSuite.Commands
             }
 
             IDocumentRefactorProvider[] providers = suite.Refactors.GetProviders();
-            s_providerInfoCache = new RefactorProviderInfo[providers.Length];
-            for (int i = 0; i < providers.Length; i++)
+            var providerInfos = new List<RefactorProviderInfo>(capacity: providers.Length);
+            foreach (IDocumentRefactorProvider provider in providers)
             {
-                RefactorAttribute refactorAttribute = providers[i]
+                RefactorAttribute refactorAttribute = provider
                     .GetType()
                     .GetCustomAttribute<RefactorAttribute>(inherit: true);
+
+                if (refactorAttribute == null)
+                {
+                    continue;
+                }
 
                 string commandName = string.Join(
                     Symbols.Dash.ToString(),
@@ -89,12 +94,13 @@ namespace EditorServicesCommandSuite.Commands
                         commandName,
                         CommandTypes.Function);
 
-                s_providerInfoCache[i] = new RefactorProviderInfo(
-                    providers[i],
-                    command);
+                providerInfos.Add(
+                    new RefactorProviderInfo(
+                        provider,
+                        command));
             }
 
-            return s_providerInfoCache;
+            return s_providerInfoCache = providerInfos.ToArray();
         }
 
         private static CompletionResult ToCompletionResult(RefactorProviderInfo info)

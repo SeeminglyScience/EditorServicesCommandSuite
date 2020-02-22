@@ -155,6 +155,7 @@ task CopyToRelease  {
     $srcBase = "$CSharpPath/$ModuleName"
     Copy-Item "$srcBase/bin/$Configuration/$Framework/publish/EditorServicesCommandSuite.*" -Destination $ReleasePath
     Copy-Item "$srcBase.EditorServices/bin/$Configuration/$Framework/publish/EditorServicesCommandSuite.*" -Destination $ReleasePath
+    Copy-Item "$srcBase.EditorServices/bin/$Configuration/$Framework/publish/*.dll" -Destination $ReleasePath
 
     $psrlReleaseItems =
         'EditorServicesCommandSuite.*',

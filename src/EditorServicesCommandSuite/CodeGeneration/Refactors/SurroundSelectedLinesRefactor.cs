@@ -218,8 +218,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 state: (option, selectionExtent),
                 title: string.Format(
                     System.Globalization.CultureInfo.CurrentCulture,
-                    option.Name,
                     baseAction.Title,
+                    option.Name,
                     string.Join(Space.ToString(), option.Open, option.Close)));
         }
 

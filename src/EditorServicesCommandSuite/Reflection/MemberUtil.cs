@@ -168,7 +168,7 @@ namespace EditorServicesCommandSuite.Reflection
                             }
                         }
                     }
-                    catch (TypeLoadException)
+                    catch
                     {
                         // Skip any types that throw on type load.
                     }
@@ -319,7 +319,7 @@ namespace EditorServicesCommandSuite.Reflection
             StringBuilder builder,
             bool skipGenericArgs)
         {
-            if (skipGenericArgs || !type.IsGenericType)
+            if (!type.IsGenericType)
             {
                 var byEngine = ToStringCodeMethods.Type(new PSObject(type));
                 if (!byEngine.Equals(type.FullName, StringComparison.Ordinal))
@@ -329,23 +329,20 @@ namespace EditorServicesCommandSuite.Reflection
                 }
             }
 
-            if (dropNamespaces && !string.IsNullOrEmpty(type.Namespace))
+            if (!string.IsNullOrEmpty(type.Namespace))
             {
-                droppedNamespaces.Add(type.Namespace);
-            }
-            else
-            {
-                builder.Append(type.Namespace).Append(Symbols.Dot);
-            }
-
-            if (skipGenericArgs)
-            {
-                builder.Append(type.Name);
-                return;
+                if (dropNamespaces)
+                {
+                        droppedNamespaces.Add(type.Namespace);
+                }
+                else
+                {
+                    builder.Append(type.Namespace).Append(Symbols.Dot);
+                }
             }
 
             builder.Append(type.Name.Split(Symbols.Backtick)[0]);
-            if (!type.IsGenericType)
+            if (!type.IsGenericType || skipGenericArgs)
             {
                 return;
             }

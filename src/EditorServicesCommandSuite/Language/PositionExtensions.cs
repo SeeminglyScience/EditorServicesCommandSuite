@@ -142,6 +142,11 @@ namespace EditorServicesCommandSuite.Language
             return ContainsOffset(extent, offsetToTest) || extent.EndOffset + 1 == offsetToTest;
         }
 
+        public static bool ContainsPosition(this IScriptExtent extent, IScriptPosition position)
+        {
+            return ContainsOffset(extent, position.Offset);
+        }
+
         public static bool ContainsOffset(this IScriptExtent extent, int offsetToTest)
         {
             return extent.StartOffset <= offsetToTest

@@ -6,6 +6,7 @@ using System.Management.Automation.Language;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+
 using EditorServicesCommandSuite.Inference;
 using EditorServicesCommandSuite.Internal;
 using EditorServicesCommandSuite.Language;
@@ -39,7 +40,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         public override async Task ComputeCodeActions(DocumentContextBase context)
         {
-            if (!context.Ast.TryFindParent(maxDepth: 3, out InvokeMemberExpressionAst invokeMember))
+            if (!context.Ast.TryFindParent(maxDepth: 3, out MemberExpressionAst member))
             {
                 return;
             }
@@ -47,19 +48,19 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             await context.RegisterCodeActionAsync(
                 DefaultCodeAction.With(
                     ExpandMemberExpressionAsync,
-                    (invokeMember, _ui, false)))
+                    (member, _ui, false)))
                 .ConfigureAwait(false);
 
             await context.RegisterCodeActionAsync(
                 IncludeNonPublicCodeAction.With(
                     ExpandMemberExpressionAsync,
-                    (invokeMember, _ui, true)))
+                    (member, _ui, true)))
                 .ConfigureAwait(false);
         }
 
         public override async Task Invoke(DocumentContextBase context)
         {
-            if (!context.Ast.TryFindParent(maxDepth: 3, out InvokeMemberExpressionAst invokeMember))
+            if (!context.Ast.TryFindParent(maxDepth: 3, out MemberExpressionAst member))
             {
                 return;
             }
@@ -73,7 +74,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 context,
                 codeAction.With(
                     ExpandMemberExpressionAsync,
-                    (invokeMember, _ui, config.AllowNonPublicMembers.IsPresent)))
+                    (member, _ui, config.AllowNonPublicMembers.IsPresent)))
                     .ConfigureAwait(false);
         }
 
@@ -329,25 +330,25 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private static async Task ExpandMemberExpressionAsync(
             DocumentContextBase context,
-            InvokeMemberExpressionAst invokeMember,
+            MemberExpressionAst member,
             IRefactorUI ui,
             bool includeNonPublic)
         {
             ExpandMemberExpressionSettings config = context.GetConfiguration<ExpandMemberExpressionSettings>();
             MemberInfo[] inferredMembers =
-                    (await invokeMember.GetInferredMembersAsync(
-                        context.PipelineThread,
-                        skipArgumentCheck: true,
-                        includeNonPublic: includeNonPublic,
-                        context.CancellationToken)
-                        .ConfigureAwait(false))
-                    .ToArray();
+                (await member.GetInferredMembersAsync(
+                    context.PipelineThread,
+                    skipArgumentCheck: true,
+                    includeNonPublic: includeNonPublic,
+                    context.CancellationToken)
+                    .ConfigureAwait(false))
+                .ToArray();
 
             if (inferredMembers.Length == 0)
             {
                 await ui.ShowErrorMessageOrThrowAsync(
                     Error.CannotInferMember,
-                    invokeMember.Member)
+                    member.Member)
                     .ConfigureAwait(false);
                 return;
             }
@@ -360,9 +361,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 .ConfigureAwait(false);
 
             IEnumerable<DocumentEdit> edits = await GetEdits(
-                invokeMember,
+                member,
                 chosenMember,
-                context.Token.FindNext().AfterEndOf(invokeMember.Expression).GetResult().Value)
+                context.Token.FindNext().AfterEndOf(member.Expression).GetResult().Value)
                 .ConfigureAwait(false);
 
             await context.RegisterWorkspaceChangeAsync(
