@@ -69,12 +69,12 @@ task AssertPowerShellCore {
     }
 
     if ($Force.IsPresent) {
-        choco install powershell-core --version 6.2.3 -y
+        choco install powershell-core --version 7.0.0 -y
     } else {
-        choco install powershell-core --verison 6.2.3
+        choco install powershell-core --verison 7.0.0
     }
 
-    $script:pwsh = Get-Command $env:ProgramFiles/PowerShell/6/pwsh.exe @FailOnError
+    $script:pwsh = Get-Command $env:ProgramFiles/PowerShell/7/pwsh.exe @FailOnError
 }
 
 task AssertRequiredModules {

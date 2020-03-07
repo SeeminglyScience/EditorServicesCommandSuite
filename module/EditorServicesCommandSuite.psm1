@@ -4,7 +4,7 @@ Update-FormatData -AppendPath $PSScriptRoot/EditorServicesCommandSuite.format.ps
 
 if ($null -ne $psEditor) {
     if ($PSVersionTable.PSVersion.Major -ge 6) {
-        $extensionService = [Microsoft.PowerShell.EditorServices.Extensions.EditorObjectExtensions]::
+        $extensionService = [Microsoft.PowerShell.EditorServices.Extensions.EditorObjectExtensions, Microsoft.PowerShell.EditorServices]::
             GetExtensionServiceProvider($psEditor)
 
         $assembly = $extensionService.LoadAssemblyInPsesLoadContext((

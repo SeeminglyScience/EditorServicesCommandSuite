@@ -12,7 +12,7 @@
 RootModule = 'EditorServicesCommandSuite.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.5.0'
+ModuleVersion = '1.0.0'
 
 # ID used to uniquely identify this module
 GUID = '97607afd-d9bd-4a2e-a9f9-70fe1a0a9e4c'
@@ -69,30 +69,6 @@ VariablesToExport = @()
 # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
 AliasesToExport = 'Add-CommandToManifest'
 
-# List of all files packaged with this module
-FileList = 'en-US\EditorServicesCommandSuite-help.xml',
-           'EditorServicesCommandSuite.Classes.ps1',
-           'EditorServicesCommandSuite.deps.json',
-           'EditorServicesCommandSuite.dll',
-           'EditorServicesCommandSuite.EditorServices.deps.json',
-           'EditorServicesCommandSuite.EditorServices.dll',
-           'EditorServicesCommandSuite.EditorServices.pdb',
-           'EditorServicesCommandSuite.EditorServices.xml',
-           'EditorServicesCommandSuite.format.ps1xml',
-           'EditorServicesCommandSuite.pdb',
-           'EditorServicesCommandSuite.psd1',
-           'EditorServicesCommandSuite.psm1',
-           'EditorServicesCommandSuite.PSReadLine.deps.json',
-           'EditorServicesCommandSuite.PSReadLine.dll',
-           'EditorServicesCommandSuite.PSReadLine.pdb',
-           'EditorServicesCommandSuite.PSReadLine.xml',
-           'EditorServicesCommandSuite.RefactorCmdlets.cdxml',
-           'EditorServicesCommandSuite.xml',
-           'System.Buffers.dll',
-           'System.Memory.dll',
-           'System.Numerics.Vectors.dll',
-           'System.Runtime.CompilerServices.Unsafe.dll'
-
 # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
 PrivateData = @{
 
@@ -114,6 +90,9 @@ PrivateData = @{
         ReleaseNotes = @'
 - New editor command ConvertTo-FunctionDefinition for generating functions from selected text.
 '@
+
+        # Prerelease string of this module
+        Prerelease = 'beta1'
 
     } # End of PSData hashtable
 
