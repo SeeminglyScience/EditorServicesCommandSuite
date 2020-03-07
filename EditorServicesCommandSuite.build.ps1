@@ -79,7 +79,7 @@ task AssertPowerShellCore {
 
 task AssertRequiredModules {
     $assertRequiredModule = Get-Command $ToolsPath/AssertRequiredModule.ps1 @FailOnError
-    & $assertRequiredModule platyPS -RequiredVersion 0.12.0 -Force:$Force.IsPresent
+    & $assertRequiredModule platyPS -RequiredVersion 0.14.0 -Force:$Force.IsPresent
 }
 
 task AssertDotNet {
