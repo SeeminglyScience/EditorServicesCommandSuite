@@ -24,10 +24,23 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private const string AmbiguousParameterSet = "AmbiguousParameterSet";
 
+        private static readonly Type s_ternaryExpressionAstType;
+
+        private static readonly Type s_pipelineChainAstType;
+
         private static readonly HashSet<string> s_allCommonParameters =
             new HashSet<string>(
                 Cmdlet.CommonParameters.Concat(Cmdlet.OptionalCommonParameters),
                 StringComparer.OrdinalIgnoreCase);
+
+        static CommandSplatRefactor()
+        {
+            s_ternaryExpressionAstType = typeof(PSObject).Assembly
+                .GetType("System.Management.Automation.Language.TernaryExpressionAst");
+
+            s_pipelineChainAstType = typeof(PSObject).Assembly
+                .GetType("System.Management.Automation.Language.PipelineChainAst");
+        }
 
         internal CommandSplatRefactor(IRefactorUI ui)
         {
@@ -174,9 +187,122 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return (parameterList, unresolvedPositionalArgs);
         }
 
+        private static Ast FindVariableInjectionTargetAst(CommandAst command)
+        {
+            // Search up the tree for the right place to insert the splat variable
+            // assignment. This is done to avoid inserting it in scenarios like:
+            //
+            // $commandValue = $commandSplat = @{ Param = $true }
+            // Command @commandSplat
+            //
+            // or:
+            //
+            // ($commandSplat = @{ Param = $true}
+            // Command @commandSplat)
+            Ast target = command.FindParent<PipelineAst>();
+            while (true)
+            {
+                Ast parent = target.Parent;
+                if (parent == null)
+                {
+                    return target;
+                }
+
+                bool shouldGetParent = false;
+                if (parent is StatementAst)
+                {
+                    shouldGetParent =
+                        parent is AssignmentStatementAst
+                        || parent is ThrowStatementAst
+                        || parent is ReturnStatementAst
+                        || parent is ExitStatementAst
+                        || parent is ContinueStatementAst
+                        || parent is CommandBaseAst
+                        || parent is HashtableAst
+                        || parent is BreakStatementAst
+                        || parent is PipelineBaseAst;
+                }
+
+                if (parent is ExpressionAst)
+                {
+                    shouldGetParent =
+                        parent is ParenExpressionAst
+                        || parent is BinaryExpressionAst
+                        || parent is UnaryExpressionAst
+                        || parent is AttributedExpressionAst
+                        || parent is MemberExpressionAst
+                        || parent is ExpandableStringExpressionAst
+                        || parent is ArrayLiteralAst
+                        || parent is UsingExpressionAst
+                        || parent is IndexExpressionAst;
+                }
+
+                if (shouldGetParent)
+                {
+                    target = parent;
+                    continue;
+                }
+
+                if (parent is IfStatementAst ifStatementAst)
+                {
+                    foreach (Tuple<PipelineBaseAst, StatementBlockAst> clause in ifStatementAst.Clauses)
+                    {
+                        if (target == clause.Item1)
+                        {
+                            return ifStatementAst;
+                        }
+                    }
+
+                    return target;
+                }
+
+                if (parent is ForStatementAst forStatement)
+                {
+                    if (target == forStatement.Initializer ||
+                        target == forStatement.Iterator ||
+                        target == forStatement.Condition)
+                    {
+                        return forStatement;
+                    }
+
+                    return target;
+                }
+
+                if (parent is LoopStatementAst loop)
+                {
+                    if (target == loop.Condition)
+                    {
+                        return loop;
+                    }
+
+                    return target;
+                }
+
+                // These don't actually work yet since AstEnumerable won't find a CommandAst
+                // hidden in either of these language elements.
+                if (s_ternaryExpressionAstType != null)
+                {
+                    Type reflectionType = parent.GetType();
+                    if (s_ternaryExpressionAstType.IsAssignableFrom(reflectionType))
+                    {
+                        target = parent;
+                        continue;
+                    }
+
+                    if (s_pipelineChainAstType?.IsAssignableFrom(reflectionType) == true)
+                    {
+                        target = parent;
+                        continue;
+                    }
+                }
+
+                return target;
+            }
+        }
+
         private static async Task<IEnumerable<DocumentEdit>> GetEdits(CommandSplatArguments args)
         {
-            PipelineAst parentStatement = args.Command.FindParent<PipelineAst>();
+            Ast variableInjectionTarget = FindVariableInjectionTargetAst(args.Command);
             string commandName = args.Command.GetCommandName();
             IEnumerable<CommandElementAst> elements = args.Command.CommandElements.Skip(1);
             IScriptExtent elementsExtent = elements.JoinExtents();
@@ -194,14 +320,14 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             var splatWriter = new PowerShellScriptWriter(args.Command);
             var elementsWriter = new PowerShellScriptWriter(args.Command);
 
-            splatWriter.SetPosition(parentStatement);
+            splatWriter.SetPosition(variableInjectionTarget);
             splatWriter.WriteAssignment(
                 () => splatWriter.WriteVariable(args.VariableName),
                 () => splatWriter.OpenHashtable());
 
             if (elementsExtent is Empty.Extent)
             {
-                elementsWriter.SetPosition(parentStatement, atEnd: true);
+                elementsWriter.SetPosition(variableInjectionTarget, atEnd: true);
                 elementsWriter.Write(Symbols.Space);
             }
             else
