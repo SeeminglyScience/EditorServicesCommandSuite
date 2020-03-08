@@ -125,6 +125,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 if (!_statementAcceptsAttributes)
                 {
                     WriteToParamBlock(Markers);
+                    Writer.CreateDocumentEdits();
                     return Writer.Edits;
                 }
 
@@ -140,9 +141,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     else
                     {
                         WriteToStatement(group);
+                        Writer.WriteIndentIfPending();
                     }
                 }
 
+                Writer.CreateDocumentEdits();
                 return Writer.Edits;
             }
 
@@ -181,6 +184,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 {
                     Writer.SetPosition(sbAst.ParamBlock);
                     WriteMarkers(markers);
+                    Writer.WriteIndentIfPending();
                     return;
                 }
 
@@ -201,7 +205,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     return;
                 }
 
-                bool foundToken = Context.Token
+                bool foundToken = Context.Token.List.First
                     .FindNext()
                     .ContainingStartOf(sbAst)
                     .TryGetResult(out TokenNode entryToken);
@@ -276,8 +280,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     return false;
                 }
 
-                Token tokenAtStatementStart = Context.Token
-                    .FindNext()
+                Token tokenAtStatementStart = Context.Token.List.First
+                    .FindNextOrSelf()
                     .ContainingStartOf(_parentStatementAst)
                     .GetResult()
                     .Value;

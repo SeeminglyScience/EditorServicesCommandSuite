@@ -143,11 +143,23 @@ namespace EditorServicesCommandSuite.CodeGeneration
                 SetPosition(0);
             }
 
-            Write(UsingUtilities.GetUsingStatementString(usings));
-
-            if (!existing.Any())
+            var oldPendingIndent = _pendingIndent;
+            var oldIndent = Indent;
+            try
             {
-                WriteLines(2);
+                _pendingIndent = null;
+                Indent = 0;
+                Write(UsingUtilities.GetUsingStatementString(usings));
+
+                if (!existing.Any())
+                {
+                    WriteLines(2);
+                }
+            }
+            finally
+            {
+                _pendingIndent = oldPendingIndent;
+                Indent = oldIndent;
             }
 
             return true;
@@ -762,18 +774,30 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         internal void WriteUsingStatement(string name, UsingStatementKind kind)
         {
-            char[] kindSymbol = kind switch
+            var oldPendingIndent = _pendingIndent;
+            var oldIndent = Indent;
+            try
             {
-                UsingStatementKind.Assembly => Symbols.Assembly,
-                UsingStatementKind.Module => Symbols.Module,
-                UsingStatementKind.Namespace => Symbols.Namespace,
-                _ => throw new InvalidOperationException(),
-            };
+                _pendingIndent = null;
+                Indent = 0;
+                char[] kindSymbol = kind switch
+                {
+                    UsingStatementKind.Assembly => Symbols.Assembly,
+                    UsingStatementKind.Module => Symbols.Module,
+                    UsingStatementKind.Namespace => Symbols.Namespace,
+                    _ => throw new InvalidOperationException(),
+                };
 
-            Write(Using);
-            Write(Space);
-            Write(kindSymbol);
-            Write(name);
+                Write(Using);
+                Write(Space);
+                Write(kindSymbol);
+                Write(name);
+            }
+            finally
+            {
+                _pendingIndent = oldPendingIndent;
+                Indent = oldIndent;
+            }
         }
 
         internal Task RegisterWorkspaceChangeAsync(DocumentContextBase context)
