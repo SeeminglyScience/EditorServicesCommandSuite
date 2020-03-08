@@ -81,7 +81,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 title: string.Format(
                     CultureInfo.CurrentCulture,
                     sourceAction.Title,
-                    marker.RuleSuppressionId));
+                    string.IsNullOrEmpty(marker.RuleSuppressionId)
+                        ? marker.RuleName
+                        : marker.RuleSuppressionId));
         }
 
         private async Task<IEnumerable<DiagnosticMarker>> GetMarkersAsync(DocumentContextBase request)
@@ -204,7 +206,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     .ContainingStartOf(sbAst)
                     .TryGetResult(out TokenNode entryToken);
 
-                if (foundToken)
+                if (!foundToken)
                 {
                     Writer.SetPosition(sbAst);
                 }
@@ -257,7 +259,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     Writer.WriteStringExpression(
                         StringConstantType.SingleQuoted,
                         marker.RuleName);
-                    Writer.Write(Symbols.Comma + Symbols.Space);
+                    Writer.Write(Symbols.Comma);
+                    Writer.Write(Symbols.Space);
                     Writer.WriteStringExpression(
                         StringConstantType.SingleQuoted,
                         marker.RuleSuppressionId);
