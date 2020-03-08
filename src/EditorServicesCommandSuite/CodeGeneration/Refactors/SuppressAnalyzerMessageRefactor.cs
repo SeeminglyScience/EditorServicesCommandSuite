@@ -81,7 +81,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 title: string.Format(
                     CultureInfo.CurrentCulture,
                     sourceAction.Title,
-                    marker.RuleSuppressionId));
+                    string.IsNullOrEmpty(marker.RuleSuppressionId)
+                        ? marker.RuleName
+                        : marker.RuleSuppressionId));
         }
 
         private async Task<IEnumerable<DiagnosticMarker>> GetMarkersAsync(DocumentContextBase request)
@@ -123,6 +125,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 if (!_statementAcceptsAttributes)
                 {
                     WriteToParamBlock(Markers);
+                    Writer.CreateDocumentEdits();
                     return Writer.Edits;
                 }
 
@@ -138,9 +141,11 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     else
                     {
                         WriteToStatement(group);
+                        Writer.WriteIndentIfPending();
                     }
                 }
 
+                Writer.CreateDocumentEdits();
                 return Writer.Edits;
             }
 
@@ -179,6 +184,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 {
                     Writer.SetPosition(sbAst.ParamBlock);
                     WriteMarkers(markers);
+                    Writer.WriteIndentIfPending();
                     return;
                 }
 
@@ -199,12 +205,12 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     return;
                 }
 
-                bool foundToken = Context.Token
+                bool foundToken = Context.Token.List.First
                     .FindNext()
                     .ContainingStartOf(sbAst)
                     .TryGetResult(out TokenNode entryToken);
 
-                if (foundToken)
+                if (!foundToken)
                 {
                     Writer.SetPosition(sbAst);
                 }
@@ -257,7 +263,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     Writer.WriteStringExpression(
                         StringConstantType.SingleQuoted,
                         marker.RuleName);
-                    Writer.Write(Symbols.Comma + Symbols.Space);
+                    Writer.Write(Symbols.Comma);
+                    Writer.Write(Symbols.Space);
                     Writer.WriteStringExpression(
                         StringConstantType.SingleQuoted,
                         marker.RuleSuppressionId);
@@ -273,8 +280,8 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     return false;
                 }
 
-                Token tokenAtStatementStart = Context.Token
-                    .FindNext()
+                Token tokenAtStatementStart = Context.Token.List.First
+                    .FindNextOrSelf()
                     .ContainingStartOf(_parentStatementAst)
                     .GetResult()
                     .Value;

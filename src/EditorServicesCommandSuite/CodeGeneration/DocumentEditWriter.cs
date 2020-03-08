@@ -19,6 +19,8 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
         protected char[] _coreTab;
 
+        private protected int? _pendingIndent;
+
         private readonly Stack<int> _indentStack = new Stack<int>();
 
         private readonly int _byteOffsetModifier;
@@ -34,8 +36,6 @@ namespace EditorServicesCommandSuite.CodeGeneration
         private readonly MemoryStream _originalDocument;
 
         private readonly byte[] _originalBuffer;
-
-        private int? _pendingIndent;
 
         private bool _isWritePending;
 
@@ -498,9 +498,17 @@ namespace EditorServicesCommandSuite.CodeGeneration
                     StartOffset = editGroup.Key,
                     EndOffset = highestOverride.EndOffset,
                     OriginalValue = highestOverride.OriginalValue,
+
+                    // The order by is hacky fix for when some refactors insert into offset 0
+                    // and also generate using namespace statements. A better fix would be to
+                    // implement a weight concept to document edits.
                     NewValue = string.Concat(
                         editGroup
-                            .OrderBy(edit => edit.Id)
+                            .OrderByDescending(
+                                edit => edit.NewValue.StartsWith(
+                                    "using namespace ",
+                                    StringComparison.OrdinalIgnoreCase))
+                            .ThenBy(edit => edit.Id)
                             .Select(edit => edit.NewValue)),
                 };
             }
