@@ -71,7 +71,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return;
             }
 
-            await SplatCommandAsync(context, command, AdditionalParameterTypes.None, UI)
+            await ProcessActionForInvoke(
+                context,
+                CreateCodeAction(command, AdditionalParameterTypes.None))
                 .ConfigureAwait(false);
         }
 
