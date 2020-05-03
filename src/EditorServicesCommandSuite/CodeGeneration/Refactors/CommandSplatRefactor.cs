@@ -64,6 +64,17 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
         private CodeAction SplatMandatoryParametersCodeAction => SupportedActions[2];
 
+        public override async Task Invoke(DocumentContextBase context)
+        {
+            if (!context.Ast.TryFindParent(maxDepth: 3, out CommandAst command))
+            {
+                return;
+            }
+
+            await SplatCommandAsync(context, command, AdditionalParameterTypes.None, UI)
+                .ConfigureAwait(false);
+        }
+
         public override async Task ComputeCodeActions(DocumentContextBase context)
         {
             if (!context.Ast.TryFindParent(maxDepth: 3, out CommandAst command))
