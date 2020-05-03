@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\EditorServicesCommandSuite.Common.props" />
   <ItemGroup>
+    <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.16.0" PrivateAssets="all" />
     <ProjectReference Include="..\EditorServicesCommandSuite\EditorServicesCommandSuite.csproj" />
     <Reference Include="Microsoft.PowerShell.EditorServices">
       <HintPath>..\..\lib\PowerShellEditorServices\bin\Microsoft.PowerShell.EditorServices.dll</HintPath>
+      <Private>false</Private>
     </Reference>
   </ItemGroup>
 </Project>

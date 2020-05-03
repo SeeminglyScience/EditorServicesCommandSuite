@@ -4,6 +4,7 @@
     <ProjectReference Include="..\EditorServicesCommandSuite\EditorServicesCommandSuite.csproj" />
     <Reference Include="Microsoft.PowerShell.PSReadLine2">
       <HintPath>..\..\lib\PSReadLine\Microsoft.PowerShell.PSReadLine2.dll</HintPath>
+      <Private>false</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
