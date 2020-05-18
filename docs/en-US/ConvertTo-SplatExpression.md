@@ -13,7 +13,7 @@ Convert a command expression to use splatting.
 ## SYNTAX
 
 ```powershell
-ConvertTo-SplatExpression [[-Ast] <Ast>] [[-VariableName] <String>]
+ConvertTo-SplatExpression [[-Ast] <Ast>] [[-VariableName] <String>] [[-VariableCase] <string>]
 ```
 
 ## DESCRIPTION
@@ -62,7 +62,7 @@ Accept wildcard characters: False
 
 ### -VariableName
 
-Specifies the Varabile name to use for the splat hashtable variable.
+Specifies the variable name to use for the splat hashtable variable.
 
 ```yaml
 Type: String
@@ -72,6 +72,22 @@ Aliases:
 Required: False
 Position: 2
 Default value: none
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -VariableCase
+
+Specifies the casing for the variable name used for the splat hashtable variable. Choices are: `camelCase` (lowercase the first letter of the variable), `PascalCase` (upper case the first letter of the variable), or `Unmodified` (do not change the casing; use the same casing as the command being used to create the splat).
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 3
+Default value: camelCase
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
