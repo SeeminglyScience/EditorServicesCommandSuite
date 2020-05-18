@@ -11,9 +11,13 @@ function ConvertTo-SplatExpression {
     param(
         [System.Management.Automation.Language.Ast]
         $Ast,
-        
+
         [String]
-        $VariableName
+        $VariableName,
+
+        [ValidateSet('camelCase', 'PascalCase', 'Unmodified')]
+        [String]
+        $VariableCase = 'camelCase'
     )
     begin {
         function ConvertFromExpressionAst($expression) {
@@ -67,12 +71,32 @@ function ConvertTo-SplatExpression {
         }
 
         if (-not $VariableName) {
-            # Remove the hypen, change to camelCase and add 'Splat'
-            $variableName = [regex]::Replace(
-                ($commandName.Extent.Text -replace '-'),
-                '^[A-Z]',
-                { $args[0].Value.ToLower() }) +
-                'Splat'
+            switch ($VariableCase) {
+                'camelCase' {
+                    # Remove the hyphen, change to pascalCase, and add 'Splat
+                    $variableName = [regex]::Replace(
+                        ($commandName.Extent.Text -replace '-'),
+                        '^[A-Z]',
+                        { $args[0].Value.ToLower() }) +
+                        'Splat'
+                }
+                'PascalCase' {
+                    # Remove the hyphen, change to PascalCase, and add 'Splat'
+                    $variableName = [regex]::Replace(
+                        ($commandName.Extent.Text -replace '-'),
+                        '^[A-Z]',
+                        { $args[0].Value.ToUpper() }) +
+                        'Splat'
+                }
+                'Unmodified' {
+                    # Remove the hyphen, don't change case, and add 'Splat'
+                    $variableName = [regex]::Replace(
+                        ($commandName.Extent.Text -replace '-'),
+                        '^[A-Z]',
+                        { $args[0].Value }) +
+                        'Splat'
+                }
+            }
         }
 
         $sb = [System.Text.StringBuilder]::
