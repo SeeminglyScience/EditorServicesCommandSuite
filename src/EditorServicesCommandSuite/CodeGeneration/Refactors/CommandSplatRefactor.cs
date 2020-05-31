@@ -71,9 +71,10 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 return;
             }
 
+            var config = context.GetConfiguration<CommandSplatRefactorSettings>();
             await ProcessActionForInvoke(
                 context,
-                CreateCodeAction(command, AdditionalParameterTypes.None))
+                CreateCodeAction(command, config.AdditionalParameters))
                 .ConfigureAwait(false);
         }
 
@@ -123,7 +124,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             var config = context.GetConfiguration<CommandSplatRefactorSettings>();
             string splatVariable = string.IsNullOrWhiteSpace(config.VariableName)
-                ? GetSplatVariableName(command.CommandElements[0])
+                ? GetSplatVariableName(command.CommandElements[0], config.CaseType)
                 : config.VariableName;
 
             IEnumerable<DocumentEdit> edits = await GetEdits(
@@ -135,8 +136,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     splatVariable,
                     parameterTypes,
                     config.ExcludeHints,
-                    config.NewLineAfterHashtable,
-                    context.CancellationToken))
+                    config.NoNewLineAfterHashtable,
+                    context.CancellationToken,
+                    config.CaseType))
                     .ConfigureAwait(false);
 
             await context.RegisterWorkspaceChangeAsync(
@@ -389,7 +391,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             splatWriter.CloseHashtable();
 
-            if (args.NewLineAfterHashtable)
+            if (!args.NoNewLineAfterHashtable)
             {
                 splatWriter.WriteLine();
             }
@@ -527,7 +529,7 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
             return false;
         }
 
-        private static string GetSplatVariableName(CommandElementAst element)
+        private static string GetSplatVariableName(CommandElementAst element, CaseType caseType)
         {
             var nameConstant = element as StringConstantExpressionAst;
             if (element == null)
@@ -549,14 +551,24 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     .Replace(Symbols.Dash.ToString(), string.Empty)
                     + SplatVariableSuffix;
 
-            if (!char.IsUpper(variableName[0]))
+            bool isFirstLetterCap = char.IsUpper(variableName[0]);
+            bool isPascalCase = caseType == CaseType.PascalCase;
+            if (isPascalCase)
+            {
+                if (isFirstLetterCap)
+                {
+                    return variableName;
+                }
+
+                return char.ToUpperInvariant(variableName[0]) + variableName.Substring(1);
+            }
+
+            if (!isFirstLetterCap)
             {
                 return variableName;
             }
 
-            return
-                char.ToLower(variableName[0])
-                + variableName.Substring(1);
+            return char.ToLowerInvariant(variableName[0]) + variableName.Substring(1);
         }
 
         private CodeAction CreateCodeAction(
@@ -594,7 +606,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 
             internal readonly bool ExcludeHints;
 
-            internal readonly bool NewLineAfterHashtable;
+            internal readonly bool NoNewLineAfterHashtable;
+
+            internal readonly CaseType CaseType;
 
             internal CommandSplatArguments(
                 ThreadController pipelineThread,
@@ -604,8 +618,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 string variableName,
                 AdditionalParameterTypes includedParameterTypes,
                 bool excludeHints,
-                bool newLineAfterHashtable,
-                CancellationToken cancellationToken)
+                bool noNewLineAfterHashtable,
+                CancellationToken cancellationToken,
+                CaseType caseType)
             {
                 PipelineThread = pipelineThread;
                 UI = ui;
@@ -614,8 +629,9 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                 VariableName = variableName;
                 IncludedTypes = includedParameterTypes;
                 ExcludeHints = excludeHints;
-                NewLineAfterHashtable = newLineAfterHashtable;
+                NoNewLineAfterHashtable = noNewLineAfterHashtable;
                 CancellationToken = cancellationToken;
+                CaseType = caseType;
             }
         }
     }

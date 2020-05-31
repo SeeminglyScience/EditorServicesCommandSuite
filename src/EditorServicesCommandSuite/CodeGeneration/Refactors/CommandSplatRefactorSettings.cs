@@ -1,4 +1,5 @@
 using System.Management.Automation;
+using EditorServicesCommandSuite.Language;
 
 namespace EditorServicesCommandSuite.CodeGeneration.Refactors
 {
@@ -10,15 +11,19 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
         public string VariableName { get; set; }
 
         [Parameter]
-        [DefaultFromSetting("CommandSplatRefactor.NewLineAfterHashtable", Default = "$true")]
-        public SwitchParameter NewLineAfterHashtable { get; set; }
+        [DefaultFromSetting("CommandSplatRefactor.NoNewLineAfterHashtable", Default = "$false")]
+        public SwitchParameter NoNewLineAfterHashtable { get; set; }
 
         [Parameter]
-        [DefaultFromSetting("CommandSplatRefactor.AdditionalParameters", Default = "\"None\"")]
+        [DefaultFromSetting("CommandSplatRefactor.AdditionalParameters", Default = "\'None\'")]
         public AdditionalParameterTypes AdditionalParameters { get; set; }
 
         [Parameter]
         [DefaultFromSetting("CommandSplatRefactor.ExcludeHints", Default = "$false")]
         public SwitchParameter ExcludeHints { get; set; }
+
+        [Parameter]
+        [DefaultFromSetting("CommandSplatRefactor.VariableCaseType", Default = "\'CamelCase\'")]
+        public CaseType CaseType { get; set; }
     }
 }

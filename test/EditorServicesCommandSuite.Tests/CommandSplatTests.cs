@@ -396,7 +396,7 @@ namespace EditorServicesCommandSuite.Tests
         private async Task<string> GetRefactoredTextAsync(
             string testString,
             string variableName = "splat",
-            bool newLineAfterHashtable = false,
+            bool noNewLineAfterHashtable = true,
             bool allParameters = false,
             bool mandatoryParameters = false,
             bool noHints = false,
@@ -411,7 +411,7 @@ namespace EditorServicesCommandSuite.Tests
             {
                 AdditionalParameters = includedTypes,
                 ExcludeHints = noHints,
-                NewLineAfterHashtable = newLineAfterHashtable,
+                NoNewLineAfterHashtable = noNewLineAfterHashtable,
                 VariableName = variableName,
             };
 

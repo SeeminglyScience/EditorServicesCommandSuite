@@ -12,7 +12,7 @@
   <ItemGroup>
     <AdditionalFiles Include="..\EditorServicesCommandSuite\stylecop.json" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" />
-    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.0-preview-04" PrivateAssets="All" />
