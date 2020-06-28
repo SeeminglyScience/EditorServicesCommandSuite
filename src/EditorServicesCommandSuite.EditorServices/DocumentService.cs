@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using EditorServicesCommandSuite.Internal;
 using Microsoft.PowerShell.EditorServices.Extensions;
 using Microsoft.PowerShell.EditorServices.Extensions.Services;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace EditorServicesCommandSuite.EditorServices
@@ -76,7 +77,7 @@ namespace EditorServicesCommandSuite.EditorServices
 
                 var versionedIdentifier = new VersionedTextDocumentIdentifier
                 {
-                    Uri = editGroup.Key ?? context.Uri,
+                    Uri = DocumentUri.From(editGroup.Key ?? context.Uri),
                     Version = default,
                 };
 

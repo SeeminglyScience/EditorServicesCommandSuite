@@ -153,21 +153,26 @@
   <data name="CommandSplatRefactor_VariableNameDescription" xml:space="preserve">
     <value>The variable name to use when creating the splat expression variable. The default behavior is to name the string similar to "getCommandNameHereSplat". Setting this to $null will enforce the default behavior.</value>
   </data>
-  <data name="CommandSplatRefactor_NewLineAfterHashtableDescription" xml:space="preserve">
+  <data name="CommandSplatRefactor_NoNewLineAfterHashtableDescription" xml:space="preserve">
     <value>Specifies whether a new line should be placed between the hashtable and the original command expression.</value>
   </data>
   <data name="CommandSplatRefactor_AdditionalParametersDescription" xml:space="preserve">
     <value>Specifies if additional parameters that have not been should be added to the splat expression. The following options are available:
-    "None" - Only bound parameters. This is the default.
-    "Mandatory" - Mandatory parameters that have not yet been bound will be added.
-    "All" - All resolved parameters will be added.</value>
+    'None' - Only bound parameters. This is the default.
+    'Mandatory' - Mandatory parameters that have not yet been bound will be added.
+    'All' - All resolved parameters will be added.</value>
   </data>
   <data name="CommandSplatRefactor_ExcludeHintsDescription" xml:space="preserve">
     <value>Specifies whether the value for additional unbound parameters should be a variable of the same name as the parameter, or if it should be decorated with mandatoriness and parameter type.
     $true - Path = $path
     $false - Path = $mandatoryStringPath</value>
   </data>
-  <data name="ExpandMemberExpression_AllowNonPublicMembers" xml:space="preserve">
+  <data name="CommandSplatRefactor_VariableCaseTypeDescription" xml:space="preserve">
+    <value>Specifies the case style to use for generated variable names.
+    'CamelCase' - $getChildItemSplat. This is the default.
+    'PascalCase' - $GetChildItemSplat</value>
+  </data>
+  <data name="ExpandMemberExpression_AllowNonPublicMembersDescription" xml:space="preserve">
     <value>Specifies whether non-public members should be included in the list of resolved members. If a non-public member is selected, an expression utilizing reflection will be generated to access the member.</value>
   </data>
   <data name="UsingStatements_SeparateGroupsWithNewLineDescription" xml:space="preserve">

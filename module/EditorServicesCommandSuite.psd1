@@ -92,7 +92,7 @@ PrivateData = @{
 '@
 
         # Prerelease string of this module
-        Prerelease = 'beta2'
+        Prerelease = 'beta3'
 
     } # End of PSData hashtable
 

@@ -4,14 +4,14 @@ namespace EditorServicesCommandSuite.EditorServices
 {
     internal class LspPosition : ILspFilePosition
     {
-        public LspPosition(long line, long character)
+        public LspPosition(int line, int character)
         {
             Line = line;
             Character = character;
         }
 
-        public long Line { get; }
+        public int Line { get; }
 
-        public long Character { get; }
+        public int Character { get; }
     }
 }
