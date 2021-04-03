@@ -75,7 +75,7 @@ namespace EditorServicesCommandSuite.EditorServices
                     textEdits.Add(textEdit);
                 }
 
-                var versionedIdentifier = new VersionedTextDocumentIdentifier
+                var versionedIdentifier = new OptionalVersionedTextDocumentIdentifier
                 {
                     Uri = DocumentUri.From(editGroup.Key ?? context.Uri),
                     Version = default,
