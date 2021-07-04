@@ -181,7 +181,7 @@ task DoTest {
 
         InvokeWithPSModulePath {
             & $dotnet test `
-                --framework netcoreapp2.0 `
+                --framework netcoreapp3.1 `
                 --configuration Test `
                 --logger "trx;LogFileName=$PSScriptRoot/TestResults/results.trx" `
                 -nologo

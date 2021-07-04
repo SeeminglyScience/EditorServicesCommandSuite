@@ -13,6 +13,31 @@ namespace EditorServicesCommandSuite.Tests
         private readonly MockedRefactorService _refactorService = new MockedRefactorService(new CommandSplatRefactor(null));
 
         [Fact]
+        public async void HandlesStrangeJoinStringParameterBindingException()
+        {
+            // See https://github.com/SeeminglyScience/EditorServicesCommandSuite/issues/62
+            Assert.Equal(
+                TestBuilder.Create()
+                    .Lines("$splat = @{")
+                    .Lines("    OutputPrefix = '-'")
+                    .Lines("}")
+                    .Texts("Join-String @splat"),
+                await GetRefactoredTextAsync("Join-String -OutputPrefix '-'"));
+        }
+
+        [Fact]
+        public async void PerservesExplicitSwitchValues()
+        {
+            Assert.Equal(
+                TestBuilder.Create()
+                    .Lines("$splat = @{")
+                    .Lines("    Verbose = $Test.IsPresent")
+                    .Lines("}")
+                    .Texts("Get-ChildItem @splat"),
+                await GetRefactoredTextAsync("Get-ChildItem -Verbose:$Test.IsPresent"));
+        }
+
+        [Fact]
         public async void DoesNothingWithNoParameters()
         {
             Assert.Equal("Get-ChildItem", await GetRefactoredTextAsync("Get-ChildItem"));
@@ -91,7 +116,8 @@ namespace EditorServicesCommandSuite.Tests
                     .Lines("    From = $mandatoryStringFrom")
                     .Lines("    SmtpServer = $stringSmtpServer")
                     .Lines("    Priority = $mailPriorityPriority")
-                    .Lines("    Subject = $mandatoryStringSubject")
+                    .Lines("    ReplyTo = $stringArrayReplyTo")
+                    .Lines("    Subject = $stringSubject")
                     .Lines("    To = $mandatoryStringArrayTo")
                     .Lines("    Credential = $pSCredentialCredential")
                     .Lines("    UseSsl = $switchParameterUseSsl")
@@ -119,7 +145,8 @@ namespace EditorServicesCommandSuite.Tests
                     .Lines("    DeliveryNotificationOption = $deliveryNotificationOptionsDeliveryNotificationOption")
                     .Lines("    SmtpServer = $stringSmtpServer")
                     .Lines("    Priority = $mailPriorityPriority")
-                    .Lines("    Subject = $mandatoryStringSubject")
+                    .Lines("    ReplyTo = $stringArrayReplyTo")
+                    .Lines("    Subject = $stringSubject")
                     .Lines("    To = $mandatoryStringArrayTo")
                     .Lines("    Credential = $pSCredentialCredential")
                     .Lines("    UseSsl = $switchParameterUseSsl")
@@ -264,7 +291,6 @@ namespace EditorServicesCommandSuite.Tests
                 TestBuilder.Create()
                     .Lines("$splat = @{")
                     .Lines("    From = $mandatoryStringFrom")
-                    .Lines("    Subject = $mandatoryStringSubject")
                     .Lines("    To = $mandatoryStringArrayTo")
                     .Lines("}")
                     .Texts("Send-MailMessage @splat"),
@@ -280,7 +306,6 @@ namespace EditorServicesCommandSuite.Tests
                 TestBuilder.Create()
                     .Lines("$splat = @{")
                     .Lines("    From = 'someone@someplace.com'")
-                    .Lines("    Subject = $mandatoryStringSubject")
                     .Lines("    To = $mandatoryStringArrayTo")
                     .Lines("}")
                     .Texts("Send-MailMessage @splat"),
@@ -383,7 +408,6 @@ namespace EditorServicesCommandSuite.Tests
                 TestBuilder.Create()
                     .Lines("$splat = @{")
                     .Lines("    From = $from")
-                    .Lines("    Subject = $subject")
                     .Lines("    To = $to")
                     .Lines("}")
                     .Texts("Send-MailMessage @splat"),
@@ -419,7 +443,7 @@ namespace EditorServicesCommandSuite.Tests
                 testString,
                 context => CommandSplatRefactor.SplatCommandAsync(
                     context,
-                    context.Ast.FindParent<CommandAst>(),
+                    context.Ast.FindParent<CommandAst>(maxDepth: 10),
                     includedTypes,
                     null),
                 cancellationToken: cancellationToken,

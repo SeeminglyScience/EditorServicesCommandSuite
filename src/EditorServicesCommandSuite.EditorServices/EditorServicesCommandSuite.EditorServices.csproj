@@ -1,13 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\EditorServicesCommandSuite.Common.props" />
-  <PropertyGroup>
-    <RestoreAdditionalProjectSources>
-      $(RestoreAdditionalProjectSources)
-      https://www.myget.org/F/omnisharp/api/v3/index.json
-    </RestoreAdditionalProjectSources>
-  </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.17.0-*" PrivateAssets="all" />
+    <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.2" PrivateAssets="all" />
     <ProjectReference Include="..\EditorServicesCommandSuite\EditorServicesCommandSuite.csproj" />
     <Reference Include="Microsoft.PowerShell.EditorServices">
       <HintPath>..\..\lib\PowerShellEditorServices\bin\Microsoft.PowerShell.EditorServices.dll</HintPath>

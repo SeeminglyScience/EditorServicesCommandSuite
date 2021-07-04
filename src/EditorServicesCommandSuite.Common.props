@@ -6,19 +6,19 @@
     <Configurations>Debug;Release;Test</Configurations>
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <LangVersion>preview</LangVersion>
-    <TargetFrameworks>netstandard2.0;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <Version>1.0.0.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <AdditionalFiles Include="..\EditorServicesCommandSuite\stylecop.json" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.354" PrivateAssets="All" />
     <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-    <PackageReference Include="PowerShellStandard.Library" Version="5.1.0-preview-04" PrivateAssets="All" />
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.0" PrivateAssets="All" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
-    <PackageReference Include="Microsoft.PowerShell.SDK" Version="6.0.2" PrivateAssets="All" />
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp3.1' ">
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.0.6" PrivateAssets="All" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Test' ">
     <DefineConstants>TEST</DefineConstants>
