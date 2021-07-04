@@ -94,7 +94,7 @@ namespace EditorServicesCommandSuite.CodeGeneration
             }
         }
 
-        internal static Encoding DefaultEncoding { get; set; } = Encoding.ASCII;
+        internal static Encoding DefaultEncoding { get; set; } = Encoding.Unicode;
 
         internal virtual IEnumerable<DocumentEdit> Edits
         {
