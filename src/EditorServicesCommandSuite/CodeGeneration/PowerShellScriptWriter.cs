@@ -699,6 +699,18 @@ namespace EditorServicesCommandSuite.CodeGeneration
 
             if (parameter.Value.ConstantValue is bool boolean)
             {
+                // Switch parameters lie sometimes, e.g. `-Verbose:$something.Value` will
+                // still report "ConstantValue: $true".
+                if (parameter.Value.Value is not null)
+                {
+                    string astString = parameter.Value.Value.ToString();
+                    if (!string.IsNullOrEmpty(astString))
+                    {
+                        Write(astString);
+                        return;
+                    }
+                }
+
                 Write(Dollar + boolean.ToString().ToLower());
                 return;
             }

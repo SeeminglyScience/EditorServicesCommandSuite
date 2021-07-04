@@ -186,16 +186,16 @@ namespace EditorServicesCommandSuite.CodeGeneration.Refactors
                     unresolvedBinding = StaticParameterBinder.BindCommand(args.Command, resolve: false);
                 }
 
-                bool isBound = unresolvedBinding.BoundParameters.TryGetValue(
-                    bindingException.Key,
-                    out ParameterBindingResult unresolvedResult);
-
-                if (isBound)
+                if (unresolvedBinding.BoundParameters.TryGetValue(bindingException.Key, out ParameterBindingResult unresolvedResult))
                 {
-                    parameterList.Add(
-                        new Parameter(
-                            bindingException.Key,
-                            unresolvedResult));
+                    parameterList.Add(new Parameter(bindingException.Key, unresolvedResult));
+                    continue;
+                }
+
+                if (bindingException.Value.BindingException is ParameterBindingException pbe
+                    && unresolvedBinding.BoundParameters.TryGetValue(pbe.ParameterName, out unresolvedResult))
+                {
+                    parameterList.Add(new Parameter(pbe.ParameterName, unresolvedResult));
                 }
             }
 
