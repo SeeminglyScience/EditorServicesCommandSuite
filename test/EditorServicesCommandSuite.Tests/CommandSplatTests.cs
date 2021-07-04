@@ -91,7 +91,8 @@ namespace EditorServicesCommandSuite.Tests
                     .Lines("    From = $mandatoryStringFrom")
                     .Lines("    SmtpServer = $stringSmtpServer")
                     .Lines("    Priority = $mailPriorityPriority")
-                    .Lines("    Subject = $mandatoryStringSubject")
+                    .Lines("    ReplyTo = $stringArrayReplyTo")
+                    .Lines("    Subject = $stringSubject")
                     .Lines("    To = $mandatoryStringArrayTo")
                     .Lines("    Credential = $pSCredentialCredential")
                     .Lines("    UseSsl = $switchParameterUseSsl")
@@ -119,7 +120,8 @@ namespace EditorServicesCommandSuite.Tests
                     .Lines("    DeliveryNotificationOption = $deliveryNotificationOptionsDeliveryNotificationOption")
                     .Lines("    SmtpServer = $stringSmtpServer")
                     .Lines("    Priority = $mailPriorityPriority")
-                    .Lines("    Subject = $mandatoryStringSubject")
+                    .Lines("    ReplyTo = $stringArrayReplyTo")
+                    .Lines("    Subject = $stringSubject")
                     .Lines("    To = $mandatoryStringArrayTo")
                     .Lines("    Credential = $pSCredentialCredential")
                     .Lines("    UseSsl = $switchParameterUseSsl")
@@ -264,7 +266,6 @@ namespace EditorServicesCommandSuite.Tests
                 TestBuilder.Create()
                     .Lines("$splat = @{")
                     .Lines("    From = $mandatoryStringFrom")
-                    .Lines("    Subject = $mandatoryStringSubject")
                     .Lines("    To = $mandatoryStringArrayTo")
                     .Lines("}")
                     .Texts("Send-MailMessage @splat"),
@@ -280,7 +281,6 @@ namespace EditorServicesCommandSuite.Tests
                 TestBuilder.Create()
                     .Lines("$splat = @{")
                     .Lines("    From = 'someone@someplace.com'")
-                    .Lines("    Subject = $mandatoryStringSubject")
                     .Lines("    To = $mandatoryStringArrayTo")
                     .Lines("}")
                     .Texts("Send-MailMessage @splat"),
@@ -383,7 +383,6 @@ namespace EditorServicesCommandSuite.Tests
                 TestBuilder.Create()
                     .Lines("$splat = @{")
                     .Lines("    From = $from")
-                    .Lines("    Subject = $subject")
                     .Lines("    To = $to")
                     .Lines("}")
                     .Texts("Send-MailMessage @splat"),
