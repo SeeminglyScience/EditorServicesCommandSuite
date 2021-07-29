@@ -26,7 +26,7 @@ Check out our **[documentation](https://github.com/SeeminglyScience/EditorServic
 ### Install from the Gallery
 
 ```powershell
-Install-Module EditorServicesCommandSuite -Scope CurrentUser -AllowPrerelease -RequiredVersion 1.0.0-beta3
+Install-Module EditorServicesCommandSuite -Scope CurrentUser -AllowPrerelease -RequiredVersion 1.0.0-beta4
 ```
 
 ### Add to Profile (Optional)
